@@ -381,31 +381,31 @@ export default function Dashboard() {
         </Card>
 
         {/* Right col: Greens to Watch + Inventory Health Pie Chart */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Card>
-            <div style={{ padding: '14px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>Greens to watch</div>
+            <div style={{ padding: '10px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Greens to watch</div>
                 <LinkBtn onClick={() => navigate('/inventory')}>
                   View inventory <ArrowRight size={10} />
                 </LinkBtn>
               </div>
-              <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 12 }}>
+              <div style={{ fontSize: 10, color: C.muted, marginBottom: 8 }}>
                 Available stock vs each green&apos;s minimum
               </div>
 
               {/* Segmented Health Summary Bar (Healthy · Low · Critical) */}
-              <div style={{ display: 'flex', gap: 3, height: 6, marginBottom: 14 }}>
+              <div style={{ display: 'flex', gap: 3, height: 5, marginBottom: 9 }}>
                 <div style={{ flex: 16, background: '#579D1C', borderRadius: 999 }} title="Healthy: 16 SKUs" />
                 <div style={{ flex: 4, background: '#CB8E1D', borderRadius: 999 }} title="Low: 4 SKUs" />
                 <div style={{ flex: 4, background: '#D63345', borderRadius: 999 }} title="Critical: 4 SKUs" />
               </div>
 
-              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Closest to minimum
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {GREENS_WATCH.map(g => {
                   const st = WATCH_STATUS_META[g.status] || WATCH_STATUS_META.healthy;
                   const pct = Math.min(100, Math.max(6, Math.round((g.current / (g.min || 1)) * 100)));
@@ -417,8 +417,8 @@ export default function Dashboard() {
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 12,
-                        padding: '3px 4px',
+                        gap: 10,
+                        padding: '2px 4px',
                         borderRadius: 6,
                         cursor: 'pointer',
                         transition: 'background 0.12s ease',
@@ -428,15 +428,15 @@ export default function Dashboard() {
                     >
                       {/* Left Progress Column */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 5 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{g.id}</span>
-                          <span style={{ fontSize: 10.5, color: C.muted }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 3 }}>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: C.text }}>{g.id}</span>
+                          <span style={{ fontSize: 10, color: C.muted }}>
                             {g.current.toLocaleString()} / {g.min.toLocaleString()} kg
                           </span>
                         </div>
                         <div style={{
                           width: '100%',
-                          height: 5,
+                          height: 4.5,
                           borderRadius: 999,
                           background: '#EFEAEF',
                           overflow: 'hidden',
@@ -453,13 +453,13 @@ export default function Dashboard() {
 
                       {/* Right Pill Badge */}
                       <span style={{
-                        fontSize: 10,
+                        fontSize: 9.5,
                         fontWeight: 700,
-                        padding: '4px 10px',
+                        padding: '2px 8px',
                         borderRadius: 999,
                         background: st.bg,
                         color: st.color,
-                        minWidth: 56,
+                        minWidth: 52,
                         textAlign: 'center',
                         flexShrink: 0,
                       }}>
@@ -470,18 +470,18 @@ export default function Dashboard() {
                 })}
               </div>
 
-              <div style={{ fontSize: 10, color: C.muted, marginTop: 12 }}>
+              <div style={{ fontSize: 9.5, color: C.muted, marginTop: 7 }}>
                 Opens Inventory filtered to the selected green.
               </div>
             </div>
           </Card>
 
-          {/* Inventory Health Pie Chart Card */}
+          {/* Compact Side-by-Side Inventory Health Pie Chart Card */}
           <Card style={{ overflow: 'visible' }}>
-            <div style={{ padding: '14px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Inventory health</div>
+            <div style={{ padding: '10px 14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>Inventory health</div>
                   <InfoTooltip
                     title="Site 1054 Inventory Health"
                     content="Breakdown of all 24 green coffee SKUs at Site 1054 by availability against open roasting demand and minimum safety thresholds."
@@ -491,105 +491,106 @@ export default function Dashboard() {
                     color={C.muted}
                   />
                 </div>
-                <span style={{ fontSize: 10, fontWeight: 600, color: C.subtle }}>24 SKUs</span>
-              </div>
-              <div style={{ fontSize: 10, color: C.muted, marginBottom: 8 }}>
-                Coverage across Site 1054 green stock
+                <span style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle }}>24 SKUs · Site 1054</span>
               </div>
 
-              {/* Pie Chart with Centered Total */}
-              <div style={{ position: 'relative', width: '100%', height: 158 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={INVENTORY_HEALTH_DATA}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={42}
-                      outerRadius={64}
-                      paddingAngle={3}
-                      stroke="none"
-                    >
-                      {INVENTORY_HEALTH_DATA.map(entry => (
-                        <Cell
-                          key={entry.key}
-                          fill={entry.color}
-                          style={{ cursor: 'pointer', outline: 'none' }}
-                          onClick={() => navigate(`/inventory?status=${entry.filterParam}`)}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(val, name) => [`${val} SKUs (${Math.round((val / 24) * 100)}%)`, name]}
-                      contentStyle={{
-                        background: '#241820',
-                        border: '1px solid #3D2835',
-                        borderRadius: 6,
-                        fontSize: 11,
-                        color: '#FFFFFF',
-                        padding: '6px 10px',
-                      }}
-                      itemStyle={{ color: '#FFFFFF', fontWeight: 600 }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {/* Compact Donut Chart on Left */}
+                <div style={{ position: 'relative', width: 92, height: 92, flexShrink: 0 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={INVENTORY_HEALTH_DATA}
+                        dataKey="value"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={27}
+                        outerRadius={42}
+                        paddingAngle={3}
+                        stroke="none"
+                      >
+                        {INVENTORY_HEALTH_DATA.map(entry => (
+                          <Cell
+                            key={entry.key}
+                            fill={entry.color}
+                            style={{ cursor: 'pointer', outline: 'none' }}
+                            onClick={() => navigate(`/inventory?status=${entry.filterParam}`)}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(val, name) => [`${val} SKUs (${Math.round((val / 24) * 100)}%)`, name]}
+                        contentStyle={{
+                          background: '#241820',
+                          border: '1px solid #3D2835',
+                          borderRadius: 6,
+                          fontSize: 10.5,
+                          color: '#FFFFFF',
+                          padding: '5px 8px',
+                        }}
+                        itemStyle={{ color: '#FFFFFF', fontWeight: 600 }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
 
-                {/* Center Label */}
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  pointerEvents: 'none',
-                }}>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: C.text, lineHeight: 1 }}>67%</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 600, color: C.muted, marginTop: 2 }}>Healthy</div>
+                  {/* Center Readout */}
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    pointerEvents: 'none',
+                  }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: C.text, lineHeight: 1 }}>67%</div>
+                    <div style={{ fontSize: 8.5, fontWeight: 600, color: C.muted, marginTop: 1 }}>Healthy</div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Compact Legend List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6 }}>
-                {INVENTORY_HEALTH_DATA.map(item => {
-                  const share = Math.round((item.value / 24) * 100);
-                  return (
-                    <div
-                      key={item.key}
-                      onClick={() => navigate(`/inventory?status=${item.filterParam}`)}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '4px 6px',
-                        borderRadius: 6,
-                        cursor: 'pointer',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.hover}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
-                        <span style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{item.name}</span>
+                {/* Compact Legend Rows on Right */}
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {INVENTORY_HEALTH_DATA.map(item => {
+                    const share = Math.round((item.value / 24) * 100);
+                    return (
+                      <div
+                        key={item.key}
+                        onClick={() => navigate(`/inventory?status=${item.filterParam}`)}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '3px 5px',
+                          borderRadius: 5,
+                          cursor: 'pointer',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                          <span style={{ width: 7, height: 7, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+                          <span style={{ fontSize: 10, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.name}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: C.text }}>{item.value}</span>
+                          <span style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            padding: '1px 5px',
+                            borderRadius: 10,
+                            background: item.bg,
+                            color: item.color,
+                          }}>
+                            {share}%
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <span style={{ fontSize: 10.5, fontWeight: 700, color: C.text }}>{item.value} SKUs</span>
-                        <span style={{
-                          fontSize: 9.5,
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          borderRadius: 10,
-                          background: item.bg,
-                          color: item.color,
-                        }}>
-                          {share}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </Card>
