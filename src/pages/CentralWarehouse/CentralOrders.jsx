@@ -891,48 +891,13 @@ export default function CentralOrders() {
             )}
           </div>
 
-          {/* Stepper Timeline */}
-          <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>
-              Order Lifecycle Audit Trail
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {(selectedOrder.timeline || []).map((step, idx) => {
-                const isLast = idx === (selectedOrder.timeline?.length || 0) - 1;
-                const isDone = step.state === 'done';
-                const isActive = step.state === 'active';
-                const isCritActive = step.state === 'active-crit';
-
-                return (
-                  <div key={idx} style={{ display: 'flex', gap: 10 }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 16 }}>
-                      {isDone ? (
-                        <div style={{ width: 15, height: 15, borderRadius: '50%', background: C.plum, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Check size={9} strokeWidth={3} />
-                        </div>
-                      ) : isActive ? (
-                        <div style={{ width: 15, height: 15, borderRadius: '50%', background: C.rose, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#fff' }} />
-                        </div>
-                      ) : isCritActive ? (
-                        <div style={{ width: 15, height: 15, borderRadius: '50%', background: C.crit, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <XCircle size={10} strokeWidth={2.5} />
-                        </div>
-                      ) : (
-                        <div style={{ width: 15, height: 15, borderRadius: '50%', border: `1.5px solid ${C.border}`, background: '#fff' }} />
-                      )}
-                      {!isLast && <div style={{ width: 1.5, flex: 1, minHeight: 18, background: isDone ? '#BFAAB6' : C.divider, margin: '2px 0' }} />}
-                    </div>
-
-                    <div style={{ paddingBottom: isLast ? 0 : 12, flex: 1 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{step.title}</div>
-                      <div style={{ fontSize: 9.5, color: C.subtle }}>{step.time} {step.actor ? `· ${step.actor}` : ''}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          {/* ── UNIFIED VERTICAL LIFECYCLE STEPPER & AUDIT TRAIL ── */}
+          <OrderLifecycleStepper
+            status={selectedOrder.status}
+            orientation="vertical"
+            timeline={selectedOrder.timeline}
+            title="Order Lifecycle Audit Trail"
+          />
         </div>
       </div>
 
