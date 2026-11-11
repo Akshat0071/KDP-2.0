@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, ArrowRight } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { useOrders, getOrderStatusMeta } from '../../context/OrdersContext';
+import { evaluateItemStatus } from '../../data/localInventory';
 import InfoTooltip from '../../components/ui/InfoTooltip';
 
 // ── Shared tokens ──────────────────────────────────────────────────────────────
@@ -19,26 +20,12 @@ const C = {
   crit:    '#D83040',
 };
 
-// ── Greens to Watch & Inventory Health ────────────────────────────────────────
-const GREENS_WATCH = [
-  { id: 'Gd-09', current: 250,  min: 700,  status: 'critical' },
-  { id: 'Ge-31', current: 350,  min: 1200, status: 'critical' },
-  { id: 'Gc-04', current: 800,  min: 1200, status: 'low'      },
-  { id: 'Gc-11', current: 1600, min: 1000, status: 'healthy'  },
-  { id: 'Ga-17', current: 3400, min: 2500, status: 'healthy'  },
-];
-
+// ── Greens to Watch Status Meta ───────────────────────────────────────────────
 const WATCH_STATUS_META = {
   critical: { label: 'Critical', bar: '#D63345', bg: '#F9E6EA', color: '#D63345' },
   low:      { label: 'Low',      bar: '#CB8E1D', bg: '#FBF1D8', color: '#C28515' },
   healthy:  { label: 'Healthy',  bar: '#579D1C', bg: '#ECF5E4', color: '#579D1C' },
 };
-
-const INVENTORY_HEALTH_DATA = [
-  { key: 'covered',  name: 'Healthy',          value: 16, color: '#579D1C', bg: '#ECF5E4', filterParam: 'covered'  },
-  { key: 'tight',    name: 'Low Stock',        value: 4,  color: '#CB8E1D', bg: '#FBF1D8', filterParam: 'tight'    },
-  { key: 'critical', name: 'Critical / Short', value: 4,  color: '#D63345', bg: '#F9E6EA', filterParam: 'critical' },
-];
 
 // ── Status badge ──────────────────────────────────────────────────────────────
 function DynamicStatusBadge({ status }) {
@@ -97,7 +84,42 @@ function LinkBtn({ children, onClick }) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
-  const { orders } = useOrders();
+  const { orders, localInventory } = useOrders();
+
+  // Compute live Greens to Watch & Inventory Health Pie Chart from shared localInventory
+  const inventoryStats = useMemo(() => {
+    const evaluated = localInventory.map(item => {
+      const st = evaluateItemStatus(item);
+      const watchStatus = (st.key === 'critical' || st.key === 'short')
+        ? 'critical'
+        : st.key === 'tight'
+          ? 'low'
+          : 'healthy';
+      return {
+        id: item.id,
+        current: item.available,
+        min: item.minThreshold,
+        ratio: item.available / (item.minThreshold || 1),
+        status: watchStatus,
+      };
+    });
+
+    const healthy = evaluated.filter(e => e.status === 'healthy').length;
+    const low = evaluated.filter(e => e.status === 'low').length;
+    const critical = evaluated.filter(e => e.status === 'critical').length;
+    const sorted = [...evaluated].sort((a, b) => a.ratio - b.ratio);
+    const watchList = sorted.slice(0, 5);
+    const total = localInventory.length || 24;
+    const healthyPct = Math.round((healthy / total) * 100);
+
+    const healthChartData = [
+      { key: 'covered',  name: 'Healthy',          value: healthy,  color: '#579D1C', bg: '#ECF5E4', filterParam: 'covered'  },
+      { key: 'tight',    name: 'Low Stock',        value: low,      color: '#CB8E1D', bg: '#FBF1D8', filterParam: 'tight'    },
+      { key: 'critical', name: 'Critical / Short', value: critical, color: '#D63345', bg: '#F9E6EA', filterParam: 'critical' },
+    ];
+
+    return { watchList, healthChartData, healthy, low, critical, total, healthyPct };
+  }, [localInventory]);
 
   // Filter orders for active site (Site 1054)
   const siteOrders = useMemo(() => {
@@ -396,9 +418,15 @@ export default function Dashboard() {
 
               {/* Segmented Health Summary Bar (Healthy · Low · Critical) */}
               <div style={{ display: 'flex', gap: 3, height: 5, marginBottom: 9 }}>
-                <div style={{ flex: 16, background: '#579D1C', borderRadius: 999 }} title="Healthy: 16 SKUs" />
-                <div style={{ flex: 4, background: '#CB8E1D', borderRadius: 999 }} title="Low: 4 SKUs" />
-                <div style={{ flex: 4, background: '#D63345', borderRadius: 999 }} title="Critical: 4 SKUs" />
+                {inventoryStats.healthy > 0 && (
+                  <div style={{ flex: inventoryStats.healthy, background: '#579D1C', borderRadius: 999 }} title={`Healthy: ${inventoryStats.healthy} SKUs`} />
+                )}
+                {inventoryStats.low > 0 && (
+                  <div style={{ flex: inventoryStats.low, background: '#CB8E1D', borderRadius: 999 }} title={`Low: ${inventoryStats.low} SKUs`} />
+                )}
+                {inventoryStats.critical > 0 && (
+                  <div style={{ flex: inventoryStats.critical, background: '#D63345', borderRadius: 999 }} title={`Critical: ${inventoryStats.critical} SKUs`} />
+                )}
               </div>
 
               <div style={{ fontSize: 11.5, fontWeight: 700, color: C.text, marginBottom: 6 }}>
@@ -406,7 +434,7 @@ export default function Dashboard() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {GREENS_WATCH.map(g => {
+                {inventoryStats.watchList.map(g => {
                   const st = WATCH_STATUS_META[g.status] || WATCH_STATUS_META.healthy;
                   const pct = Math.min(100, Math.max(6, Math.round((g.current / (g.min || 1)) * 100)));
 
@@ -491,7 +519,7 @@ export default function Dashboard() {
                     color={C.muted}
                   />
                 </div>
-                <span style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle }}>24 SKUs · Site 1054</span>
+                <span style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle }}>{inventoryStats.total} SKUs · Site 1054</span>
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -500,7 +528,7 @@ export default function Dashboard() {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={INVENTORY_HEALTH_DATA}
+                        data={inventoryStats.healthChartData}
                         dataKey="value"
                         nameKey="name"
                         cx="50%"
@@ -510,7 +538,7 @@ export default function Dashboard() {
                         paddingAngle={3}
                         stroke="none"
                       >
-                        {INVENTORY_HEALTH_DATA.map(entry => (
+                        {inventoryStats.healthChartData.map(entry => (
                           <Cell
                             key={entry.key}
                             fill={entry.color}
@@ -520,7 +548,7 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(val, name) => [`${val} SKUs (${Math.round((val / 24) * 100)}%)`, name]}
+                        formatter={(val, name) => [`${val} SKUs (${Math.round((val / inventoryStats.total) * 100)}%)`, name]}
                         contentStyle={{
                           background: '#241820',
                           border: '1px solid #3D2835',
@@ -544,15 +572,15 @@ export default function Dashboard() {
                     justifyContent: 'center',
                     pointerEvents: 'none',
                   }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: C.text, lineHeight: 1 }}>67%</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: C.text, lineHeight: 1 }}>{inventoryStats.healthyPct}%</div>
                     <div style={{ fontSize: 8.5, fontWeight: 600, color: C.muted, marginTop: 1 }}>Healthy</div>
                   </div>
                 </div>
 
                 {/* Compact Legend Rows on Right */}
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {INVENTORY_HEALTH_DATA.map(item => {
-                    const share = Math.round((item.value / 24) * 100);
+                  {inventoryStats.healthChartData.map(item => {
+                    const share = Math.round((item.value / inventoryStats.total) * 100);
                     return (
                       <div
                         key={item.key}

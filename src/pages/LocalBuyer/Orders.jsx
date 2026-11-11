@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Truck, RefreshCw } from 'lucide-react';
+import { Search, Truck, RefreshCw, Plus, Sparkles } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
+import { findCheapestLocalOption } from '../../data/localInventory';
 
 // ── Color tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -50,13 +51,26 @@ export default function Orders() {
 
   const {
     orders,
+    localInventory,
     buyerApprove,
     buyerRequestTransfer,
     systemDeliver,
     buyerReceive,
     buyerClose,
+    createOrder,
     resetOrders,
   } = useOrders();
+
+  // New Demand Order Modal State
+  const [showNewOrderModal, setShowNewOrderModal] = useState(false);
+  const [newGreenId, setNewGreenId] = useState('Gh-08');
+  const [newOrderQty, setNewOrderQty] = useState('500');
+  const [newNeedBy, setNewNeedBy] = useState('Nov 16');
+
+  const newOrderPreview = useMemo(() => {
+    const qty = parseInt(newOrderQty, 10) || 0;
+    return findCheapestLocalOption(newGreenId, qty, localInventory);
+  }, [newGreenId, newOrderQty, localInventory]);
 
   // Filter orders for active site (Site 1054)
   const siteOrders = useMemo(() => {
@@ -173,7 +187,35 @@ export default function Orders() {
 
   const handleBuyerClose = () => {
     buyerClose(currentOrder.id);
-    triggerNotice(`Order ${currentOrder.id} closed and booked into available inventory.`);
+    triggerNotice(`Order ${currentOrder.id} closed and reconciled in Site 1054 inventory.`);
+  };
+
+  const handleCreateDemandOrder = (e) => {
+    e.preventDefault();
+    const qty = Math.max(50, parseInt(newOrderQty, 10) || 500);
+    const invItem = localInventory.find(i => i.id === newGreenId);
+    const created = createOrder({
+      greenId: newGreenId,
+      greenName: invItem?.name || newGreenId,
+      orderQuantity: qty,
+      unitPrice: invItem?.price || 4.10,
+      needBy: newNeedBy || 'Nov 16',
+    });
+    setShowNewOrderModal(false);
+    setStatusFilter('all');
+    setSelectedOrderId(created.id);
+    setSelectedOptionIndex(0);
+
+    if (created.autoApproved) {
+      triggerNotice(
+        `Order ${created.id} auto-approved by system using cheapest local option (${created.allocatedGreenId} · ${created.allocatedGreenName}, $${created.unitPrice.toFixed(2)}/kg) — ${qty.toLocaleString()} kg deducted from inventory.`
+      );
+    } else {
+      triggerNotice(
+        `Order ${created.id} created as New Demand (local stock & alternates insufficient — Central Hub review required).`,
+        'warn'
+      );
+    }
   };
 
   const handleProceedToConfirm = () => {
@@ -236,26 +278,48 @@ export default function Orders() {
             </p>
           </div>
 
-          <button
-            onClick={resetOrders}
-            title="Reset demo data"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '6px 12px',
-              borderRadius: 6,
-              border: `1px solid ${C.border}`,
-              background: '#FFFFFF',
-              color: C.muted,
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            <RefreshCw size={12} />
-            Reset Orders
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              onClick={() => setShowNewOrderModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 12px',
+                borderRadius: 6,
+                border: 'none',
+                background: C.rose,
+                color: '#FFFFFF',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <Plus size={12} />
+              New Demand Order
+            </button>
+
+            <button
+              onClick={resetOrders}
+              title="Reset demo data"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 12px',
+                borderRadius: 6,
+                border: `1px solid ${C.border}`,
+                background: '#FFFFFF',
+                color: C.muted,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <RefreshCw size={12} />
+              Reset Orders
+            </button>
+          </div>
         </div>
 
         {/* ── Status Lifecycle Filter Pills ── */}
@@ -519,7 +583,26 @@ export default function Orders() {
                   {currentOrder.id}
                 </div>
               </div>
-              <QueueStatusBadge status={currentOrder.status} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {currentOrder.autoApproved && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '2px 8px',
+                    borderRadius: 20,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    background: '#EDF7F1',
+                    color: '#1E8A3C',
+                    border: '1px solid #B4DDBD',
+                  }}>
+                    <Sparkles size={10} />
+                    Auto-Approved by System
+                  </span>
+                )}
+                <QueueStatusBadge status={currentOrder.status} />
+              </div>
             </div>
 
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
@@ -544,6 +627,11 @@ export default function Orders() {
                   {currentOrder.greenId}
                 </div>
                 <div style={{ fontSize: 10, color: C.muted }}>{currentOrder.greenName}</div>
+                {currentOrder.allocatedGreenId && currentOrder.allocatedGreenId !== currentOrder.greenId && (
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: '#1E8A3C', marginTop: 2 }}>
+                    Fulfilled via Alt: {currentOrder.allocatedGreenId}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1132,6 +1220,195 @@ export default function Orders() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── New Demand Order Modal (with Live System Auto-Approval Cost Evaluation) ── */}
+      {showNewOrderModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(30, 20, 24, 0.45)',
+            backdropFilter: 'blur(2px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 150,
+          }}
+          onClick={() => setShowNewOrderModal(false)}
+        >
+          <form
+            onSubmit={handleCreateDemandOrder}
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#FFFFFF',
+              borderRadius: 10,
+              width: 480,
+              maxWidth: '92vw',
+              padding: '20px',
+              border: `1px solid ${C.border}`,
+              boxShadow: '0 12px 32px rgba(0,0,0,0.15)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>New Production Demand Order</div>
+                <div style={{ fontSize: 10.5, color: C.muted }}>
+                  Auto-approved if Site 1054 same-green or approved alternate covers demand (cheapest option wins).
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewOrderModal(false)}
+                style={{ background: 'none', border: 'none', fontSize: 16, cursor: 'pointer', color: C.subtle }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', marginBottom: 4 }}>
+                  Requested Green Material (Site 1054)
+                </label>
+                <select
+                  value={newGreenId}
+                  onChange={e => setNewGreenId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: 6,
+                    border: `1px solid ${C.border}`,
+                    fontSize: 12,
+                    color: C.text,
+                    background: '#FFFFFF',
+                  }}
+                >
+                  {localInventory.map(inv => (
+                    <option key={inv.id} value={inv.id}>
+                      {inv.id} · {inv.name} ({inv.available.toLocaleString()} kg on-hand · ${inv.price.toFixed(2)}/kg)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Order Quantity (kg)
+                  </label>
+                  <input
+                    type="number"
+                    min="50"
+                    step="50"
+                    value={newOrderQty}
+                    onChange={e => setNewOrderQty(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: `1px solid ${C.border}`,
+                      fontSize: 12,
+                      color: C.text,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', marginBottom: 4 }}>
+                    Need-By Date
+                  </label>
+                  <input
+                    type="text"
+                    value={newNeedBy}
+                    onChange={e => setNewNeedBy(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: `1px solid ${C.border}`,
+                      fontSize: 12,
+                      color: C.text,
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Live Cost Evaluation Preview */}
+            <div style={{
+              padding: '10px 12px',
+              borderRadius: 8,
+              background: newOrderPreview.winner ? '#EDF7F1' : '#FFF7E6',
+              border: `1px solid ${newOrderPreview.winner ? '#B4DDBD' : '#F5D68A'}`,
+              fontSize: 11,
+              lineHeight: 1.45,
+            }}>
+              {newOrderPreview.winner ? (
+                <>
+                  <div style={{ fontWeight: 700, color: '#1E8A3C', marginBottom: 2 }}>
+                    ✓ System Auto-Approval Will Trigger ($0 freight)
+                  </div>
+                  <div style={{ color: C.text }}>
+                    Cheapest local option: <strong>{newOrderPreview.winner.greenId} · {newOrderPreview.winner.greenName}</strong>{' '}
+                    ({newOrderPreview.winner.mode === 'local-alternate' ? 'Approved Alternate' : 'Same Green'}) at{' '}
+                    <strong>${newOrderPreview.winner.unitPrice.toFixed(2)}/kg</strong> (${newOrderPreview.winner.totalCost.toLocaleString()} total).
+                    Local inventory will be deducted immediately.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontWeight: 700, color: '#B86A00', marginBottom: 2 }}>
+                    ⚠ Central Warehouse Review Needed (Status: New)
+                  </div>
+                  <div style={{ color: C.text }}>
+                    Neither local {newGreenId} ({newOrderPreview.requestedItem?.available?.toLocaleString() || 0} kg) nor approved alternates cover{' '}
+                    {(parseInt(newOrderQty, 10) || 0).toLocaleString()} kg. Order will enter <strong>new</strong> status for Warehouse 1055 transfer ($589 freight).
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
+              <button
+                type="button"
+                onClick={() => setShowNewOrderModal(false)}
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 6,
+                  border: `1px solid ${C.border}`,
+                  background: '#FFFFFF',
+                  color: C.text,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                style={{
+                  padding: '7px 16px',
+                  borderRadius: 6,
+                  border: 'none',
+                  background: newOrderPreview.winner ? '#1E8A3C' : C.rose,
+                  color: '#FFFFFF',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                {newOrderPreview.winner ? 'Create & Auto-Approve' : 'Create Demand Order'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

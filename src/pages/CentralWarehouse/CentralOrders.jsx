@@ -56,9 +56,9 @@ export default function CentralOrders() {
     resetOrders,
   } = useOrders();
 
-  // Filter orders that involve Central Warehouses (or have warehouse routing)
+  // Filter orders that involve Central Warehouses (exclude locally-fulfilled orders)
   const centralOrders = useMemo(() => {
-    return orders.filter(o => o.warehouse && o.status !== 'new');
+    return orders.filter(o => o.warehouse && !o.isLocalFulfilled && o.status !== 'new');
   }, [orders]);
 
   const [selectedOrderId, setSelectedOrderId] = useState('PO-2843');

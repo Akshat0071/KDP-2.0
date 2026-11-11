@@ -1,5 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
+import { INITIAL_LOCAL_INVENTORY, findCheapestLocalOption } from '../data/localInventory';
 
 const OrdersContext = createContext(null);
 
@@ -238,7 +239,7 @@ const INITIAL_SYNCED_ORDERS = [
     ],
   },
 
-  // 1b. NEW DEMAND (LOCAL ALTERNATE): Ethiopia Yirgacheffe Natural (Site 1054) - Covered by Local Alternate Gc-11!
+  // 1b. AUTO-APPROVED BY SYSTEM (LOCAL ALTERNATE): Ethiopia Yirgacheffe Natural (Site 1054) -> Gc-11 (Cheapest local option)
   {
     id: 'PO-2848',
     siteId: '1054',
@@ -248,6 +249,11 @@ const INITIAL_SYNCED_ORDERS = [
     warehouseId: '1055',
     shipmentId: null,
     isLocalFulfilled: true,
+    autoApproved: true,
+    inventoryAdjusted: true,
+    allocatedGreenId: 'Gc-11',
+    allocatedGreenName: 'Brazil Cerrado',
+    fulfillmentMode: 'local-alternate',
     shippingCost: 0,
     fgMaterialId: 'FG-1805',
     fgMaterialDescription: 'Ethiopia Reserve Single Origin Whole Bean 12oz',
@@ -262,32 +268,33 @@ const INITIAL_SYNCED_ORDERS = [
     totalDelivered: 3780,
     needBy: 'Nov 14',
     needByFull: 'Nov 14, 2026',
-    status: 'new',
-    buyerName: 'Maya Torres',
-    buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
-    notes: 'Local Gd-09 stock is 250 kg (650 kg short). Approved flavor-equivalent alternate Gc-11 (Brazil Cerrado Natural) has 1,400 kg in Site 1054 inventory — zero freight needed.',
+    status: 'approved',
+    buyerName: 'System (Auto-Approved)',
+    buyerTitle: 'Auto-Sourcing Engine · Site 1054 Plano Roasting',
+    notes: 'Auto-approved by system: Gd-09 local stock (250 kg) is insufficient, so cheapest local approved alternate Gc-11 (Brazil Cerrado, $4.20/kg, $0 freight) was allocated from Site 1054 inventory.',
     category: 'decision',
     urgencyRank: 2,
     cascade: [
       { step: '1 Local same green', note: 'Insufficient Gd-09 stock (250 kg / 900 kg in Site 1054)', status: 'fail' },
-      { step: '2 Local approved alternates', note: 'Gc-11 Brazil Cerrado has 1,400 kg available locally', status: 'pass' },
-      { step: '3 Central warehouse', note: 'Bypassed — local alternate saves $589 freight', status: 'skip' },
+      { step: '2 Local approved alternates', note: 'Auto-allocated Gc-11 Brazil Cerrado ($4.20/kg · $0 freight)', status: 'pass' },
+      { step: '3 Central warehouse', note: 'Bypassed — local alternate saves $1,174 vs hub ($4,954)', status: 'skip' },
     ],
-    cascadeNote: 'Resolved at Cascade Step 2 (Local Approved Alternate Gc-11 in Site 1054). No hub transfer or freight shipment required.',
+    cascadeNote: 'Auto-approved by system via cheapest local inventory option (Gc-11 Brazil Cerrado). Inventory updated in Site 1054.',
     options: [
       {
         id: 'opt-2848-1',
         tag: 'LOCAL APPROVED ALTERNATE · SITE 1054',
         bestValue: true,
         isLocalFulfilled: true,
+        greenId: 'Gc-11',
         title: 'Local Inventory Alternate — Gc-11 Brazil Cerrado',
-        subtitle: '1,400 kg on-hand in Site 1054 · covers full 900 kg demand immediately',
+        subtitle: 'Allocated 900 kg from Site 1054 stock · $0 freight',
         totalPrice: '$3,780',
         perKg: '$4.20 / kg',
         baselineComparison: 'Saves $1,174 vs Warehouse 1055 transfer ($0 freight)',
         eta: 'Immediate · On-site stock',
         etaRisk: false,
-        optionName: 'Gc-11 · Brazil Cerrado Natural (Alt for Gd-09)',
+        optionName: 'Gc-11 · Brazil Cerrado (Alt for Gd-09)',
         optionSub: 'Site 1054 Local Inventory Allocation',
         breakdown: [
           { label: 'Alternate green cost (900 kg × $4.20)', val: '$3,780' },
@@ -295,36 +302,10 @@ const INITIAL_SYNCED_ORDERS = [
         ],
         totalDelivered: '$3,780',
         totalPerKg: '$4.20 per kg',
-        savingsTag: 'OPTIMAL LOCAL ALTERNATE · $0 FREIGHT',
+        savingsTag: 'AUTO-APPROVED · CHEAPEST LOCAL OPTION',
         whyWins: [
-          'Resolved at Cascade Step 2 using on-site Site 1054 inventory (1,400 kg available)',
+          'Resolved at Cascade Step 2 using Site 1054 inventory',
           'Eliminates $589 Warehouse 1055 freight cost & carrier transit time',
-        ],
-      },
-      {
-        id: 'opt-2848-2',
-        tag: 'CENTRAL WAREHOUSE · WAREHOUSE 1055',
-        bestValue: false,
-        isLocalFulfilled: false,
-        title: 'Warehouse 1055 Central Transfer (Exact Gd-09)',
-        subtitle: '2,100 kg available at hub · requires $589 carrier shipment',
-        totalPrice: '$4,954',
-        perKg: '$5.50 / kg',
-        baselineComparison: '+$1,174 above local alternate landed cost',
-        eta: 'ETA Nov 14 · Hub freight transit',
-        etaRisk: false,
-        optionName: 'Gd-09 · Ethiopia Yirgacheffe Natural',
-        optionSub: 'Warehouse 1055 Central Dispatch',
-        breakdown: [
-          { label: 'Exact green cost (900 kg × $4.85)', val: '$4,365' },
-          { label: 'Shipping cost (fixed)', val: '$589' },
-        ],
-        totalDelivered: '$4,954',
-        totalPerKg: '$5.50 per kg',
-        savingsTag: 'EXACT GREEN · +$589 FREIGHT',
-        whyWins: [
-          'Exact bean spec without recipe substitution',
-          'Uses designated lowest-freight hub (Warehouse 1055)',
         ],
       },
     ],
@@ -334,7 +315,7 @@ const INITIAL_SYNCED_ORDERS = [
     selectedOption: 0,
     timeline: [
       { title: 'Demand batch submitted by Roasting Production Team', time: 'Today 09:05 AM', actor: 'Production Scheduler', state: 'done' },
-      { title: 'Sourcing cascade resolved at Step 2 — Local Alternate Gc-11 (1,400 kg in Site 1054)', time: 'Today 09:10 AM', actor: 'Sourcing Engine', state: 'active' },
+      { title: 'Auto-Approved by System: Local Alternate Gc-11 (Brazil Cerrado) selected at $4.20/kg ($0 freight)', time: 'Today 09:06 AM', actor: 'System (Auto-Sourcing Engine)', state: 'active' },
     ],
   },
 
@@ -913,15 +894,40 @@ const INITIAL_SYNCED_ORDERS = [
 ];
 
 const STORAGE_KEY = 'kdp_synced_orders';
+const INVENTORY_STORAGE_KEY = 'kdp_local_inventory';
 
 export function OrdersProvider({ children }) {
+  const [localInventory, setLocalInventory] = useState(() => {
+    try {
+      const saved = localStorage.getItem(INVENTORY_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(INITIAL_LOCAL_INVENTORY));
+      return INITIAL_LOCAL_INVENTORY;
+    } catch {
+      return INITIAL_LOCAL_INVENTORY;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(localInventory));
+    } catch {
+      // Storage quota or disabled
+    }
+  }, [localInventory]);
+
   const [orders, setOrders] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Reconcile missing seed orders & shipmentId / isLocalFulfilled schema additions onto cached orders
+          // Reconcile missing seed orders & shipmentId / isLocalFulfilled / autoApproved schema additions
           const seedMap = new Map(INITIAL_SYNCED_ORDERS.map(o => [o.id, o]));
           const existingIds = new Set(parsed.map(o => o.id));
           const missingSeeds = INITIAL_SYNCED_ORDERS.filter(o => !existingIds.has(o.id));
@@ -935,11 +941,13 @@ export function OrdersProvider({ children }) {
             if (ord.isLocalFulfilled === undefined && seed.isLocalFulfilled !== undefined) {
               patch.isLocalFulfilled = seed.isLocalFulfilled;
             }
-            // Fix legacy PO-2831 tracking/shipmentId alignment if needed
+            // Upgrade untouched PO-2848 seed to reflect system auto-approval rule
+            if (ord.id === 'PO-2848' && ord.autoApproved === undefined) {
+              return seed;
+            }
             if (ord.id === 'PO-2831' && ord.shipmentId === 'SH-7813') {
               patch.shipmentId = 'SH-7810';
             }
-            // Backfill shipmentId if user already advanced an order to dispatched+ before this update
             const postDispatch = ['dispatched', 'in transit', 'delivered', 'received', 'closed'];
             if (!ord.isLocalFulfilled && !seed.isLocalFulfilled && postDispatch.includes((ord.status || '').toLowerCase()) && !ord.shipmentId && !patch.shipmentId) {
               const numSuffix = ord.id.replace(/\D/g, '') || '7899';
@@ -980,12 +988,33 @@ export function OrdersProvider({ children }) {
 
   // ── 1. Local Buyer: Approve sourcing option (new -> approved) ──────────────
   const buyerApprove = (orderId, chosenOption = null) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    const opt = chosenOption || (targetOrder?.options && targetOrder.options[0]);
+    const optIsLocal = opt?.isLocalFulfilled ?? opt?.tag?.includes('LOCAL') ?? opt?.source?.includes('LOCAL');
+    const isLocal = optIsLocal !== undefined ? Boolean(optIsLocal) : Boolean(targetOrder?.isLocalFulfilled);
+    const allocatedId = opt?.greenId || targetOrder?.allocatedGreenId || targetOrder?.greenId;
+
+    if (targetOrder && isLocal && !targetOrder.inventoryAdjusted && allocatedId) {
+      const qty = targetOrder.orderQuantity || 0;
+      setLocalInventory(prevInv =>
+        prevInv.map(inv => {
+          if (inv.id !== allocatedId) return inv;
+          return {
+            ...inv,
+            available: Math.max(0, inv.available - qty),
+            updated: 'Just now',
+            openOrders: [
+              { id: targetOrder.id, qty: `${qty.toLocaleString()} kg (Allocated)`, needBy: targetOrder.needBy },
+              ...(inv.openOrders || []).filter(entry => entry.id !== targetOrder.id),
+            ],
+          };
+        })
+      );
+    }
+
     setOrders(prev =>
       prev.map(o => {
         if (o.id !== orderId) return o;
-        const opt = chosenOption || (o.options && o.options[0]);
-        const optIsLocal = opt?.isLocalFulfilled ?? opt?.tag?.includes('LOCAL') ?? opt?.source?.includes('LOCAL');
-        const isLocal = optIsLocal !== undefined ? Boolean(optIsLocal) : Boolean(o.isLocalFulfilled);
         const optIdx = o.options ? Math.max(0, o.options.findIndex(item => item.id === opt?.id)) : 0;
         const updatedTimeline = appendTimeline(
           o,
@@ -997,6 +1026,8 @@ export function OrdersProvider({ children }) {
           ...o,
           status: 'approved',
           isLocalFulfilled: isLocal,
+          inventoryAdjusted: isLocal ? true : Boolean(o.inventoryAdjusted),
+          allocatedGreenId: isLocal ? allocatedId : o.allocatedGreenId,
           shipmentId: isLocal ? null : o.shipmentId,
           shippingCost: isLocal ? 0 : (o.shippingCost || 589),
           selectedOption: optIdx,
@@ -1167,18 +1198,63 @@ export function OrdersProvider({ children }) {
 
   // ── 8. Local Buyer / System: Book into inventory and close (received -> closed)
   const buyerClose = (orderId) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (targetOrder) {
+      const qty = targetOrder.acceptedQuantity || targetOrder.orderQuantity || 0;
+      const targetGreenId = targetOrder.allocatedGreenId || targetOrder.greenId;
+
+      setLocalInventory(prevInv =>
+        prevInv.map(inv => {
+          // Case A: Central Warehouse transfer arrived & closed -> credit available stock
+          if (!targetOrder.isLocalFulfilled && inv.id === targetOrder.greenId) {
+            return {
+              ...inv,
+              available: targetOrder.inventoryAdjusted ? inv.available : inv.available + qty,
+              incoming: Math.max(0, inv.incoming - qty),
+              openDemand: Math.max(0, inv.openDemand - (targetOrder.orderQuantity || qty)),
+              updated: 'Just now',
+              openOrders: (inv.openOrders || []).filter(entry => entry.id !== targetOrder.id),
+            };
+          }
+          // Case B: Local fulfillment closed -> deduct stock if not yet deducted & clear open demand
+          if (targetOrder.isLocalFulfilled && inv.id === targetGreenId) {
+            return {
+              ...inv,
+              available: targetOrder.inventoryAdjusted ? inv.available : Math.max(0, inv.available - qty),
+              openDemand: inv.id === targetOrder.greenId
+                ? Math.max(0, inv.openDemand - (targetOrder.orderQuantity || qty))
+                : inv.openDemand,
+              updated: 'Just now',
+              openOrders: (inv.openOrders || []).filter(entry => entry.id !== targetOrder.id),
+            };
+          }
+          // Also clear openDemand from originally requested green if fulfilled via alternate
+          if (targetOrder.isLocalFulfilled && inv.id === targetOrder.greenId && inv.id !== targetGreenId) {
+            return {
+              ...inv,
+              openDemand: Math.max(0, inv.openDemand - (targetOrder.orderQuantity || qty)),
+              updated: 'Just now',
+              openOrders: (inv.openOrders || []).filter(entry => entry.id !== targetOrder.id),
+            };
+          }
+          return inv;
+        })
+      );
+    }
+
     setOrders(prev =>
       prev.map(o => {
         if (o.id !== orderId) return o;
         const updatedTimeline = appendTimeline(
           o,
-          `Order closed and stock credited to available roasting inventory`,
+          `Order closed and stock reconciled in Site 1054 inventory`,
           'Maya Torres (Local Buyer)',
           'done'
         );
         return {
           ...o,
           status: 'closed',
+          inventoryAdjusted: true,
           updatedDate: new Date().toISOString(),
           timeline: updatedTimeline,
         };
@@ -1209,31 +1285,238 @@ export function OrdersProvider({ children }) {
     );
   };
 
-  // ── Create a new order (starts in 'new') ───────────────────────────────────
+  // ── Create a new order: auto-approves using cheapest local same/alternate green when available
   const createOrder = (orderData) => {
-    const newOrder = {
-      id: `PO-${Math.floor(2800 + Math.random() * 900)}`,
-      siteId: orderData.siteId || '1054',
-      destinationSite: 'Site 1054 — Plano Roasting',
-      destinationCity: 'Plano, TX',
-      warehouse: 'Warehouse 1055',
-      warehouseId: '1055',
-      shippingCost: 589,
-      status: 'new',
-      orderQuantity: orderData.orderQuantity || 1000,
-      quantityStr: `${(orderData.orderQuantity || 1000).toLocaleString()} kg`,
-      acceptedQuantity: 0,
-      unitPrice: orderData.unitPrice || 4.10,
-      totalDelivered: (orderData.orderQuantity || 1000) * (orderData.unitPrice || 4.10) + 589,
-      needBy: orderData.needBy || 'Nov 15',
-      needByFull: orderData.needByFull || 'Nov 15, 2026',
-      buyerName: 'Maya Torres',
-      buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
-      timeline: [
-        { title: 'Demand order created', time: 'Just now', actor: 'Local Buyer', state: 'active' },
-      ],
-      ...orderData,
-    };
+    const qty = Number(orderData.orderQuantity) || 1000;
+    const greenId = orderData.greenId || 'Gc-14';
+    const needBy = orderData.needBy || 'Nov 15';
+    const needByFull = orderData.needByFull || `${needBy}, 2026`;
+    const newId = orderData.id || `PO-${Math.floor(2880 + Math.random() * 110)}`;
+
+    const { winner, candidates, requestedItem } = findCheapestLocalOption(greenId, qty, localInventory);
+    const reqName = orderData.greenName || requestedItem?.name || greenId;
+    const reqPrice = Number(orderData.unitPrice) || requestedItem?.price || 4.10;
+
+    let newOrder;
+
+    if (winner) {
+      const isAlt = winner.mode === 'local-alternate';
+      const sameCandidate = candidates.find(c => c.mode === 'local-same');
+      const savingsNote = isAlt && sameCandidate
+        ? `Cheaper than local same-green ${greenId} ($${sameCandidate.unitPrice.toFixed(2)}/kg · $${sameCandidate.totalCost.toLocaleString()})`
+        : isAlt
+          ? `Local ${greenId} short (${requestedItem?.available || 0} / ${qty} kg); alternate ${winner.greenId} covers full demand at $0 freight`
+          : `Lowest-cost local stock ($${winner.unitPrice.toFixed(2)}/kg · $0 freight)`;
+
+      newOrder = {
+        id: newId,
+        siteId: orderData.siteId || '1054',
+        destinationSite: 'Site 1054 — Plano Roasting',
+        destinationCity: 'Plano, TX',
+        warehouse: 'Warehouse 1055',
+        warehouseId: '1055',
+        shipmentId: null,
+        isLocalFulfilled: true,
+        autoApproved: true,
+        inventoryAdjusted: true,
+        allocatedGreenId: winner.greenId,
+        allocatedGreenName: winner.greenName,
+        fulfillmentMode: winner.mode,
+        shippingCost: 0,
+        fgMaterialId: orderData.fgMaterialId || 'FG-4010',
+        fgMaterialDescription: orderData.fgMaterialDescription || `${reqName} Roasting Batch`,
+        brand: orderData.brand || 'Green Mountain Coffee Roasters',
+        brandType: orderData.brandType || 'Production Run',
+        greenId,
+        greenName: reqName,
+        orderQuantity: qty,
+        quantityStr: `${qty.toLocaleString()} kg`,
+        acceptedQuantity: qty,
+        unitPrice: winner.unitPrice,
+        totalDelivered: winner.totalCost,
+        needBy,
+        needByFull,
+        status: 'approved',
+        buyerName: 'System (Auto-Approved)',
+        buyerTitle: 'Auto-Sourcing Engine · Site 1054 Plano Roasting',
+        notes: `Auto-approved by system using ${isAlt ? 'local approved alternate' : 'local same-green'} ${winner.greenId} (${winner.greenName}). ${savingsNote}. Inventory deducted by ${qty.toLocaleString()} kg.`,
+        category: 'decision',
+        urgencyRank: 1,
+        cascade: [
+          {
+            step: '1 Local same green',
+            note: sameCandidate
+              ? `${sameCandidate.available.toLocaleString()} kg available at $${sameCandidate.unitPrice.toFixed(2)}/kg`
+              : `Insufficient ${greenId} (${requestedItem?.available || 0} / ${qty} kg in Site 1054)`,
+            status: isAlt ? (sameCandidate ? 'skip' : 'fail') : 'pass',
+          },
+          {
+            step: '2 Local approved alternates',
+            note: isAlt
+              ? `Selected cheapest local option: ${winner.greenId} (${winner.greenName}) at $${winner.unitPrice.toFixed(2)}/kg`
+              : 'Not needed — same green is lowest local cost',
+            status: isAlt ? 'pass' : 'skip',
+          },
+          {
+            step: '3 Central warehouse',
+            note: 'Bypassed — fulfilled locally at $0 freight',
+            status: 'skip',
+          },
+        ],
+        cascadeNote: `System auto-approved cheapest local inventory option (${winner.greenId} · $${winner.totalCost.toLocaleString()} total, $0 freight).`,
+        options: candidates.map((cand, idx) => ({
+          id: `opt-${newId}-${idx + 1}`,
+          tag: cand.mode === 'local-alternate'
+            ? 'LOCAL APPROVED ALTERNATE · SITE 1054'
+            : 'LOCAL SAME GREEN · SITE 1054',
+          bestValue: idx === 0,
+          isLocalFulfilled: true,
+          greenId: cand.greenId,
+          title: `${cand.mode === 'local-alternate' ? 'Local Alternate' : 'Local Stock'} — ${cand.greenId} ${cand.greenName}`,
+          subtitle: `${cand.available.toLocaleString()} kg available on-site · $0 freight`,
+          totalPrice: `$${cand.totalCost.toLocaleString()}`,
+          perKg: `$${cand.unitPrice.toFixed(2)} / kg`,
+          baselineComparison: idx === 0 ? 'Cheapest local inventory option (Auto-selected)' : 'Higher unit cost local option',
+          eta: 'Immediate · On-site stock',
+          etaRisk: false,
+          optionName: `${cand.greenId} · ${cand.greenName}`,
+          optionSub: 'Site 1054 Local Inventory Allocation',
+          breakdown: [
+            { label: `Green cost (${qty.toLocaleString()} kg × $${cand.unitPrice.toFixed(2)})`, val: `$${cand.totalCost.toLocaleString()}` },
+            { label: 'Shipping cost', val: '$0 (Local Stock)' },
+          ],
+          totalDelivered: `$${cand.totalCost.toLocaleString()}`,
+          totalPerKg: `$${cand.unitPrice.toFixed(2)} per kg`,
+          savingsTag: idx === 0 ? 'AUTO-APPROVED · CHEAPEST LOCAL OPTION' : 'ALTERNATIVE LOCAL OPTION',
+          whyWins: [savingsNote],
+        })),
+        ineligible: [],
+        selectedOption: 0,
+        timeline: [
+          { title: 'Demand order registered from production schedule', time: 'Just now', actor: 'Production Scheduler', state: 'done' },
+          {
+            title: `Auto-Approved by System: ${winner.greenId} (${winner.greenName}) selected at $${winner.unitPrice.toFixed(2)}/kg · $0 freight`,
+            time: 'Just now',
+            actor: 'System (Auto-Sourcing Engine)',
+            state: 'active',
+          },
+        ],
+      };
+
+      // Update local inventory immediately for the allocated green
+      setLocalInventory(prevInv =>
+        prevInv.map(inv => {
+          if (inv.id === winner.greenId) {
+            return {
+              ...inv,
+              available: Math.max(0, inv.available - qty),
+              updated: 'Just now',
+              openOrders: [
+                {
+                  id: newId,
+                  qty: `${qty.toLocaleString()} kg (${isAlt ? `Auto Alt for ${greenId}` : 'Auto Same Green'})`,
+                  needBy,
+                },
+                ...(inv.openOrders || []),
+              ],
+            };
+          }
+          return inv;
+        })
+      );
+    } else {
+      const beanTotal = Math.round(qty * reqPrice);
+      const hubTotal = beanTotal + 589;
+      newOrder = {
+        id: newId,
+        siteId: orderData.siteId || '1054',
+        destinationSite: 'Site 1054 — Plano Roasting',
+        destinationCity: 'Plano, TX',
+        warehouse: 'Warehouse 1055',
+        warehouseId: '1055',
+        shipmentId: null,
+        isLocalFulfilled: false,
+        autoApproved: false,
+        inventoryAdjusted: false,
+        shippingCost: 589,
+        fgMaterialId: orderData.fgMaterialId || 'FG-4010',
+        fgMaterialDescription: orderData.fgMaterialDescription || `${reqName} Roasting Batch`,
+        brand: orderData.brand || 'Green Mountain Coffee Roasters',
+        brandType: orderData.brandType || 'Production Run',
+        greenId,
+        greenName: reqName,
+        orderQuantity: qty,
+        quantityStr: `${qty.toLocaleString()} kg`,
+        acceptedQuantity: 0,
+        unitPrice: reqPrice,
+        totalDelivered: hubTotal,
+        needBy,
+        needByFull,
+        status: 'new',
+        buyerName: 'Maya Torres',
+        buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
+        notes: `Local ${greenId} stock (${requestedItem?.available || 0} kg) and approved alternates cannot cover ${qty.toLocaleString()} kg. Pending buyer review for Warehouse 1055 transfer.`,
+        category: 'decision',
+        urgencyRank: 1,
+        cascade: [
+          { step: '1 Local same green', note: `Insufficient stock (${requestedItem?.available || 0} / ${qty.toLocaleString()} kg in Site 1054)`, status: 'fail' },
+          { step: '2 Local approved alternates', note: 'No local alternate covers full quantity', status: 'fail' },
+          { step: '3 Central warehouse', note: 'Warehouse 1055 transfer available ($589 fixed freight)', status: 'pass' },
+        ],
+        cascadeNote: 'Cannot fulfill locally — Buyer approval required to request Warehouse 1055 transfer.',
+        options: [
+          {
+            id: `opt-${newId}-wh`,
+            tag: 'CENTRAL WAREHOUSE · WAREHOUSE 1055',
+            bestValue: true,
+            isLocalFulfilled: false,
+            title: 'Warehouse 1055 Central Transfer',
+            subtitle: `Covers full ${qty.toLocaleString()} kg requirement · $589 fixed freight`,
+            totalPrice: `$${hubTotal.toLocaleString()}`,
+            perKg: `$${(hubTotal / qty).toFixed(2)} / kg`,
+            baselineComparison: 'Designated lowest-freight hub route ($589)',
+            eta: `ETA ${needBy} · Carrier transfer`,
+            etaRisk: false,
+            optionName: `${greenId} · ${reqName}`,
+            optionSub: 'Warehouse 1055 Central Dispatch',
+            breakdown: [
+              { label: `Green cost (${qty.toLocaleString()} kg × $${reqPrice.toFixed(2)})`, val: `$${beanTotal.toLocaleString()}` },
+              { label: 'Shipping cost (fixed)', val: '$589' },
+            ],
+            totalDelivered: `$${hubTotal.toLocaleString()}`,
+            totalPerKg: `$${(hubTotal / qty).toFixed(2)} per kg`,
+            savingsTag: 'LOWEST FREIGHT HUB ROUTE',
+            whyWins: [
+              'Exact green spec from Warehouse 1055 lowest-freight matrix',
+            ],
+          },
+        ],
+        ineligible: [
+          `✕ Site 1054 local inventory (${requestedItem?.available || 0} kg) short of ${qty.toLocaleString()} kg`,
+        ],
+        selectedOption: 0,
+        timeline: [
+          { title: 'Demand order registered from production schedule', time: 'Just now', actor: 'Production Scheduler', state: 'done' },
+          { title: 'Local stock insufficient — queued for Local Buyer Central Hub review', time: 'Just now', actor: 'System Sourcing Engine', state: 'active' },
+        ],
+      };
+
+      setLocalInventory(prevInv =>
+        prevInv.map(inv => {
+          if (inv.id !== greenId) return inv;
+          return {
+            ...inv,
+            openDemand: inv.openDemand + qty,
+            updated: 'Just now',
+            openOrders: [
+              { id: newId, qty: `${qty.toLocaleString()} kg`, needBy },
+              ...(inv.openOrders || []),
+            ],
+          };
+        })
+      );
+    }
+
     setOrders(prev => [newOrder, ...prev]);
     return newOrder;
   };
@@ -1241,7 +1524,9 @@ export function OrdersProvider({ children }) {
   // Reset to initial seed state
   const resetOrders = () => {
     setOrders(INITIAL_SYNCED_ORDERS);
+    setLocalInventory(INITIAL_LOCAL_INVENTORY);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SYNCED_ORDERS));
+    localStorage.setItem(INVENTORY_STORAGE_KEY, JSON.stringify(INITIAL_LOCAL_INVENTORY));
   };
 
   const getOrderById = (id) => orders.find(o => o.id === id);
@@ -1250,6 +1535,8 @@ export function OrdersProvider({ children }) {
     <OrdersContext.Provider
       value={{
         orders,
+        localInventory,
+        setLocalInventory,
         getOrderById,
         buyerApprove,
         buyerRequestTransfer,
