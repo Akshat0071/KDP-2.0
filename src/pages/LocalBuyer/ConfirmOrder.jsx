@@ -52,12 +52,12 @@ export default function ConfirmOrder() {
 
   const canConfirm = !safeOption.isAlternate || ackAlt;
 
-  const handleConfirmAction = () => {
-    const isWarehouseTransfer =
-      safeOption.source?.includes('WAREHOUSE') ||
-      safeOrder.warehouse ||
-      !safeOption.isAlternate;
+  const isWarehouseTransfer =
+    !safeOption.isLocalFulfilled &&
+    !safeOption.source?.includes('LOCAL') &&
+    (Boolean(safeOption.source?.includes('WAREHOUSE')) || (!safeOrder.isLocalFulfilled && Boolean(safeOrder.warehouse)));
 
+  const handleConfirmAction = () => {
     if (isWarehouseTransfer) {
       buyerRequestTransfer(safeOrder.id, safeOption);
     } else {
@@ -66,7 +66,7 @@ export default function ConfirmOrder() {
     setConfirmed(true);
   };
 
-  const resultingStatus = (safeOption.source?.includes('WAREHOUSE') || safeOrder.warehouse)
+  const resultingStatus = isWarehouseTransfer
     ? 'requested'
     : 'approved';
 
@@ -113,7 +113,10 @@ export default function ConfirmOrder() {
             padding: '12px 14px',
             marginBottom: 20,
           }}>
-            <OrderLifecycleStepper status={resultingStatus} />
+            <OrderLifecycleStepper
+              status={resultingStatus}
+              isLocalFulfilled={!isWarehouseTransfer}
+            />
           </div>
 
           <div style={{
@@ -166,7 +169,7 @@ export default function ConfirmOrder() {
               Back to Orders
             </button>
             <button
-              onClick={() => navigate('/central-orders')}
+              onClick={() => navigate(isWarehouseTransfer ? '/central-orders' : '/inventory')}
               style={{
                 padding: '8px 18px',
                 borderRadius: 6,
@@ -178,7 +181,7 @@ export default function ConfirmOrder() {
                 cursor: 'pointer',
               }}
             >
-              View in Central Warehouse
+              {isWarehouseTransfer ? 'View in Central Warehouse' : 'View Local Inventory'}
             </button>
           </div>
         </div>

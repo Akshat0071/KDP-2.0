@@ -183,11 +183,13 @@ export default function Orders() {
       state: {
         order: currentOrder,
         option: {
+          id: currentOption.id,
           greenName: currentOption.optionName,
           source: currentOption.tag,
           arrivalDate: currentOption.eta,
           totalDelivered: parseInt(String(currentOption.totalPrice).replace(/[^0-9]/g, '')),
-          isAlternate: currentOption.tag?.includes('ALTERNATE'),
+          isAlternate: currentOption.tag?.includes('ALTERNATE') || Boolean(currentOption.isLocalFulfilled),
+          isLocalFulfilled: Boolean(currentOption.isLocalFulfilled) || currentOption.tag?.includes('LOCAL'),
           costBreakdown: currentOption.breakdown,
         },
       },

@@ -238,6 +238,106 @@ const INITIAL_SYNCED_ORDERS = [
     ],
   },
 
+  // 1b. NEW DEMAND (LOCAL ALTERNATE): Ethiopia Yirgacheffe Natural (Site 1054) - Covered by Local Alternate Gc-11!
+  {
+    id: 'PO-2848',
+    siteId: '1054',
+    destinationSite: 'Site 1054 — Plano Roasting',
+    destinationCity: 'Plano, TX',
+    warehouse: 'Warehouse 1055',
+    warehouseId: '1055',
+    shipmentId: null,
+    isLocalFulfilled: true,
+    shippingCost: 0,
+    fgMaterialId: 'FG-1805',
+    fgMaterialDescription: 'Ethiopia Reserve Single Origin Whole Bean 12oz',
+    brand: 'Laughing Man Coffee',
+    brandType: 'Single Origin',
+    greenId: 'Gd-09',
+    greenName: 'Ethiopia Yirgacheffe Natural',
+    orderQuantity: 900,
+    quantityStr: '900 kg',
+    acceptedQuantity: 900,
+    unitPrice: 4.20,
+    totalDelivered: 3780,
+    needBy: 'Nov 14',
+    needByFull: 'Nov 14, 2026',
+    status: 'new',
+    buyerName: 'Maya Torres',
+    buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
+    notes: 'Local Gd-09 stock is 250 kg (650 kg short). Approved flavor-equivalent alternate Gc-11 (Brazil Cerrado Natural) has 1,400 kg in Site 1054 inventory — zero freight needed.',
+    category: 'decision',
+    urgencyRank: 2,
+    cascade: [
+      { step: '1 Local same green', note: 'Insufficient Gd-09 stock (250 kg / 900 kg in Site 1054)', status: 'fail' },
+      { step: '2 Local approved alternates', note: 'Gc-11 Brazil Cerrado has 1,400 kg available locally', status: 'pass' },
+      { step: '3 Central warehouse', note: 'Bypassed — local alternate saves $589 freight', status: 'skip' },
+    ],
+    cascadeNote: 'Resolved at Cascade Step 2 (Local Approved Alternate Gc-11 in Site 1054). No hub transfer or freight shipment required.',
+    options: [
+      {
+        id: 'opt-2848-1',
+        tag: 'LOCAL APPROVED ALTERNATE · SITE 1054',
+        bestValue: true,
+        isLocalFulfilled: true,
+        title: 'Local Inventory Alternate — Gc-11 Brazil Cerrado',
+        subtitle: '1,400 kg on-hand in Site 1054 · covers full 900 kg demand immediately',
+        totalPrice: '$3,780',
+        perKg: '$4.20 / kg',
+        baselineComparison: 'Saves $1,174 vs Warehouse 1055 transfer ($0 freight)',
+        eta: 'Immediate · On-site stock',
+        etaRisk: false,
+        optionName: 'Gc-11 · Brazil Cerrado Natural (Alt for Gd-09)',
+        optionSub: 'Site 1054 Local Inventory Allocation',
+        breakdown: [
+          { label: 'Alternate green cost (900 kg × $4.20)', val: '$3,780' },
+          { label: 'Shipping cost', val: '$0 (Local Stock)' },
+        ],
+        totalDelivered: '$3,780',
+        totalPerKg: '$4.20 per kg',
+        savingsTag: 'OPTIMAL LOCAL ALTERNATE · $0 FREIGHT',
+        whyWins: [
+          'Resolved at Cascade Step 2 using on-site Site 1054 inventory (1,400 kg available)',
+          'Eliminates $589 Warehouse 1055 freight cost & carrier transit time',
+        ],
+      },
+      {
+        id: 'opt-2848-2',
+        tag: 'CENTRAL WAREHOUSE · WAREHOUSE 1055',
+        bestValue: false,
+        isLocalFulfilled: false,
+        title: 'Warehouse 1055 Central Transfer (Exact Gd-09)',
+        subtitle: '2,100 kg available at hub · requires $589 carrier shipment',
+        totalPrice: '$4,954',
+        perKg: '$5.50 / kg',
+        baselineComparison: '+$1,174 above local alternate landed cost',
+        eta: 'ETA Nov 14 · Hub freight transit',
+        etaRisk: false,
+        optionName: 'Gd-09 · Ethiopia Yirgacheffe Natural',
+        optionSub: 'Warehouse 1055 Central Dispatch',
+        breakdown: [
+          { label: 'Exact green cost (900 kg × $4.85)', val: '$4,365' },
+          { label: 'Shipping cost (fixed)', val: '$589' },
+        ],
+        totalDelivered: '$4,954',
+        totalPerKg: '$5.50 per kg',
+        savingsTag: 'EXACT GREEN · +$589 FREIGHT',
+        whyWins: [
+          'Exact bean spec without recipe substitution',
+          'Uses designated lowest-freight hub (Warehouse 1055)',
+        ],
+      },
+    ],
+    ineligible: [
+      '✕ Local Gd-09 same-green · only 250 kg unreserved (650 kg short)',
+    ],
+    selectedOption: 0,
+    timeline: [
+      { title: 'Demand batch submitted by Roasting Production Team', time: 'Today 09:05 AM', actor: 'Production Scheduler', state: 'done' },
+      { title: 'Sourcing cascade resolved at Step 2 — Local Alternate Gc-11 (1,400 kg in Site 1054)', time: 'Today 09:10 AM', actor: 'Sourcing Engine', state: 'active' },
+    ],
+  },
+
   // 2. APPROVED: Costa Rica Tarrazu (Site 1054) - Local Buyer approved sourcing option
   {
     id: 'PO-2847',
@@ -821,8 +921,10 @@ export function OrdersProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Reconcile shipmentId / isLocalFulfilled schema additions onto cached orders
+          // Reconcile missing seed orders & shipmentId / isLocalFulfilled schema additions onto cached orders
           const seedMap = new Map(INITIAL_SYNCED_ORDERS.map(o => [o.id, o]));
+          const existingIds = new Set(parsed.map(o => o.id));
+          const missingSeeds = INITIAL_SYNCED_ORDERS.filter(o => !existingIds.has(o.id));
           const hydrated = parsed.map(ord => {
             const seed = seedMap.get(ord.id);
             if (!seed) return ord;
@@ -845,6 +947,9 @@ export function OrdersProvider({ children }) {
             }
             return Object.keys(patch).length > 0 ? { ...ord, ...patch } : ord;
           });
+          if (missingSeeds.length > 0) {
+            return [...missingSeeds, ...hydrated];
+          }
           return hydrated;
         }
       }
@@ -879,16 +984,22 @@ export function OrdersProvider({ children }) {
       prev.map(o => {
         if (o.id !== orderId) return o;
         const opt = chosenOption || (o.options && o.options[0]);
+        const optIsLocal = opt?.isLocalFulfilled ?? opt?.tag?.includes('LOCAL') ?? opt?.source?.includes('LOCAL');
+        const isLocal = optIsLocal !== undefined ? Boolean(optIsLocal) : Boolean(o.isLocalFulfilled);
+        const optIdx = o.options ? Math.max(0, o.options.findIndex(item => item.id === opt?.id)) : 0;
         const updatedTimeline = appendTimeline(
           o,
-          `Local Buyer approved sourcing option: ${opt?.title || 'Selected option'}`,
+          `Local Buyer approved sourcing option: ${opt?.title || opt?.greenName || 'Selected option'}`,
           'Maya Torres (Local Buyer)',
           'active'
         );
         return {
           ...o,
           status: 'approved',
-          selectedOption: 0,
+          isLocalFulfilled: isLocal,
+          shipmentId: isLocal ? null : o.shipmentId,
+          shippingCost: isLocal ? 0 : (o.shippingCost || 589),
+          selectedOption: optIdx,
           updatedDate: new Date().toISOString(),
           timeline: updatedTimeline,
         };
@@ -911,6 +1022,8 @@ export function OrdersProvider({ children }) {
         return {
           ...o,
           status: 'requested',
+          isLocalFulfilled: false,
+          shippingCost: o.shippingCost || 589,
           selectedOption: 0,
           notes: o.notes || `Transfer requested by Local Buyer for ${opt?.title || 'Fulfillment'}.`,
           updatedDate: new Date().toISOString(),
