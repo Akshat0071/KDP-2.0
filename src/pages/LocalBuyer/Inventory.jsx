@@ -7,6 +7,7 @@ import {
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { SITE_WAREHOUSE_MAPPING } from '../../data/mockData';
 import { useOrders, getOrderStatusMeta } from '../../context/OrdersContext';
+import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
 
 const C = {
   text:      '#30272B',
@@ -2423,10 +2424,13 @@ export default function Inventory() {
           </div>
         )}
 
-        {/* ── RIGHT SIDE PANEL: SHIPMENT DETAILS (Matched to Screenshot + Theme Palette) ── */}
+        {/* ── RIGHT SIDE PANEL: SHIPMENT DETAILS (Unified with Synced Order State) ── */}
         {showSidePanel && activeTab === 'incoming' && selectedShipment && (() => {
-          const badge = getShipmentStatusMeta(selectedShipment.status);
+          const linkedOrder = orders.find(o => o.id === selectedShipment.linkedOrder);
+          const currentStatus = linkedOrder ? linkedOrder.status : (selectedShipment.delayed ? 'dispatched' : 'in transit');
+          const orderMeta = getOrderStatusMeta(currentStatus);
           const impact = selectedShipment.impact;
+          const auditTimeline = linkedOrder?.timeline || selectedShipment.timeline || [];
 
           return (
             <div style={{
@@ -2445,7 +2449,7 @@ export default function Inventory() {
               {/* Top Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                  Shipment Details
+                  Shipment & Fulfillment Details
                 </div>
                 <button
                   onClick={() => setShowSidePanel(false)}
@@ -2465,7 +2469,7 @@ export default function Inventory() {
                 </button>
               </div>
 
-              {/* Shipment ID + Status Pill */}
+              {/* Shipment ID + Unified Canonical Status Badge */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 19, fontWeight: 800, color: C.text, letterSpacing: '-0.3px', lineHeight: 1 }}>
                   {selectedShipment.id}
@@ -2473,16 +2477,32 @@ export default function Inventory() {
                 <span style={{
                   display: 'inline-flex',
                   alignItems: 'center',
+                  gap: 4,
                   padding: '2px 9px',
                   borderRadius: 20,
                   fontSize: 10,
                   fontWeight: 700,
-                  background: badge.bg,
-                  color: badge.color,
-                  border: `1px solid ${badge.border}`,
+                  background: orderMeta.bg,
+                  color: orderMeta.color,
+                  border: `1px solid ${orderMeta.border}`,
+                  textTransform: 'capitalize',
                 }}>
-                  {selectedShipment.status}
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: orderMeta.dotBg }} />
+                  {orderMeta.label}
                 </span>
+              </div>
+
+              {/* ── 9-STAGE CANONICAL STEPPER (COMPACT) ── */}
+              <div style={{
+                background: '#FAF8F9',
+                border: `1px solid ${C.divider}`,
+                borderRadius: 8,
+                padding: '10px 12px',
+              }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 }}>
+                  Order Lifecycle Progress
+                </div>
+                <OrderLifecycleStepper status={currentStatus} compact />
               </div>
 
               {/* 2-Column Metadata Grid */}
@@ -2494,7 +2514,7 @@ export default function Inventory() {
                 borderBottom: `1px solid ${C.divider}`,
               }}>
                 <div>
-                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Green</div>
+                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Green Material</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
                     {selectedShipment.greenId} — {selectedShipment.greenName}
                   </div>
@@ -2507,14 +2527,14 @@ export default function Inventory() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Quantity</div>
+                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Shipment Quantity</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
                     {selectedShipment.qty.toLocaleString()} kg
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Linked Order</div>
-                  {selectedShipment.linkedOrder !== '—' ? (
+                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Linked Order PO</div>
+                  {selectedShipment.linkedOrder && selectedShipment.linkedOrder !== '—' ? (
                     <div
                       onClick={() => navigate(`/orders/${selectedShipment.linkedOrder}`)}
                       style={{
@@ -2522,10 +2542,13 @@ export default function Inventory() {
                         fontWeight: 700,
                         color: C.rose,
                         cursor: 'pointer',
-                        display: 'inline-block',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
                       }}
+                      title="View order in Orders page"
                     >
-                      {selectedShipment.linkedOrder}
+                      {selectedShipment.linkedOrder} ↗
                     </div>
                   ) : (
                     <div style={{ fontSize: 11, color: C.subtle }}>—</div>
@@ -2533,28 +2556,28 @@ export default function Inventory() {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>From (Warehouse)</div>
+                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Source Hub</div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
                     {selectedShipment.warehouse}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Status Updated</div>
-                  <div style={{ fontSize: 10.5, fontWeight: 600, color: C.text }}>
-                    {selectedShipment.statusUpdated}
+                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Responsible Actor</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 600, color: orderMeta.color }}>
+                    {orderMeta.actor}
                   </div>
                 </div>
               </div>
 
-              {/* Shipment Timeline Vertical Stepper */}
+              {/* ── UNIFIED TIMELINE AUDIT TRAIL ── */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-                  Shipment Timeline
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>
+                  Unified Lifecycle Audit Trail
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {selectedShipment.timeline.map((step, sIdx) => {
-                    const isLast = sIdx === selectedShipment.timeline.length - 1;
+                  {auditTimeline.map((step, sIdx) => {
+                    const isLast = sIdx === auditTimeline.length - 1;
                     const isDone = step.state === 'done';
                     const isActive = step.state === 'active' || step.state === 'active-crit';
                     const isCritActive = step.state === 'active-crit';
@@ -2611,7 +2634,7 @@ export default function Inventory() {
                             <div style={{
                               width: 1.5,
                               flex: 1,
-                              minHeight: 20,
+                              minHeight: 18,
                               background: isDone ? '#BFAAB6' : C.divider,
                               margin: '2px 0',
                             }} />
@@ -2619,7 +2642,7 @@ export default function Inventory() {
                         </div>
 
                         {/* Right Content */}
-                        <div style={{ paddingBottom: isLast ? 0 : 14 }}>
+                        <div style={{ paddingBottom: isLast ? 0 : 12 }}>
                           <div style={{
                             fontSize: 11,
                             fontWeight: 700,
@@ -2628,8 +2651,8 @@ export default function Inventory() {
                           }}>
                             {step.title}
                           </div>
-                          <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
-                            {step.time}
+                          <div style={{ fontSize: 9.5, color: C.muted, marginTop: 1 }}>
+                            {step.time} {step.actor ? `· ${step.actor}` : ''}
                           </div>
                         </div>
                       </div>
@@ -2639,144 +2662,134 @@ export default function Inventory() {
               </div>
 
               {/* Related Inventory Impact Card */}
-              <div style={{
-                background: '#FDF8FA',
-                border: '1px solid #EFE3EA',
-                borderRadius: 8,
-                padding: '12px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <Package size={13} style={{ color: C.rose }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
-                    Related Inventory Impact
-                  </span>
-                </div>
+              {impact && (
+                <div style={{
+                  background: '#FDF8FA',
+                  border: '1px solid #EFE3EA',
+                  borderRadius: 8,
+                  padding: '12px',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <Package size={13} style={{ color: C.rose }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
+                      Related Inventory Impact
+                    </span>
+                  </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Incoming Qty</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
-                      {impact.incomingQty.toLocaleString()} kg
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                    <div>
+                      <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Incoming Qty</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
+                        {impact.incomingQty?.toLocaleString()} kg
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Open Demand</div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
+                        {impact.openDemand?.toLocaleString()} kg
+                      </div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Projected Balance</div>
+                      <div style={{
+                        fontSize: 12,
+                        fontWeight: 800,
+                        color: impact.projectedBalance >= 0 ? C.success : C.crit,
+                      }}>
+                        {impact.projectedBalance >= 0 ? '+' : ''}{impact.projectedBalance?.toLocaleString()} kg
+                      </div>
                     </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Open Demand</div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
-                      {impact.openDemand.toLocaleString()} kg
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Projected Balance</div>
+
+                  {selectedShipment.delayed && (
+                    <button
+                      type="button"
+                      onClick={() => handleMitigateDelay(selectedShipment)}
+                      style={{
+                        width: '100%',
+                        padding: '8px 12px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: C.crit,
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        marginTop: 10,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <AlertTriangle size={13} />
+                      Mitigate Delay Risk (Allocate Alternate)
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ── Contextual Local Buyer Action Button ── */}
+              {linkedOrder && (
+                <div>
+                  {linkedOrder.status === 'delivered' && (
+                    <button
+                      type="button"
+                      onClick={() => buyerReceive(linkedOrder.id)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: '#15803D',
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(21,128,61,0.25)',
+                      }}
+                    >
+                      Inspect & Mark Received at Dock
+                    </button>
+                  )}
+
+                  {linkedOrder.status === 'received' && (
+                    <button
+                      type="button"
+                      onClick={() => buyerClose(linkedOrder.id)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: C.plum,
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(92,58,87,0.25)',
+                      }}
+                    >
+                      Close Order & Book to Inventory
+                    </button>
+                  )}
+
+                  {linkedOrder.status === 'closed' && (
                     <div style={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      color: impact.projectedBalance >= 0 ? C.success : C.crit,
-                    }}>
-                      {impact.projectedBalance >= 0 ? '+' : ''}{impact.projectedBalance.toLocaleString()} kg
-                    </div>
-                  </div>
-                </div>
-
-                {selectedShipment.delayed && (
-                  <button
-                    type="button"
-                    onClick={() => handleMitigateDelay(selectedShipment)}
-                    style={{
-                      width: '100%',
                       padding: '8px 12px',
                       borderRadius: 6,
-                      border: 'none',
-                      background: C.crit,
-                      color: '#FFFFFF',
+                      background: '#F0FDF4',
+                      border: '1px solid #BBF7D0',
+                      color: '#15803D',
                       fontSize: 11,
                       fontWeight: 700,
-                      cursor: 'pointer',
-                      marginTop: 10,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                    }}
-                  >
-                    <AlertTriangle size={13} />
-                    Mitigate Delay Risk (Allocate Alternate)
-                  </button>
-                )}
-
-                {/* Synced Order Lifecycle Status & Buyer Actions */}
-                {(() => {
-                  const linkedOrder = orders.find(o => o.id === selectedShipment.linkedOrder);
-                  if (!linkedOrder) return null;
-                  const orderMeta = getOrderStatusMeta(linkedOrder.status);
-                  return (
-                    <div style={{
-                      marginTop: 10,
-                      padding: '10px 12px',
-                      borderRadius: 6,
-                      background: orderMeta.bg,
-                      border: `1px solid ${orderMeta.border}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 8,
+                      textAlign: 'center',
                     }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: orderMeta.color, textTransform: 'uppercase' }}>
-                          Synced Order: {linkedOrder.id}
-                        </span>
-                        <span style={{ fontSize: 10, fontWeight: 700, color: orderMeta.color }}>
-                          {orderMeta.label}
-                        </span>
-                      </div>
-
-                      {linkedOrder.status === 'delivered' && (
-                        <button
-                          type="button"
-                          onClick={() => buyerReceive(linkedOrder.id)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: 6,
-                            border: 'none',
-                            background: '#15803D',
-                            color: '#FFFFFF',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Inspect & Mark Received at Dock
-                        </button>
-                      )}
-
-                      {linkedOrder.status === 'received' && (
-                        <button
-                          type="button"
-                          onClick={() => buyerClose(linkedOrder.id)}
-                          style={{
-                            width: '100%',
-                            padding: '8px',
-                            borderRadius: 6,
-                            border: 'none',
-                            background: C.plum,
-                            color: '#FFFFFF',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          Close Order & Add to Available Stock
-                        </button>
-                      )}
-
-                      {linkedOrder.status === 'closed' && (
-                        <div style={{ fontSize: 10, color: '#15803D', fontWeight: 600 }}>
-                          ✓ Stock verified and credited to inventory.
-                        </div>
-                      )}
+                      ✓ Order Completed & Booked into Stock
                     </div>
-                  );
-                })()}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}

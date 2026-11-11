@@ -50,7 +50,7 @@ psql -h <host> -U <user> -d kdp_greensource -f db/seed.sql
 - **Email:** `maya.torres@kdpgreensource.com`
 - **Password:** `AustinRoast2026!`
 - **Role:** `Local Buyer`
-- **Facility:** `Austin Local — Site 04`
+- **Facility:** `Site 1054 — Plano Roasting`
 
 ---
 

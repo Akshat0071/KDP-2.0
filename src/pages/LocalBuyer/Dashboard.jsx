@@ -162,7 +162,7 @@ export default function Dashboard() {
         {[
           { label: 'TOTAL ACTIVE ORDERS', value: counts.total, sub: 'Site 1054 demand orders', variant: 'neutral' },
           { label: 'NEEDS DECISION', value: counts.decision, sub: 'New demand & approved options', variant: 'warning' },
-          { label: 'IN HUB FULFILLMENT', value: counts.fulfillment, sub: 'Requested, accepted, or in transit', variant: 'purple' },
+          { label: 'WAREHOUSE FULFILLMENT', value: counts.fulfillment, sub: 'Requested, accepted, or in transit', variant: 'purple' },
           { label: 'DOCK RECEIVING', value: counts.dock, sub: 'Delivered / ready for buyer inspection', variant: 'success' },
         ].map(card => {
           const vs = {

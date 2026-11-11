@@ -15,7 +15,7 @@ WITH open_orders AS (
     "Green_Material_ID",
     COALESCE(SUM("Order_Quantity"), 0) AS "Open_Demand"
   FROM "Fact_Table_Orders"
-  WHERE "Status" IN ('pending', 'needs-signoff', 'at-risk', 'awaiting-approval')
+  WHERE "Status" IN ('new', 'approved', 'requested', 'accepted', 'dispatched', 'in transit', 'delivered')
   GROUP BY "Site_ID", "Green_Material_ID"
 ),
 incoming_shipments AS (
@@ -24,7 +24,7 @@ incoming_shipments AS (
     "Green_Material_ID",
     COALESCE(SUM("Shipment_Quantity"), 0) AS "Incoming_Quantity"
   FROM "Fact_Table_Shipment_Details"
-  WHERE "Shipment_Status" IN ('Scheduled', 'In Transit')
+  WHERE "Shipment_Status" IN ('requested', 'accepted', 'dispatched', 'in transit')
   GROUP BY "Site_ID", "Green_Material_ID"
 )
 SELECT
