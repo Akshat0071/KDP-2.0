@@ -1,130 +1,205 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ShoppingCart, Package, DollarSign, AlertTriangle,
-  Truck, TrendingUp, Download, PlusCircle, ChevronRight, Zap, Leaf
-} from 'lucide-react';
-import {
-  BarChart, Bar, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  LineChart, Line, CartesianGrid, Legend, PieChart, Pie
-} from 'recharts';
-import { KpiCard, StatusBadge, SectionHeader } from '../../components/ui/Components';
-import {
-  THRESHOLD_CHART_DATA, MONTHLY_SPEND, ORDERS, ALERTS, FULFILLMENT_OPTIONS, GREENS
-} from '../../data/mockData';
+import { RefreshCw, Bell, ArrowRight } from 'lucide-react';
 
-// ── Custom Tooltip ────────────────────────────────────────────────────────────
-function SpendTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="chart-tooltip">
-      <div className="chart-tooltip-title">{label}</div>
-      {payload.map(p => (
-        <div key={p.name} style={{ color: p.color, marginTop: 2 }}>
-          {p.name}: <strong>${p.value}k</strong>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Health Donut ──────────────────────────────────────────────────────────────
-const HEALTH_DATA = [
-  { name: 'Healthy', value: 14, fill: 'var(--color-success)' },
-  { name: 'Low',     value: 4,  fill: 'var(--color-warning)' },
-  { name: 'Critical',value: 6,  fill: 'var(--color-critical)' },
+// ── KPI Summary Cards ─────────────────────────────────────────────────────────
+const SUMMARY_CARDS = [
+  { label: 'TOTAL OPEN ORDERS', value: 18, sub: 'All active orders',            variant: 'neutral'  },
+  { label: 'NEEDS DECISION',    value: 4,  sub: 'Buyer action required',        variant: 'warning'  },
+  { label: 'AT RISK',           value: 2,  sub: 'Late or threatened delivery',  variant: 'critical' },
+  { label: 'ON TRACK',          value: 12, sub: 'No immediate action required', variant: 'success'  },
 ];
-function HealthDonut() {
-  return (
-    <div className="health-donut-wrap">
-      <ResponsiveContainer width={168} height={168}>
-        <PieChart>
-          <Pie data={HEALTH_DATA} cx="50%" cy="50%" innerRadius={54} outerRadius={76}
-            dataKey="value" paddingAngle={3} startAngle={90} endAngle={-270}>
-            {HEALTH_DATA.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
-          </Pie>
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="health-donut-center">
-        <span className="health-pct">58%</span>
-        <span className="health-label">Healthy</span>
-      </div>
-    </div>
-  );
-}
 
-// ── Alert Item ────────────────────────────────────────────────────────────────
-function AlertItem({ alert }) {
-  const navigate = useNavigate();
-  const sevBg = {
-    critical: 'var(--color-critical-bg)',
-    warning: 'var(--color-warning-bg)',
-    info: 'var(--color-info-bg)',
+// ── Open Orders Data ───────────────────────────────────────────────────────────
+const OPEN_ORDERS = [
+  { id: 'PO-2841', greenId: 'Gd-09', greenName: 'Ethiopia Yirgacheffe', needBy: 'Nov 08', eta: 'Nov 07', etaRisk: false, status: 'auto-reserved',     statusLabel: 'Auto-reserved',     bell: false },
+  { id: 'PO-2842', greenId: 'Gc-11', greenName: 'Brazil Cerrado',        needBy: 'Nov 09', eta: 'Nov 08', etaRisk: false, status: 'needs-signoff',      statusLabel: 'Needs sign-off',    bell: true  },
+  { id: 'PO-2843', greenId: 'Gb-04', greenName: 'Colombia Supremo',      needBy: 'Nov 10', eta: 'Nov 12', etaRisk: true,  status: 'at-risk',            statusLabel: 'At risk',           bell: true  },
+  { id: 'PO-2844', greenId: 'Gf-22', greenName: 'Guatemala Antigua',     needBy: 'Nov 07', eta: 'Nov 07', etaRisk: false, status: 'awaiting-approval',  statusLabel: 'Awaiting approval', bell: true  },
+  { id: 'PO-2845', greenId: 'Ga-17', greenName: 'Kenya AA Nyeri',        needBy: 'Nov 11', eta: 'Nov 10', etaRisk: false, status: 'reserved',           statusLabel: 'Reserved',          bell: false },
+  { id: 'PO-2846', greenId: 'Ge-31', greenName: 'Sumatra Mandheling',    needBy: 'Nov 12', eta: '—',      etaRisk: false, status: 'no-option',          statusLabel: 'No option',         bell: true  },
+  { id: 'PO-2847', greenId: 'Gh-08', greenName: 'Costa Rica Tarrazu',    needBy: 'Nov 13', eta: 'Nov 14', etaRisk: true,  status: 'at-risk',            statusLabel: 'At risk',           bell: true  },
+  { id: 'PO-2848', greenId: 'Gd-09', greenName: 'Ethiopia Yirgacheffe',  needBy: 'Nov 14', eta: 'Nov 13', etaRisk: false, status: 'needs-signoff',      statusLabel: 'Needs sign-off',    bell: false },
+];
+
+// ── Greens to Watch ────────────────────────────────────────────────────────────
+const GREENS_WATCH = [
+  { id: 'Gd-09', current: 350,  min: 700,  status: 'critical' },
+  { id: 'Gb-04', current: 500,  min: 1300, status: 'critical' },
+  { id: 'Gf-22', current: 980,  min: 1150, status: 'low'      },
+  { id: 'Gc-11', current: 3300, min: 2000, status: 'healthy'  },
+  { id: 'Ga-17', current: 3400, min: 2500, status: 'healthy'  },
+];
+
+// ── Arriving Soon ──────────────────────────────────────────────────────────────
+const ARRIVING_SOON = [
+  { order: 'PO-2841', greenId: 'Gd-09', greenName: 'Ethiopia Yirgacheffe Natural', qty: '1,200 kg', source: 'Site 1054 · Reserved',      eta: 'Nov 07', etaRisk: false, needBy: 'Nov 08', deliveryStatus: 'On track', deliveryVariant: 'success',  alert: '—',     alertVariant: 'none'     },
+  { order: 'PO-2844', greenId: 'Gc-14', greenName: 'Guatemala Antigua SHB',         qty: '600 kg',   source: 'Warehouse 1055 · Central', eta: 'Nov 07', etaRisk: false, needBy: 'Nov 07', deliveryStatus: 'On track', deliveryVariant: 'success',  alert: '—',     alertVariant: 'none'     },
+  { order: 'PO-2843', greenId: 'Gc-04', greenName: 'Colombia Supremo Washed',       qty: '1,200 kg', source: 'Warehouse 1055 · Central', eta: 'Nov 10', etaRisk: false, needBy: 'Nov 10', deliveryStatus: 'On track', deliveryVariant: 'success',  alert: '—',     alertVariant: 'none'     },
+];
+
+// ── Tab filters ────────────────────────────────────────────────────────────────
+const TAB_FILTERS = [
+  { key: 'decision', label: 'Needs decision', count: 4,  statuses: ['needs-signoff', 'awaiting-approval'] },
+  { key: 'risk',     label: 'At risk',        count: 2,  statuses: ['at-risk'] },
+  { key: 'track',    label: 'On track',       count: 12, statuses: ['auto-reserved', 'reserved'] },
+  { key: 'all',      label: 'All',            count: 18, statuses: null },
+];
+
+// ── Shared tokens ──────────────────────────────────────────────────────────────
+const C = {
+  text:    '#30272B',
+  muted:   '#746970',
+  subtle:  '#9CA3AF',
+  border:  '#E6DCE2',
+  divider: '#F0EAEE',
+  hover:   '#FDFBFC',
+  rose:    '#D83F79',
+  success: '#27A348',
+  warn:    '#E07000',
+  crit:    '#D83040',
+};
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+function StatusBadge({ status, label }) {
+  const map = {
+    'auto-reserved':     { bg: '#EDF7F1', color: '#1E8A3C', border: '#B4DDBD' },
+    'needs-signoff':     { bg: '#FFF7E6', color: '#B86A00', border: '#F5D68A' },
+    'at-risk':           { bg: '#FEF0F2', color: '#C02030', border: '#F0B8C0' },
+    'awaiting-approval': { bg: '#FFFAE8', color: '#8A6200', border: '#EDD98A' },
+    'reserved':          { bg: '#EDF7F1', color: '#1E8A3C', border: '#B4DDBD' },
+    'no-option':         { bg: '#FEF0F2', color: '#C02030', border: '#F0B8C0' },
   };
+  const s = map[status] || { bg: '#F5F3FF', color: '#6B7280', border: '#E5E7EB' };
   return (
-    <div className="alert-item">
-      <div className={`live-dot ${alert.severity}`} style={{ marginTop: 5 }} />
-      <div className="alert-body">
-        <div className="alert-message">{alert.message}</div>
-        <div className="alert-meta">
-          {new Date(alert.timestamp).toLocaleTimeString('en-US',
-            { hour: '2-digit', minute: '2-digit' })} &bull; {alert.greenId || alert.type}
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '2px 8px', borderRadius: 20,
+      fontSize: 11, fontWeight: 500, lineHeight: '16px',
+      background: s.bg, color: s.color,
+      border: `1px solid ${s.border}`,
+      whiteSpace: 'nowrap',
+    }}>
+      {label}
+    </span>
+  );
+}
+
+// ── Delivery badge ────────────────────────────────────────────────────────────
+function DeliveryBadge({ label, variant }) {
+  const map = {
+    success:  { bg: '#EDF7F1', color: '#1E8A3C' },
+    critical: { bg: '#FEF0F2', color: '#C02030' },
+    warning:  { bg: '#FFF7E6', color: '#B86A00' },
+  };
+  const s = map[variant] || { bg: 'transparent', color: C.subtle };
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '2px 8px', borderRadius: 20,
+      fontSize: 11, fontWeight: 500, lineHeight: '16px',
+      background: s.bg, color: s.color, whiteSpace: 'nowrap',
+    }}>
+      {label}
+    </span>
+  );
+}
+
+// ── Alert chip ────────────────────────────────────────────────────────────────
+function AlertChip({ label, variant }) {
+  if (variant === 'none' || label === '—') {
+    return <span style={{ color: C.subtle, fontSize: 11 }}>—</span>;
+  }
+  const map = {
+    warning:  { bg: '#FFF7E6', color: '#B86A00', border: '#F5D68A' },
+    critical: { bg: '#FEF0F2', color: '#C02030', border: '#F0B8C0' },
+  };
+  const s = map[variant] || map.critical;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center',
+      padding: '1px 6px', borderRadius: 3,
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.3px',
+      background: s.bg, color: s.color,
+      border: `1px solid ${s.border}`, whiteSpace: 'nowrap',
+    }}>
+      {label}
+    </span>
+  );
+}
+
+// ── Green inventory bar ───────────────────────────────────────────────────────
+function GreenBar({ id, current, min, status }) {
+  const max      = Math.max(current, min) * 1.18;
+  const fillPct  = Math.min((current / max) * 100, 100);
+  const minPct   = Math.min((min    / max) * 100, 100);
+  const barColor = { critical: '#E53955', low: '#E7B83D', healthy: '#56A82F' }[status] || '#56A82F';
+  const tagStyle = {
+    critical: { bg: '#FEF0F2', color: '#C02030' },
+    low:      { bg: '#FFF7E6', color: '#B86A00' },
+    healthy:  { bg: '#EDF7F1', color: '#1E8A3C' },
+  }[status] || { bg: '#EDF7F1', color: '#1E8A3C' };
+  const tagLabel = { critical: 'Critical', low: 'Low', healthy: 'Healthy' }[status];
+
+  return (
+    <div style={{ marginBottom: 9 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{id}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 10, color: C.muted }}>
+            {current.toLocaleString()} / {min.toLocaleString()} kg
+          </span>
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 10,
+            background: tagStyle.bg, color: tagStyle.color,
+          }}>
+            {tagLabel}
+          </span>
         </div>
-        <button className="alert-action-link" onClick={() => navigate(alert.actionLink || '/alerts')}>
-          {alert.action || 'View'} &rarr;
-        </button>
       </div>
-      <span className={`badge badge-${alert.severity === 'info' ? 'info' : alert.severity === 'warning' ? 'warning' : 'critical'}`}>
-        {alert.severity}
-      </span>
+      <div style={{ position: 'relative', height: 6, background: '#EDE6EB', borderRadius: 999 }}>
+        <div style={{
+          position: 'absolute', left: 0, top: 0, bottom: 0,
+          width: `${fillPct}%`, background: barColor,
+          borderRadius: 999, transition: 'width 0.5s ease',
+        }} />
+        <div style={{
+          position: 'absolute', top: -3, bottom: -3,
+          left: `${minPct}%`, width: 1.5,
+          background: '#9CA3AF', borderRadius: 2,
+          transform: 'translateX(-50%)',
+        }} />
+      </div>
     </div>
   );
 }
 
-// ── Order Row ────────────────────────────────────────────────────────────────
-function OrderRow({ order }) {
-  const navigate = useNavigate();
+// ── Link button ───────────────────────────────────────────────────────────────
+function LinkBtn({ children, onClick }) {
   return (
-    <tr onClick={() => navigate('/orders')} style={{ cursor: 'pointer' }}>
-      <td><span className="order-id">{order.id}</span></td>
-      <td>
-        <div className="font-medium">{order.greenId}</div>
-        {order.isAlternate && (
-          <div className="text-xs text-secondary" style={{ marginTop: 1 }}>
-            &rarr; {order.selectedGreenId} (alt)
-          </div>
-        )}
-      </td>
-      <td className="font-medium">{(order.qty || 0).toLocaleString()} kg</td>
-      <td className="text-secondary">{order.source || '—'}</td>
-      <td className="font-semibold">{order.total ? '$' + order.total.toLocaleString() : '—'}</td>
-      <td className="text-secondary">{order.expectedDate || '—'}</td>
-      <td><StatusBadge status={order.status} /></td>
-    </tr>
+    <button onClick={onClick} style={{
+      display: 'inline-flex', alignItems: 'center', gap: 3,
+      fontSize: 11, fontWeight: 600, color: C.rose,
+      background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+      whiteSpace: 'nowrap', lineHeight: 1,
+    }}>
+      {children}
+    </button>
   );
 }
 
-// ── Top Rec Card ──────────────────────────────────────────────────────────────
-function TopRecCard({ opt, index }) {
-  const navigate = useNavigate();
+// ── Card shell ────────────────────────────────────────────────────────────────
+function Card({ children, style }) {
   return (
-    <div
-      className="top-rec-card"
-      onClick={() => navigate('/recommendations')}
-      style={{ cursor: 'pointer', animationDelay: `${index * 80}ms` }}
-    >
-      <div className="top-rec-header">
-        <div className="top-rec-product">
-          <span className="top-rec-id">{opt.greenId}</span>
-          <span className="top-rec-name text-sm">{opt.greenName}</span>
-        </div>
-        {index === 0 && <span className="top-rec-best">Best value</span>}
-      </div>
-      <div className="top-rec-meta">
-        <Truck size={11} style={{ marginRight: 4 }} />
-        <span>{opt.source}</span>
-        {opt.savingsVsBaseline > 0 && <span className="top-rec-saving">Save ${opt.savingsVsBaseline.toLocaleString()}</span>}
-      </div>
-      <strong className="top-rec-price">{opt.totalDelivered ? '$' + opt.totalDelivered.toLocaleString() : '—'}</strong>
+    <div style={{
+      background: '#fff',
+      border: `1px solid ${C.border}`,
+      borderRadius: 8,
+      boxShadow: '0 1px 2px rgba(59,45,52,0.06)',
+      overflow: 'hidden',
+      ...style,
+    }}>
+      {children}
     </div>
   );
 }
@@ -132,316 +207,290 @@ function TopRecCard({ opt, index }) {
 // ── Main Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('all');
 
-  const kpis = [
-    {
-      title: 'Open Orders',
-      value: '12',
-      subtitle: '3 awaiting decision',
-      trend: '+2 from last week',
-      trendPositive: false,
-      icon: ShoppingCart,
-      colorVariant: 'rose',
-      tooltip: 'Orders placed but not yet received',
-    },
-    {
-      title: 'Available Inventory',
-      value: '428.6',
-      unit: 'MT',
-      subtitle: 'Across 12 active greens',
-      trend: '+18.2 MT this week',
-      trendPositive: true,
-      icon: Package,
-      colorVariant: 'sage',
-      tooltip: 'On-hand minus reservations & commitments',
-    },
-    {
-      title: 'Inventory Value',
-      value: '$2.14M',
-      subtitle: 'At current landed cost',
-      trend: '-$12k from last period',
-      trendPositive: false,
-      icon: DollarSign,
-      colorVariant: 'blue',
-      tooltip: 'Total value of available inventory',
-    },
-    {
-      title: 'Below Threshold',
-      value: '6',
-      subtitle: '2 critical, 4 low',
-      trend: '+1 from yesterday',
-      trendPositive: false,
-      icon: AlertTriangle,
-      colorVariant: 'rose',
-      tooltip: 'Greens at or below minimum stock threshold',
-    },
-    {
-      title: 'Incoming Inventory',
-      value: '3',
-      subtitle: '84.5 MT in transit',
-      trend: 'Expected within 7 days',
-      trendPositive: true,
-      icon: Truck,
-      colorVariant: 'sage',
-      tooltip: 'Transfers dispatched and en route',
-    },
-    {
-      title: 'Est. Savings Available',
-      value: '$18.4k',
-      subtitle: 'Via smart recommendations',
-      trend: '+$3.2k opportunity',
-      trendPositive: true,
-      icon: TrendingUp,
-      colorVariant: 'blue',
-      tooltip: 'Estimated savings from optimal fulfillment',
-    },
-  ];
+  const tabConfig     = TAB_FILTERS.find(t => t.key === activeTab);
+  const filteredOrders = tabConfig?.statuses
+    ? OPEN_ORDERS.filter(o => tabConfig.statuses.includes(o.status))
+    : OPEN_ORDERS;
+
+  const TH = { padding: '8px 16px', textAlign: 'left', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', whiteSpace: 'nowrap', background: '#FDFBFC' };
 
   return (
-    <div className="dashboard">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 1300, margin: '0 auto' }}>
+
       {/* ── Page Header ── */}
-      <div className="dash-header">
-        <div className="dash-greeting">
-          <h1 className="page-title">Good morning, Maya — inventory needs 3 decisions today</h1>
-          <p className="dash-sub">
-            Austin Local — Site 04 &bull; Thu Oct 29 &bull;&nbsp;
-            <span className="warn-text">6 greens below threshold</span>
-            &nbsp;&bull; <span style={{ color: 'rgba(255,255,255,0.6)' }}>$14.3k est. savings available &bull; $18.4k simulated savings Oct</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
+        <div>
+          <div style={{ fontSize: 10, color: C.muted, marginBottom: 3, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+            Austin Local · Site 04 · Thu, Oct 29
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0, lineHeight: 1.25, letterSpacing: '-0.3px' }}>
+            Good morning, Maya.
+          </h1>
+          <p style={{ fontSize: 12, color: C.muted, margin: '4px 0 0', lineHeight: 1.5 }}>
+            4 orders need a decision. 2 are at risk of late delivery.
           </p>
-        </div>
-        <div className="dash-header-actions">
-          <button className="btn btn-secondary btn-sm">
-            <Download size={13} /> Export
-          </button>
-          <button className="btn btn-primary" onClick={() => navigate('/create-order')}>
-            <PlusCircle size={15} /> Create Order
-          </button>
-        </div>
-      </div>
-
-      {/* ── KPI Grid ── */}
-      <div className="kpi-grid">
-        {kpis.map((kpi, i) => (
-          <KpiCard key={i} {...kpi} />
-        ))}
-      </div>
-
-      {/* ── Inventory charts ── */}
-      <div className="dashboard-chart-grid">
-        <div className="card popular-chart-card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">
-                <Leaf size={15} style={{ color: 'var(--color-success)' }} />
-                Popular Greens
-              </div>
-              <div className="text-xs text-secondary">Available stock vs. minimum threshold · Top 5</div>
-            </div>
-            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/inventory')}>View Inventory</button>
-          </div>
-          <div className="card-body popular-chart-body">
-            <ResponsiveContainer width="100%" height={260}>
-              <BarChart data={THRESHOLD_CHART_DATA.slice(0, 5)} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" vertical={false} />
-                <XAxis dataKey="id" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={42} />
-                <Tooltip
-                  labelFormatter={id => THRESHOLD_CHART_DATA.find(item => item.id === id)?.name || id}
-                  formatter={value => [`${Number(value).toLocaleString()} kg`]}
-                />
-                <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
-                <Bar dataKey="available" name="Available" radius={[4, 4, 0, 0]}>
-                  {THRESHOLD_CHART_DATA.slice(0, 5).map(item => (
-                    <Cell key={item.id} fill={item.available >= item.threshold ? 'var(--color-success)' : 'var(--color-critical)'} />
-                  ))}
-                </Bar>
-                <Bar dataKey="threshold" name="Minimum" fill="var(--color-border-mid)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <p className="threshold-note">Available stock and each green's minimum, in kg.</p>
-          </div>
-        </div>
-
-        <div className="card health-chart-card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">
-                <Package size={14} style={{ color: 'var(--color-sage-deep)' }} />
-                Inventory Health
-              </div>
-              <div className="text-xs text-secondary">24 active greens · Austin Local</div>
-            </div>
-          </div>
-          <div className="card-body health-chart-body">
-            <div className="health-legend health-legend-inline">
-              {HEALTH_DATA.map(entry => (
-                <div key={entry.name} className="health-legend-row">
-                  <span className="legend-dot" style={{ background: entry.fill }} />
-                  <span><strong>{entry.value}</strong> {entry.name}</span>
-                </div>
-              ))}
-            </div>
-            <HealthDonut />
-            <div className="health-summary-line" aria-label="Inventory health distribution">
-              {HEALTH_DATA.map(entry => (
-                <span key={entry.name} style={{ width: `${(entry.value / 24) * 100}%`, background: entry.fill }} />
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Spend and fulfillment charts ── */}
-      <div className="dashboard-secondary-grid">
-        {/* Spend chart */}
-        <div className="card spend-chart-card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">
-                <DollarSign size={14} style={{ color: 'var(--color-blue-accent)' }} />
-                Monthly Procurement Spend &amp; Savings
-              </div>
-              <div className="text-xs text-secondary">All sites · 5 mo. simulated</div>
-            </div>
-            <div className="text-xs text-secondary">Jan–Oct 2024 · Simulated</div>
-          </div>
-          <div className="card-body">
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={MONTHLY_SPEND} barGap={2} barSize={16}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={v => `$${v}k`} />
-                <Tooltip content={<SpendTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="spend" name="Spend" fill="var(--color-blue-accent)" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="savings" name="Est. savings" fill="var(--color-sage-deep)" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="spend-savings-note">
-              Oct est. savings $14.2k — 19.5% vs based on item label, not realized
-            </div>
-          </div>
-        </div>
-
-        {/* Fulfillment performance */}
-        <div className="card perf-chart-card">
-          <div className="card-header">
-            <div>
-              <div className="card-title">
-                <TrendingUp size={14} style={{ color: 'var(--color-rose-accent)' }} />
-                Fulfillment Performance
-              </div>
-              <div className="text-xs text-secondary">Last 90 days · Simulated</div>
-            </div>
-          </div>
-          <div className="card-body">
-            {[
-              { label: 'On-time fulfillment', val: 92, pct: 92, color: 'var(--color-success)' },
-              { label: 'Feasible option found', val: 88, pct: 88, color: 'var(--color-info)' },
-              { label: 'Via approved alternate', val: 31, pct: 31, color: 'var(--color-warning)' },
-            ].map((stat, i) => (
-              <div key={i} style={{ marginBottom: i < 2 ? 16 : 0 }}>
-                <div className="perf-stat">
-                  <span className="text-sm text-secondary">{stat.label}</span>
-                  <span className="perf-val font-bold" style={{ color: stat.color, fontSize: 18 }}>{stat.val}%</span>
-                </div>
-                <div className="perf-bar-wrap">
-                  <div className="perf-bar" style={{ width: `${stat.pct}%`, background: stat.color }} />
-                </div>
-              </div>
-            ))}
-            <div className="flex gap-6 mt-4" style={{ borderTop: '1px solid var(--color-border)', paddingTop: 12 }}>
-              <div>
-                <div className="text-xs text-secondary">Avg lead time</div>
-                <div className="font-bold" style={{ fontSize: 20, color: 'var(--color-text-primary)' }}>4.6d</div>
-              </div>
-              <div>
-                <div className="text-xs text-secondary">Avg $/kg</div>
-                <div className="font-bold" style={{ fontSize: 20, color: 'var(--color-text-primary)' }}>$4.51</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Orders, recommendations, and alerts ── */}
-      <div className="dashboard-bottom-grid">
-        {/* Recent Orders */}
-        <div className="card recent-orders-card dashboard-orders-panel">
-          <div className="card-header">
-            <div className="card-title">
-              <ShoppingCart size={14} style={{ color: 'var(--color-primary)' }} />
-              Recent Orders
-            </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/orders')}
-              style={{ color: 'var(--color-rose-accent)', fontWeight: 600 }}>
-              View all <ChevronRight size={13} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+            <span style={{ fontSize: 10, color: C.subtle }}>Last updated 10:42 AM</span>
+            <button style={{
+              display: 'inline-flex', alignItems: 'center', gap: 3,
+              fontSize: 10, color: '#16A6D1', background: 'none', border: 'none',
+              cursor: 'pointer', padding: 0, fontWeight: 500,
+            }}>
+              <RefreshCw size={9} /> Refresh
             </button>
           </div>
+        </div>
+
+        {/* OTF card */}
+        <div style={{
+          background: '#fff', border: `1px solid ${C.border}`,
+          borderRadius: 8, padding: '12px 16px',
+          textAlign: 'right', flexShrink: 0,
+          boxShadow: '0 1px 2px rgba(59,45,52,0.06)',
+        }}>
+          <div style={{ fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
+            OTIF - Last 30 days
+          </div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#56A82F', lineHeight: 1 }}>92%</div>
+          <LinkBtn onClick={() => navigate('/analytics')}>
+            Analytics <ArrowRight size={9} />
+          </LinkBtn>
+        </div>
+      </div>
+
+      {/* ── Summary Cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+        {SUMMARY_CARDS.map(card => {
+          const vs = {
+            neutral:  { bg: '#fff',     border: C.border,  label: C.muted,   val: C.text,     sub: C.subtle  },
+            warning:  { bg: '#FFFCF2',  border: '#EDD98A', label: '#8A6200', val: '#B86A00',  sub: '#B86A00' },
+            critical: { bg: '#FFF5F6',  border: '#F0B8C0', label: '#902030', val: '#C02030',  sub: '#902030' },
+            success:  { bg: '#F4FBF0',  border: '#B4DDBD', label: '#1E6630', val: '#1E8A3C',  sub: '#1E6630' },
+          }[card.variant];
+          return (
+            <Card key={card.label} style={{ background: vs.bg, border: `1px solid ${vs.border}`, borderRadius: 8 }}>
+              <div style={{ padding: '12px 14px' }}>
+                <div style={{ fontSize: 9, fontWeight: 600, color: vs.label, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
+                  {card.label}
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 800, color: vs.val, lineHeight: 1 }}>
+                  {card.value}
+                </div>
+                <div style={{ fontSize: 10, color: vs.sub, marginTop: 4, lineHeight: 1.4 }}>
+                  {card.sub}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* ── Main 2-col grid ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 252px', gap: 12, alignItems: 'start' }}>
+
+        {/* Open Orders */}
+        <Card>
+          <div style={{ padding: '12px 16px 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Open orders</div>
+                <div style={{ fontSize: 10, color: C.subtle, marginTop: 2 }}>
+                  Prioritised by buyer action and delivery risk · Select an order to view details.
+                </div>
+              </div>
+              <LinkBtn onClick={() => navigate('/orders')}>
+                View all orders <ArrowRight size={10} />
+              </LinkBtn>
+            </div>
+
+            {/* Tabs */}
+            <div style={{ display: 'flex', alignItems: 'center', marginTop: 10, borderBottom: `1px solid ${C.divider}` }}>
+              {TAB_FILTERS.map(tab => {
+                const isActive = activeTab === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    onClick={() => setActiveTab(tab.key)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '5px 10px',
+                      fontSize: 11, fontWeight: isActive ? 600 : 400,
+                      color: isActive ? C.text : C.muted,
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      borderBottom: isActive ? `2px solid ${C.text}` : '2px solid transparent',
+                      marginBottom: -1, transition: 'color 0.1s',
+                    }}
+                  >
+                    {tab.label}
+                    <span style={{
+                      fontSize: 9, fontWeight: 700,
+                      padding: '1px 4px', borderRadius: 8,
+                      background: isActive ? C.text : '#EDE6EB',
+                      color: isActive ? '#fff' : C.muted,
+                    }}>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table className="data-table">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr>
-                  <th>ORDER</th>
-                  <th>REQUESTED / SELECTED</th>
-                  <th>QTY</th>
-                  <th>SOURCE</th>
-                  <th>TOTAL</th>
-                  <th>ETA</th>
-                  <th>STATUS</th>
+                <tr style={{ borderBottom: `1px solid ${C.divider}` }}>
+                  <th style={TH}>ORDER ID</th>
+                  <th style={TH}>GREEN ID</th>
+                  <th style={TH}>GREEN NAME</th>
+                  <th style={TH}>NEED-BY</th>
+                  <th style={TH}>ETA</th>
+                  <th style={TH}>STATUS</th>
+                  <th style={{ ...TH, width: 24 }}></th>
                 </tr>
               </thead>
               <tbody>
-                {ORDERS.slice(0, 5).map(o => <OrderRow key={o.id} order={o} />)}
+                {filteredOrders.map((order, i) => (
+                  <tr
+                    key={order.id}
+                    onClick={() => navigate('/orders')}
+                    style={{
+                      borderBottom: i < filteredOrders.length - 1 ? `1px solid ${C.divider}` : 'none',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <td style={{ padding: '9px 16px', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: C.rose }}>{order.id}</span>
+                    </td>
+                    <td style={{ padding: '9px 16px', fontSize: 11, color: C.text, fontWeight: 500 }}>{order.greenId}</td>
+                    <td style={{ padding: '9px 16px', fontSize: 12, color: C.text }}>{order.greenName}</td>
+                    <td style={{ padding: '9px 16px', fontSize: 11, color: C.text, whiteSpace: 'nowrap' }}>{order.needBy}</td>
+                    <td style={{ padding: '9px 16px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      {order.eta === '—'
+                        ? <span style={{ color: C.subtle }}>—</span>
+                        : <span style={{ color: order.etaRisk ? C.crit : C.text, fontWeight: order.etaRisk ? 600 : 400 }}>{order.eta}</span>
+                      }
+                    </td>
+                    <td style={{ padding: '9px 16px', whiteSpace: 'nowrap' }}>
+                      <StatusBadge status={order.status} label={order.statusLabel} />
+                    </td>
+                    <td style={{ padding: '9px 10px 9px 4px', textAlign: 'center', width: 24 }}>
+                      {order.bell && <Bell size={11} style={{ color: '#E7B83D' }} />}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </Card>
 
-        {/* Recommendations */}
-      <div className="card top-rec-card-container dashboard-recommendations-panel">
-        <div className="card-header top-rec-panel-header">
+        {/* Greens to Watch */}
+        <Card>
+          <div style={{ padding: '12px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Greens to watch</div>
+              <LinkBtn onClick={() => navigate('/inventory')}>
+                View inventory <ArrowRight size={9} />
+              </LinkBtn>
+            </div>
+            <div style={{ fontSize: 10, color: C.subtle, marginBottom: 10 }}>
+              Available stock vs each green's minimum
+            </div>
+
+            {/* Gradient bar */}
+            <div style={{ height: 5, borderRadius: 999, overflow: 'hidden', display: 'flex', marginBottom: 10 }}>
+              <div style={{ flex: 15, background: '#E53955' }} />
+              <div style={{ flex: 15, background: '#E7B83D' }} />
+              <div style={{ flex: 70, background: '#56A82F' }} />
+            </div>
+
+            <div style={{ fontSize: 10, fontWeight: 600, color: C.text, marginBottom: 8 }}>
+              Closest to minimum
+            </div>
+
+            {GREENS_WATCH.map(g => <GreenBar key={g.id} {...g} />)}
+
+            <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.divider}` }}>
+              <span style={{ fontSize: 9, color: C.subtle, fontStyle: 'italic' }}>
+                Opens Inventory filtered to the selected green.
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── Arriving Soon ── */}
+      <Card>
+        <div style={{ padding: '12px 16px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <div className="card-title">
-              <Zap size={15} />
-              Top Fulfillment Recommendations
-            </div>
-            <div className="text-xs text-secondary top-rec-panel-subtitle" style={{ marginTop: 2 }}>
-              Lowest total delivered cost &bull; Feasible options only
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>Arriving soon</div>
+            <div style={{ fontSize: 10, color: C.subtle, marginTop: 2 }}>
+              Upcoming inbound shipments and local reserved deliveries
             </div>
           </div>
+          <LinkBtn onClick={() => navigate('/inventory?tab=incoming')}>
+            View incoming <ArrowRight size={10} />
+          </LinkBtn>
         </div>
-        <div className="card-body top-rec-panel-body">
-          <div className="top-rec-grid">
-            {FULFILLMENT_OPTIONS.filter(o => o.feasible).slice(0, 2).map((opt, i) => (
-              <TopRecCard key={i} opt={opt} index={i} />
-            ))}
-          </div>
-          <button className="btn btn-primary w-full top-rec-cta" onClick={() => navigate('/recommendations')}>
-            <PlusCircle size={15} /> Compare All Options
-          </button>
-        </div>
-      </div>
 
-        {/* Alerts */}
-        <div className="card alerts-card dashboard-alerts-panel">
-          <div className="card-header dashboard-alert-header" style={{ background: 'var(--color-critical-bg)', borderBottom: '1px solid rgba(229,57,85,0.15)' }}>
-            <div className="dashboard-alert-heading">
-              <div className="card-title" style={{ color: 'var(--color-critical)' }}>
-                <AlertTriangle size={14} />
-                Alerts Requiring Attention
-              </div>
-              <span className="badge badge-critical">{ALERTS.filter(a => a.severity === 'critical').length} Critical</span>
-            </div>
-            <button className="btn btn-ghost btn-sm dashboard-alert-action" onClick={() => navigate('/alerts')}>
-              View Alerts <ChevronRight size={13} />
-            </button>
-          </div>
-          <div className="dashboard-alert-list">
-            {ALERTS.slice(0, 4).map(a => <AlertItem key={a.id} alert={a} />)}
-          </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderTop: `1px solid ${C.divider}`, borderBottom: `1px solid ${C.divider}` }}>
+                {['ORDER', 'GREEN', 'QUANTITY', 'SOURCE', 'ETA', 'NEED-BY', 'DELIVERY STATUS', 'ALERT'].map(col => (
+                  <th key={col} style={TH}>{col}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {ARRIVING_SOON.map((row, i) => (
+                <tr
+                  key={row.order}
+                  onClick={() => navigate('/inventory?tab=incoming')}
+                  style={{
+                    borderBottom: i < ARRIVING_SOON.length - 1 ? `1px solid ${C.divider}` : 'none',
+                    cursor: 'pointer',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <td style={{ padding: '9px 16px', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, color: C.rose }}>{row.order}</span>
+                  </td>
+                  <td style={{ padding: '9px 16px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                    <span style={{ color: C.text, fontWeight: 500 }}>{row.greenId}</span>
+                    <span style={{ color: C.muted }}> · {row.greenName}</span>
+                  </td>
+                  <td style={{ padding: '9px 16px', fontSize: 11, color: C.text, whiteSpace: 'nowrap' }}>{row.qty}</td>
+                  <td style={{ padding: '9px 16px', fontSize: 11, color: C.muted, whiteSpace: 'nowrap' }}>{row.source}</td>
+                  <td style={{ padding: '9px 16px', fontSize: 11, whiteSpace: 'nowrap' }}>
+                    <span style={{ color: row.etaRisk ? C.crit : C.text, fontWeight: row.etaRisk ? 600 : 400 }}>{row.eta}</span>
+                  </td>
+                  <td style={{ padding: '9px 16px', fontSize: 11, color: C.text, whiteSpace: 'nowrap' }}>{row.needBy}</td>
+                  <td style={{ padding: '9px 16px', whiteSpace: 'nowrap' }}>
+                    <DeliveryBadge label={row.deliveryStatus} variant={row.deliveryVariant} />
+                  </td>
+                  <td style={{ padding: '9px 16px', whiteSpace: 'nowrap' }}>
+                    <AlertChip label={row.alert} variant={row.alertVariant} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      </div>
+
+        <div style={{ padding: '8px 16px', borderTop: `1px solid ${C.divider}` }}>
+          <span style={{ fontSize: 9, color: C.subtle, fontStyle: 'italic' }}>
+            Alert flags appear here and in the header notification bell.
+          </span>
+        </div>
+      </Card>
+
     </div>
   );
 }
