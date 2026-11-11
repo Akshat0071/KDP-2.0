@@ -86,7 +86,9 @@ CREATE TABLE "Fact_Table_Orders" (
   "Unit_of_Measurement" VARCHAR(16) NOT NULL DEFAULT 'kg',
   "Final_green_ID" VARCHAR(32) REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Schedule_Start_date" DATE NOT NULL,
-  "Status" VARCHAR(64) NOT NULL DEFAULT 'pending', -- 'needs-signoff' | 'at-risk' | 'auto-reserved' | 'reserved' | 'awaiting-approval' | 'no-option'
+  "Status" VARCHAR(64) NOT NULL DEFAULT 'new' CHECK ("Status" IN (
+    'new', 'approved', 'requested', 'accepted', 'dispatched', 'in transit', 'delivered', 'received', 'closed', 'rejected'
+  )), -- Canonical 9 states: new, approved, requested, accepted, dispatched, in transit, delivered, received, closed (+ rejected)
   "Updated_Date" DATE NOT NULL DEFAULT CURRENT_DATE,
   PRIMARY KEY ("Order_Number", "Green_Material_ID")
 );

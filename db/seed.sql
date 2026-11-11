@@ -114,20 +114,21 @@ ON CONFLICT ("Site_ID", "Green_Material_ID") DO UPDATE SET
   "Min_Threshold" = EXCLUDED."Min_Threshold",
   "Updated_Date" = EXCLUDED."Updated_Date";
 
--- 6. Fact_Table_Orders (Active Production Batch Orders)
+-- 6. Fact_Table_Orders (Active Production Batch Orders Across the 9 Canonical States)
 INSERT INTO "Fact_Table_Orders" (
   "Site_ID", "Order_Number", "FG_Material_ID", "FG_Material_Description",
   "Green_Material_ID", "Brand", "Brand_Type", "Order_Quantity",
   "Unit_of_Measurement", "Final_green_ID", "Schedule_Start_date", "Status", "Updated_Date"
 ) VALUES
-  ('1054', 'PO-2843', 'FG-4401', 'Dark Magic Blend Whole Bean 12oz', 'Gc-04', 'Green Mountain Coffee Roasters', 'Signature Blend', 1200.00, 'kg', 'Gc-04', '2026-11-10', 'at-risk', CURRENT_DATE),
-  ('1054', 'PO-2842', 'FG-3108', 'Barista Reserve Medium Roast K-Cup', 'Gc-11', 'The Original Donut Shop', 'Signature Roast', 800.00, 'kg', 'Gc-14', '2026-11-09', 'needs-signoff', CURRENT_DATE),
-  ('1054', 'PO-2844', 'FG-2204', 'Antigua Single Origin Whole Bean 12oz', 'Gc-14', 'Green Mountain Coffee Roasters', 'Single Origin', 600.00, 'kg', 'Gc-14', '2026-11-07', 'awaiting-approval', CURRENT_DATE),
-  ('1054', 'PO-2847', 'FG-6120', 'Tarrazu Estate Reserve Whole Bean', 'Gh-08', 'Green Mountain Coffee Roasters', 'Limited Edition', 1000.00, 'kg', 'Gh-08', '2026-11-13', 'at-risk', CURRENT_DATE),
-  ('1054', 'PO-2848', 'FG-1802', 'Dukale''s Blend Single Serve Pods 24ct', 'Gd-09', 'Laughing Man Coffee', 'Signature Blend', 900.00, 'kg', 'Gc-11', '2026-11-14', 'needs-signoff', CURRENT_DATE),
-  ('1054', 'PO-2841', 'FG-1801', 'Dukale''s Blend Whole Bean 12oz', 'Gd-09', 'Laughing Man Coffee', 'Signature Blend', 1200.00, 'kg', 'Gd-09', '2026-11-08', 'auto-reserved', CURRENT_DATE),
-  ('1054', 'PO-2845', 'FG-9201', 'Kenya AA Estate Roast Whole Bean', 'Ga-17', 'Green Mountain Coffee Roasters', 'Estate Select', 800.00, 'kg', 'Ga-17', '2026-11-11', 'reserved', CURRENT_DATE),
-  ('1054', 'PO-2846', 'FG-5510', 'Sumatra Reserve Single Origin Whole Bean 12oz', 'Ge-31', 'Green Mountain Coffee Roasters', 'Single Origin', 1500.00, 'kg', 'Ge-31', '2026-11-12', 'no-option', CURRENT_DATE)
+  ('1054', 'PO-2846', 'FG-5510', 'Sumatra Reserve Single Origin Whole Bean 12oz', 'Ge-31', 'Green Mountain Coffee Roasters', 'Single Origin', 1500.00, 'kg', 'Ge-31', '2026-11-12', 'new', CURRENT_DATE),
+  ('1054', 'PO-2847', 'FG-6120', 'Tarrazu Estate Reserve Whole Bean', 'Gh-08', 'Green Mountain Coffee Roasters', 'Limited Edition', 1000.00, 'kg', 'Gh-08', '2026-11-13', 'approved', CURRENT_DATE),
+  ('1054', 'PO-2843', 'FG-4401', 'Dark Magic Blend Whole Bean 12oz', 'Gc-04', 'Green Mountain Coffee Roasters', 'Signature Blend', 1200.00, 'kg', 'Gc-04', '2026-11-10', 'requested', CURRENT_DATE),
+  ('1054', 'PO-2844', 'FG-2204', 'Antigua Single Origin Whole Bean 12oz', 'Gc-14', 'Green Mountain Coffee Roasters', 'Single Origin', 600.00, 'kg', 'Gc-14', '2026-11-07', 'accepted', CURRENT_DATE),
+  ('1054', 'PO-2838', 'FG-3108', 'Barista Reserve Medium Roast K-Cup', 'Gc-11', 'The Original Donut Shop', 'Signature Roast', 2000.00, 'kg', 'Gc-11', '2026-11-04', 'dispatched', CURRENT_DATE),
+  ('1054', 'PO-2831', 'FG-4401', 'Dark Magic Blend Whole Bean 12oz', 'Gc-04', 'Green Mountain Coffee Roasters', 'Signature Blend', 1800.00, 'kg', 'Gc-04', '2026-11-01', 'in transit', CURRENT_DATE),
+  ('1054', 'PO-2852', 'FG-7703', 'Huila Supremo Single Origin 10oz', 'Gc-22', 'Green Mountain Coffee Roasters', 'Single Origin', 800.00, 'kg', 'Gc-22', '2026-11-02', 'delivered', CURRENT_DATE),
+  ('1054', 'PO-2842', 'FG-3108', 'Barista Reserve Medium Roast K-Cup', 'Gc-11', 'The Original Donut Shop', 'Signature Roast', 800.00, 'kg', 'Gc-14', '2026-11-09', 'received', CURRENT_DATE),
+  ('1054', 'PO-2841', 'FG-1801', 'Dukale''s Blend Whole Bean 12oz', 'Gd-09', 'Laughing Man Coffee', 'Signature Blend', 1200.00, 'kg', 'Gd-09', '2026-11-08', 'closed', CURRENT_DATE)
 ON CONFLICT ("Order_Number", "Green_Material_ID") DO UPDATE SET
   "Order_Quantity" = EXCLUDED."Order_Quantity",
   "Status" = EXCLUDED."Status",

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { SITE_WAREHOUSE_MAPPING } from '../../data/mockData';
+import { useOrders, getOrderStatusMeta } from '../../context/OrdersContext';
 
 const C = {
   text:      '#30272B',
@@ -894,6 +895,7 @@ function PaginationFooter({ page, totalPages, totalItems, perPage, itemLabel, on
 export default function Inventory() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { orders, buyerReceive, buyerClose } = useOrders();
 
   // Active tab: 'stock' | 'incoming' (derived from searchParams with local switch)
   const tabParam = searchParams.get('tab');
@@ -2700,6 +2702,80 @@ export default function Inventory() {
                     Mitigate Delay Risk (Allocate Alternate)
                   </button>
                 )}
+
+                {/* Synced Order Lifecycle Status & Buyer Actions */}
+                {(() => {
+                  const linkedOrder = orders.find(o => o.id === selectedShipment.linkedOrder);
+                  if (!linkedOrder) return null;
+                  const orderMeta = getOrderStatusMeta(linkedOrder.status);
+                  return (
+                    <div style={{
+                      marginTop: 10,
+                      padding: '10px 12px',
+                      borderRadius: 6,
+                      background: orderMeta.bg,
+                      border: `1px solid ${orderMeta.border}`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 8,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: orderMeta.color, textTransform: 'uppercase' }}>
+                          Synced Order: {linkedOrder.id}
+                        </span>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: orderMeta.color }}>
+                          {orderMeta.label}
+                        </span>
+                      </div>
+
+                      {linkedOrder.status === 'delivered' && (
+                        <button
+                          type="button"
+                          onClick={() => buyerReceive(linkedOrder.id)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: '#15803D',
+                            color: '#FFFFFF',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Inspect & Mark Received at Dock
+                        </button>
+                      )}
+
+                      {linkedOrder.status === 'received' && (
+                        <button
+                          type="button"
+                          onClick={() => buyerClose(linkedOrder.id)}
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: C.plum,
+                            color: '#FFFFFF',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Close Order & Add to Available Stock
+                        </button>
+                      )}
+
+                      {linkedOrder.status === 'closed' && (
+                        <div style={{ fontSize: 10, color: '#15803D', fontWeight: 600 }}>
+                          ✓ Stock verified and credited to inventory.
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );

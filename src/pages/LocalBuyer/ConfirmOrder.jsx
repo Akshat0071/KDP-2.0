@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AlertTriangle, ArrowLeft, Check } from 'lucide-react';
+import { useOrders } from '../../context/OrdersContext';
+import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
 
 const C = {
-  text:    '#30272B',
-  muted:   '#746970',
-  subtle:  '#9CA3AF',
-  border:  '#E6DCE2',
-  divider: '#F0EAEE',
-  hover:   '#FDFBFC',
-  rose:    '#D83F79',
+  text:      '#30272B',
+  muted:     '#746970',
+  subtle:    '#9CA3AF',
+  border:    '#E6DCE2',
+  divider:   '#F0EAEE',
+  hover:     '#FDFBFC',
+  rose:      '#D83F79',
   roseHover: '#C4366B',
-  success: '#27A348',
-  warn:    '#E07000',
-  crit:    '#D83040',
+  success:   '#27A348',
+  warn:      '#E07000',
+  crit:      '#D83040',
 };
 
 export default function ConfirmOrder() {
@@ -22,30 +24,51 @@ export default function ConfirmOrder() {
   const { option, order } = location.state || {};
   const [ackAlt, setAckAlt] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const { buyerRequestTransfer, buyerApprove } = useOrders();
 
   // Fallback defaults if accessed directly
   const safeOrder = order || {
-    id: 'PO-2842',
-    greenId: 'Gc-11',
-    greenName: 'Brazil Cerrado Natural',
-    quantity: '800 kg',
-    needBy: 'Nov 09',
+    id: 'PO-2843',
+    greenId: 'Gc-04',
+    greenName: 'Colombia Supremo Washed',
+    quantity: '1,200 kg',
+    quantityStr: '1,200 kg',
+    needBy: 'Nov 10',
+    warehouse: 'Warehouse 1055',
   };
 
   const safeOption = option || {
-    greenName: 'Gc-14 · Guatemala Antigua SHB',
-    source: 'LOCAL ALTERNATE · Gc-14',
-    arrivalDate: 'ETA Nov 08 · 1 day early',
-    totalDelivered: 3280,
-    perKg: '4.10',
-    isAlternate: true,
+    greenName: 'Gc-04 · Colombia Supremo Washed',
+    source: 'CENTRAL WAREHOUSE · WAREHOUSE 1055',
+    arrivalDate: 'ETA Nov 10 · On schedule',
+    totalDelivered: 5269,
+    perKg: '4.39',
+    isAlternate: false,
     costBreakdown: [
-      { label: 'Green / bean cost', val: '$3,280' },
-      { label: 'Shipping / freight', val: '$0' },
+      { label: 'Green / bean cost', val: '$4,680' },
+      { label: 'Shipping cost (fixed)', val: '$589' },
     ],
   };
 
   const canConfirm = !safeOption.isAlternate || ackAlt;
+
+  const handleConfirmAction = () => {
+    const isWarehouseTransfer =
+      safeOption.source?.includes('WAREHOUSE') ||
+      safeOrder.warehouse ||
+      !safeOption.isAlternate;
+
+    if (isWarehouseTransfer) {
+      buyerRequestTransfer(safeOrder.id, safeOption);
+    } else {
+      buyerApprove(safeOrder.id, safeOption);
+    }
+    setConfirmed(true);
+  };
+
+  const resultingStatus = (safeOption.source?.includes('WAREHOUSE') || safeOrder.warehouse)
+    ? 'requested'
+    : 'approved';
 
   if (confirmed) {
     return (
@@ -73,12 +96,25 @@ export default function ConfirmOrder() {
           </div>
 
           <h2 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: '0 0 6px' }}>
-            Order Allocation Confirmed
+            {resultingStatus === 'requested' ? 'Transfer Request Submitted to Hub' : 'Order Sourcing Approved'}
           </h2>
-          <p style={{ fontSize: 12, color: C.muted, margin: '0 0 20px', lineHeight: 1.5 }}>
-            <strong>{safeOrder.id}</strong> has been committed with green material <strong>{safeOption.greenName}</strong>.
-            Fulfillment and QA batching tickets have been dispatched to Site 1054 roasting operations.
+          <p style={{ fontSize: 12, color: C.muted, margin: '0 0 16px', lineHeight: 1.5 }}>
+            <strong>{safeOrder.id}</strong> has been updated.
+            {resultingStatus === 'requested'
+              ? ' Transfer PO is now on Central Warehouse Manager desk for allocation from Warehouse 1055.'
+              : ' Local sourcing batch committed to roasting operations.'}
           </p>
+
+          {/* Stepper display */}
+          <div style={{
+            background: '#FAF8F9',
+            border: `1px solid ${C.divider}`,
+            borderRadius: 8,
+            padding: '12px 14px',
+            marginBottom: 20,
+          }}>
+            <OrderLifecycleStepper status={resultingStatus} />
+          </div>
 
           <div style={{
             background: '#FAF8F9',
@@ -101,7 +137,7 @@ export default function ConfirmOrder() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
               <span style={{ color: C.muted }}>Quantity</span>
-              <span style={{ fontWeight: 700, color: C.text }}>{safeOrder.quantity}</span>
+              <span style={{ fontWeight: 700, color: C.text }}>{safeOrder.quantityStr || safeOrder.quantity}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
               <span style={{ color: C.muted }}>Expected Delivery</span>
@@ -130,7 +166,7 @@ export default function ConfirmOrder() {
               Back to Orders
             </button>
             <button
-              onClick={() => navigate('/inventory?tab=incoming')}
+              onClick={() => navigate('/central-orders')}
               style={{
                 padding: '8px 18px',
                 borderRadius: 6,
@@ -142,7 +178,7 @@ export default function ConfirmOrder() {
                 cursor: 'pointer',
               }}
             >
-              Track Deliveries
+              View in Central Warehouse
             </button>
           </div>
         </div>
@@ -160,100 +196,88 @@ export default function ConfirmOrder() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: 4,
-            fontSize: 11,
-            color: C.rose,
             background: 'none',
             border: 'none',
+            color: C.rose,
+            fontSize: 11,
+            fontWeight: 600,
             cursor: 'pointer',
             padding: 0,
-            fontWeight: 600,
-            marginBottom: 8,
+            marginBottom: 6,
           }}
         >
-          <ArrowLeft size={11} /> Back to order queue
+          <ArrowLeft size={13} /> Back to Sourcing Options
         </button>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: '0 0 2px' }}>
-          Review & Confirm Order
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0, letterSpacing: '-0.3px' }}>
+          Confirm Fulfillment Decision · {safeOrder.id}
         </h1>
-        <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>
-          Confirm sourcing allocation and sign-off on alternate material substitution before production lock.
+        <p style={{ fontSize: 12, color: C.muted, margin: '4px 0 0' }}>
+          Review landed cost breakdown and submit the order across the 9-stage lifecycle.
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, alignItems: 'start' }}>
-        {/* Main Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Order Demand Details Card */}
-          <div style={{
-            background: '#FFFFFF',
-            border: `1px solid ${C.border}`,
-            borderRadius: 8,
-            padding: '16px',
-            boxShadow: '0 1px 2px rgba(59,45,52,0.05)',
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 12 }}>
-              Order Demand Details
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 14, alignItems: 'start' }}>
+        {/* Left Main Form Card */}
+        <div style={{
+          background: '#FFFFFF',
+          border: `1px solid ${C.border}`,
+          borderRadius: 8,
+          padding: '20px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16,
+          boxShadow: '0 1px 2px rgba(59,45,52,0.04)',
+        }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>
+              CHOSEN SOURCING ROUTE
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-              <div style={{ background: '#FAF8F9', padding: '10px 12px', borderRadius: 6 }}>
-                <div style={{ fontSize: 9, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>Requested Green</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{safeOrder.greenId} · {safeOrder.greenName}</div>
-              </div>
-
-              <div style={{ background: '#FAF8F9', padding: '10px 12px', borderRadius: 6 }}>
-                <div style={{ fontSize: 9, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>Order Quantity</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{safeOrder.quantity}</div>
-              </div>
-
-              <div style={{ background: '#FAF8F9', padding: '10px 12px', borderRadius: 6 }}>
-                <div style={{ fontSize: 9, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>Selected Sourcing Material</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{safeOption.greenName}</div>
-              </div>
-
-              <div style={{ background: '#FAF8F9', padding: '10px 12px', borderRadius: 6 }}>
-                <div style={{ fontSize: 9, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>Delivery Commitment</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#1E8A3C' }}>{safeOption.arrivalDate}</div>
-              </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>
+              {safeOption.greenName}
+            </div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+              Source: <strong style={{ color: C.text }}>{safeOption.source}</strong> · {safeOption.arrivalDate}
             </div>
           </div>
 
-          {/* Alternate Substitution Sign-Off */}
+          {/* Alternate Sourcing Warning if applicable */}
           {safeOption.isAlternate && (
             <div style={{
-              background: '#FFFDF5',
+              background: '#FFF7E6',
               border: '1px solid #F5D68A',
-              borderRadius: 8,
-              padding: '14px 16px',
+              borderRadius: 6,
+              padding: '12px 14px',
+              display: 'flex',
+              gap: 10,
+              alignItems: 'flex-start',
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <AlertTriangle size={15} style={{ color: '#E07000' }} />
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#A06000' }}>
-                  Approved Alternate Substitution Sign-off
-                </span>
+              <AlertTriangle size={18} style={{ color: C.warn, flexShrink: 0, marginTop: 1 }} />
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.warn }}>
+                  Alternate Green Material Substitution Notice
+                </div>
+                <div style={{ fontSize: 11, color: '#746970', marginTop: 2, lineHeight: 1.4 }}>
+                  You are allocating an approved flavor-equivalent substitute (<strong>{safeOption.greenName}</strong>) in place of the base demand green.
+                </div>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  marginTop: 8,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: C.text,
+                  cursor: 'pointer',
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={ackAlt}
+                    onChange={e => setAckAlt(e.target.checked)}
+                    style={{ accentColor: C.rose, cursor: 'pointer' }}
+                  />
+                  I confirm this substitution satisfies the roasting flavor profile.
+                </label>
               </div>
-              <p style={{ fontSize: 11, color: '#746030', margin: '0 0 10px', lineHeight: 1.4 }}>
-                This fulfillment uses approved alternate <strong>{safeOption.greenName}</strong> in place of requested {safeOrder.greenName}.
-                Recipe compatibility has been confirmed in the green materials alternate mapping.
-              </p>
-
-              <label style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                gap: 8,
-                fontSize: 11,
-                color: C.text,
-                cursor: 'pointer',
-                fontWeight: 600,
-              }}>
-                <input
-                  type="checkbox"
-                  checked={ackAlt}
-                  onChange={e => setAckAlt(e.target.checked)}
-                  style={{ marginTop: 2 }}
-                />
-                <span>I acknowledge and approve this alternate green material for production batching.</span>
-              </label>
             </div>
           )}
 
@@ -277,7 +301,7 @@ export default function ConfirmOrder() {
 
             <button
               disabled={!canConfirm}
-              onClick={() => setConfirmed(true)}
+              onClick={handleConfirmAction}
               style={{
                 padding: '8px 22px',
                 borderRadius: 6,
