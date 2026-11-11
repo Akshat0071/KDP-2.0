@@ -173,6 +173,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: null,
     shippingCost: 589,
     fgMaterialId: 'FG-5510',
     fgMaterialDescription: 'Sumatra Reserve Single Origin Whole Bean 12oz',
@@ -245,6 +246,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: null,
     shippingCost: 589,
     fgMaterialId: 'FG-6120',
     fgMaterialDescription: 'Tarrazu Estate Reserve Whole Bean',
@@ -316,6 +318,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: null,
     shippingCost: 589,
     fgMaterialId: 'FG-4401',
     fgMaterialDescription: 'Dark Magic Blend Whole Bean 12oz',
@@ -391,6 +394,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: null,
     shippingCost: 589,
     fgMaterialId: 'FG-2204',
     fgMaterialDescription: 'Antigua Single Origin Whole Bean 12oz',
@@ -463,6 +467,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: 'SH-7827',
     shippingCost: 589,
     fgMaterialId: 'FG-3108',
     fgMaterialDescription: 'Barista Reserve Medium Roast K-Cup',
@@ -508,6 +513,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: 'SH-7810',
     shippingCost: 589,
     fgMaterialId: 'FG-4401',
     fgMaterialDescription: 'Dark Magic Blend Whole Bean 12oz',
@@ -551,6 +557,7 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: 'SH-7823',
     shippingCost: 589,
     fgMaterialId: 'FG-7703',
     fgMaterialDescription: 'Huila Supremo Single Origin 10oz',
@@ -567,7 +574,7 @@ const INITIAL_SYNCED_ORDERS = [
     needByFull: 'Nov 02, 2026',
     status: 'delivered',
     carrierName: 'Lonestar Freight Lines',
-    trackingNumber: 'SH-7812',
+    trackingNumber: 'TR-502',
     buyerName: 'Maya Torres',
     buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
     notes: 'Trailer backed into Plano Dock 3. Local Buyer dock verification pending.',
@@ -586,7 +593,7 @@ const INITIAL_SYNCED_ORDERS = [
     ],
   },
 
-  // 8. RECEIVED: Guatemala Antigua SHB (Site 1054) - Buyer marked received, ready to close into inventory
+  // 8. RECEIVED: Guatemala Antigua SHB (Site 1054) - Buyer marked received, ready to close into inventory (local alternate, no warehouse shipment)
   {
     id: 'PO-2842',
     siteId: '1054',
@@ -594,6 +601,8 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: null,
+    isLocalFulfilled: true,
     shippingCost: 0,
     fgMaterialId: 'FG-3108',
     fgMaterialDescription: 'Barista Reserve Medium Roast K-Cup',
@@ -631,7 +640,7 @@ const INITIAL_SYNCED_ORDERS = [
     ],
   },
 
-  // 9. CLOSED: Ethiopia Yirgacheffe Natural (Site 1054) - Completed and booked into inventory
+  // 9. CLOSED: Ethiopia Yirgacheffe Natural (Site 1054) - Completed and booked into inventory (local inventory, no warehouse shipment)
   {
     id: 'PO-2841',
     siteId: '1054',
@@ -639,6 +648,8 @@ const INITIAL_SYNCED_ORDERS = [
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
     warehouseId: '1055',
+    shipmentId: null,
+    isLocalFulfilled: true,
     shippingCost: 0,
     fgMaterialId: 'FG-1801',
     fgMaterialDescription: 'Dukale\'s Blend Whole Bean 12oz',
@@ -810,7 +821,31 @@ export function OrdersProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Reconcile shipmentId / isLocalFulfilled schema additions onto cached orders
+          const seedMap = new Map(INITIAL_SYNCED_ORDERS.map(o => [o.id, o]));
+          const hydrated = parsed.map(ord => {
+            const seed = seedMap.get(ord.id);
+            if (!seed) return ord;
+            const patch = {};
+            if (ord.shipmentId === undefined && seed.shipmentId !== undefined) {
+              patch.shipmentId = seed.shipmentId;
+            }
+            if (ord.isLocalFulfilled === undefined && seed.isLocalFulfilled !== undefined) {
+              patch.isLocalFulfilled = seed.isLocalFulfilled;
+            }
+            // Fix legacy PO-2831 tracking/shipmentId alignment if needed
+            if (ord.id === 'PO-2831' && ord.shipmentId === 'SH-7813') {
+              patch.shipmentId = 'SH-7810';
+            }
+            // Backfill shipmentId if user already advanced an order to dispatched+ before this update
+            const postDispatch = ['dispatched', 'in transit', 'delivered', 'received', 'closed'];
+            if (!ord.isLocalFulfilled && !seed.isLocalFulfilled && postDispatch.includes((ord.status || '').toLowerCase()) && !ord.shipmentId && !patch.shipmentId) {
+              const numSuffix = ord.id.replace(/\D/g, '') || '7899';
+              patch.shipmentId = `SH-${7800 + (parseInt(numSuffix.slice(-2), 10) || 28)}`;
+            }
+            return Object.keys(patch).length > 0 ? { ...ord, ...patch } : ord;
+          });
+          return hydrated;
         }
       }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(INITIAL_SYNCED_ORDERS));
@@ -922,25 +957,33 @@ export function OrdersProvider({ children }) {
 
   // ── 4. Central Warehouse Manager: Dispatch order to dock (accepted -> dispatched)
   const warehouseDispatch = (orderId, { bay = 'Bay 3', notes } = {}) => {
-    setOrders(prev =>
-      prev.map(o => {
+    setOrders(prev => {
+      const existingMax = prev.reduce((max, ord) => {
+        const match = /^SH-(\d+)$/.exec(ord.shipmentId || '');
+        return match ? Math.max(max, parseInt(match[1], 10)) : max;
+      }, 7827);
+      const nextShipmentId = `SH-${existingMax + 1}`;
+
+      return prev.map(o => {
         if (o.id !== orderId) return o;
+        const assignedShipmentId = o.shipmentId || nextShipmentId;
         const updatedTimeline = appendTimeline(
           o,
-          `Order palletized, verified, and staged at Outbound Dock ${bay}`,
+          `Order palletized, verified, and staged at Outbound Dock ${bay} (Shipment ${assignedShipmentId})`,
           'Central Warehouse Manager',
           'active'
         );
         return {
           ...o,
           status: 'dispatched',
+          shipmentId: assignedShipmentId,
           stagingBay: bay,
           notes: notes || o.notes,
           updatedDate: new Date().toISOString(),
           timeline: updatedTimeline,
         };
-      })
-    );
+      });
+    });
   };
 
   // ── 5. Central Warehouse Manager: Hand off to carrier (dispatched -> in transit)

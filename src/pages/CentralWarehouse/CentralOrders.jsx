@@ -543,9 +543,25 @@ export default function CentralOrders() {
                       <span>{order.destinationSite}</span>
                     </div>
 
-                    {/* Bottom Metadata: Quantity & Need By */}
+                    {/* Bottom Metadata: Quantity, Shipment ID & Need By */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 10, color: C.subtle }}>
-                      <span>Qty: <strong>{order.quantityStr || `${order.orderQuantity} kg`}</strong></span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span>Qty: <strong>{order.quantityStr || `${order.orderQuantity} kg`}</strong></span>
+                        {order.shipmentId && (
+                          <span style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            fontFamily: 'monospace',
+                            color: C.rose,
+                            background: '#FAF2F6',
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            border: '1px solid #F2D8E4',
+                          }}>
+                            {order.shipmentId}
+                          </span>
+                        )}
+                      </div>
                       <span>Need by <strong>{order.needByFull || order.needBy}</strong></span>
                     </div>
                   </div>
@@ -606,7 +622,10 @@ export default function CentralOrders() {
             <div style={{ fontSize: 10, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
               Order Lifecycle Progress (9 Canonical Stages)
             </div>
-            <OrderLifecycleStepper status={selectedOrder.status} />
+            <OrderLifecycleStepper
+              status={selectedOrder.status}
+              isLocalFulfilled={Boolean(selectedOrder.isLocalFulfilled)}
+            />
           </div>
 
           {/* Warehouse Stock Check Banner */}
@@ -639,7 +658,7 @@ export default function CentralOrders() {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, fontSize: 11 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, fontSize: 11 }}>
               <div>
                 <div style={{ fontSize: 9.5, color: C.subtle }}>Green Material</div>
                 <div style={{ fontWeight: 700, color: C.plum }}>{selectedOrder.greenId} · {selectedOrder.greenName}</div>
@@ -651,6 +670,32 @@ export default function CentralOrders() {
               <div>
                 <div style={{ fontSize: 9.5, color: C.subtle }}>Destination Site</div>
                 <div style={{ fontWeight: 700, color: C.text }}>{selectedOrder.destinationSite}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9.5, color: C.subtle }}>Shipment ID</div>
+                {selectedOrder.isLocalFulfilled ? (
+                  <div style={{ fontWeight: 700, color: C.muted }}>— (Local Stock)</div>
+                ) : selectedOrder.shipmentId ? (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/inventory?tab=incoming&shipment=${selectedOrder.shipmentId}`)}
+                    style={{
+                      padding: 0,
+                      border: 'none',
+                      background: 'none',
+                      fontWeight: 800,
+                      fontFamily: 'monospace',
+                      fontSize: 11.5,
+                      color: C.rose,
+                      cursor: 'pointer',
+                    }}
+                    title="Inspect shipment in Incoming Shipments"
+                  >
+                    {selectedOrder.shipmentId} ↗
+                  </button>
+                ) : (
+                  <div style={{ fontWeight: 600, color: C.subtle }}>Pending Dispatch</div>
+                )}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 9.5, color: C.subtle }}>Fixed Freight Cost</div>

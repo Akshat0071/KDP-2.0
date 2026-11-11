@@ -421,23 +421,23 @@ function getLowestCostWarehouse(item, qty, siteId = '1054') {
 const INCOMING_SHIPMENTS = [
   {
     id: 'SH-7810',
-    greenId: 'Bc-14',
-    greenName: 'Brazil Cerrado',
-    qty: 800,
+    greenId: 'Gc-04',
+    greenName: 'Colombia Supremo Washed',
+    qty: 1800,
     warehouse: 'Warehouse 1055',
-    eta: 'Nov 08, 2026',
+    eta: 'Nov 01, 2026',
     etaBucket: 'this-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2842',
+    linkedOrder: 'PO-2831',
     statusUpdated: 'Oct 25, 2026, 09:40 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 23, 2026, 02:15 PM', state: 'done' },
       { title: 'Dispatched from Warehouse', time: 'Oct 24, 2026, 06:20 PM', state: 'done' },
       { title: 'In Transit', time: 'En route to Site 1054 — Plano Roasting', state: 'active' },
-      { title: 'Expected Delivery', time: 'Nov 08, 2026', state: 'pending' },
+      { title: 'Expected Delivery', time: 'Nov 01, 2026', state: 'pending' },
     ],
-    impact: { incomingQty: 800, openDemand: 800, projectedBalance: 1600 },
+    impact: { incomingQty: 1800, openDemand: 1800, projectedBalance: 1600 },
   },
   {
     id: 'SH-7811',
@@ -449,7 +449,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2846',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 08:15 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 22, 2026, 11:10 AM', state: 'done' },
@@ -469,7 +469,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'Delayed',
     delayed: true,
-    linkedOrder: 'PO-2847',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 10:05 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 21, 2026, 09:00 AM', state: 'done' },
@@ -509,7 +509,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'next-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2848',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 09:12 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 24, 2026, 10:00 AM', state: 'done' },
@@ -529,7 +529,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'Scheduled',
     delayed: false,
-    linkedOrder: 'PO-2842',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 08:45 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 25, 2026, 08:45 AM', state: 'done' },
@@ -569,7 +569,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'next-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2849',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 10:00 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 23, 2026, 01:00 PM', state: 'done' },
@@ -590,7 +590,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2843',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 09:50 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 23, 2026, 11:30 AM', state: 'done' },
@@ -610,7 +610,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'Delayed',
     delayed: true,
-    linkedOrder: 'PO-2841',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 10:15 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 20, 2026, 08:20 AM', state: 'done' },
@@ -630,7 +630,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'next-week',
     status: 'Scheduled',
     delayed: false,
-    linkedOrder: 'PO-2845',
+    linkedOrder: '—',
     statusUpdated: 'Oct 24, 2026, 02:10 PM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 24, 2026, 02:10 PM', state: 'done' },
@@ -650,7 +650,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'next-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2847',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 09:05 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 24, 2026, 08:00 AM', state: 'done' },
@@ -670,7 +670,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2844',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 08:50 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 23, 2026, 03:00 PM', state: 'done' },
@@ -683,22 +683,21 @@ const INCOMING_SHIPMENTS = [
   {
     id: 'SH-7823',
     greenId: 'Gc-22',
-    greenName: 'Huila Washed',
-    qty: 200,
+    greenName: 'Huila Washed Regional',
+    qty: 800,
     warehouse: 'Warehouse 1055',
-    eta: 'Nov 12, 2026',
-    etaBucket: 'next-week',
-    status: 'Scheduled',
+    eta: 'Nov 02, 2026',
+    etaBucket: 'this-week',
+    status: 'Delivered',
     delayed: false,
     linkedOrder: 'PO-2852',
-    statusUpdated: 'Oct 25, 2026, 07:45 AM',
+    statusUpdated: 'Today 08:15 AM',
     timeline: [
-      { title: 'Shipment Created', time: 'Oct 25, 2026, 07:45 AM', state: 'done' },
-      { title: 'Scheduled for Dispatch', time: 'Warehouse 1055 Staging', state: 'active' },
-      { title: 'In Transit', time: 'Pending dispatch', state: 'pending' },
-      { title: 'Expected Delivery', time: 'Nov 12, 2026', state: 'pending' },
+      { title: 'Shipment Created', time: 'Oct 20, 2026, 09:15 AM', state: 'done' },
+      { title: 'Dispatched from Warehouse 1055', time: 'Oct 21, 2026, 05:00 PM', state: 'done' },
+      { title: 'Delivered at Site 1054 Dock 3', time: 'Today 08:15 AM', state: 'active' },
     ],
-    impact: { incomingQty: 200, openDemand: 1000, projectedBalance: 100 },
+    impact: { incomingQty: 800, openDemand: 1000, projectedBalance: 100 },
   },
   {
     id: 'SH-7824',
@@ -710,7 +709,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'next-week',
     status: 'Delayed',
     delayed: true,
-    linkedOrder: 'PO-2846',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 10:20 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 22, 2026, 02:30 PM', state: 'done' },
@@ -751,7 +750,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'next-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2855',
+    linkedOrder: '—',
     statusUpdated: 'Oct 25, 2026, 09:30 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 24, 2026, 01:15 PM', state: 'done' },
@@ -764,28 +763,49 @@ const INCOMING_SHIPMENTS = [
   {
     id: 'SH-7827',
     greenId: 'Gc-11',
-    greenName: 'Brazil Cerrado',
-    qty: 500,
+    greenName: 'Brazil Cerrado Natural',
+    qty: 2000,
     warehouse: 'Warehouse 1055',
-    eta: 'Nov 16, 2026',
-    etaBucket: 'next-week',
-    status: 'Scheduled',
+    eta: 'Nov 04, 2026',
+    etaBucket: 'this-week',
+    status: 'Dispatched',
     delayed: false,
     linkedOrder: 'PO-2838',
-    statusUpdated: 'Oct 25, 2026, 10:10 AM',
+    statusUpdated: 'Today 07:45 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 25, 2026, 10:10 AM', state: 'done' },
-      { title: 'Scheduled for Dispatch', time: 'Warehouse 1055 Dock', state: 'active' },
-      { title: 'In Transit', time: 'Pending dispatch', state: 'pending' },
-      { title: 'Expected Delivery', time: 'Nov 16, 2026', state: 'pending' },
+      { title: 'Dispatched to Outbound Dock Bay 2', time: 'Today 07:45 AM', state: 'active' },
     ],
-    impact: { incomingQty: 500, openDemand: 1200, projectedBalance: 900 },
+    impact: { incomingQty: 2000, openDemand: 2000, projectedBalance: 1600 },
   },
 ];
 
+function mapOrderStatusToShipment(orderStatus) {
+  const s = (orderStatus || '').toLowerCase().trim();
+  if (s === 'dispatched') return 'Dispatched';
+  if (s === 'in transit') return 'In Transit';
+  if (s === 'delivered') return 'Delivered';
+  if (s === 'received') return 'Received';
+  if (s === 'closed') return 'Closed';
+  if (s === 'requested' || s === 'accepted') return 'Scheduled';
+  return 'Scheduled';
+}
+
 function getShipmentStatusMeta(status) {
+  if (status === 'Dispatched') {
+    return { bg: '#EEF2FF', color: '#4F46E5', border: '#C7D2FE' };
+  }
   if (status === 'In Transit') {
     return { bg: C.infoBg, color: '#0E7490', border: C.infoBorder };
+  }
+  if (status === 'Delivered') {
+    return { bg: '#EFF6FF', color: '#2563EB', border: '#BFDBFE' };
+  }
+  if (status === 'Received') {
+    return { bg: '#F0FDF4', color: '#15803D', border: '#BBF7D0' };
+  }
+  if (status === 'Closed') {
+    return { bg: '#F3F4F6', color: '#4B5563', border: '#E5E7EB' };
   }
   if (status === 'Delayed') {
     return { bg: C.critBg, color: C.crit, border: C.critBorder };
@@ -930,7 +950,10 @@ export default function Inventory() {
 
   // Selected items for side panels
   const [selectedGreenId, setSelectedGreenId] = useState('Gc-04');
-  const [selectedShipmentId, setSelectedShipmentId] = useState('SH-7810');
+  const shipmentParam = searchParams.get('shipment');
+  const [userSelectedShipmentId, setUserSelectedShipmentId] = useState(null);
+  const selectedShipmentId = userSelectedShipmentId ?? shipmentParam ?? 'SH-7810';
+  const setSelectedShipmentId = (id) => setUserSelectedShipmentId(id);
   const [showSidePanel, setShowSidePanel] = useState(true);
 
   // Process and compute Stock rows with Days of Supply (DoS)
@@ -987,9 +1010,71 @@ export default function Inventory() {
     return filteredRows.slice(start, start + ITEMS_PER_PAGE);
   }, [filteredRows, safeStockPage]);
 
+  // Synchronize Incoming Shipments with live OrdersContext state
+  const syncedShipments = useMemo(() => {
+    const ordersById = new Map(orders.map(o => [o.id, o]));
+    const matchedOrderIds = new Set();
+
+    // 1. Update existing shipment rows from linked OrdersContext records
+    const mergedExisting = shipmentsList.map(ship => {
+      const linkedOrd = ship.linkedOrder && ship.linkedOrder !== '—'
+        ? ordersById.get(ship.linkedOrder)
+        : null;
+      if (linkedOrd && !linkedOrd.isLocalFulfilled) {
+        matchedOrderIds.add(linkedOrd.id);
+        const syncedStatus = mapOrderStatusToShipment(linkedOrd.status);
+        return {
+          ...ship,
+          greenId: linkedOrd.greenId || ship.greenId,
+          greenName: linkedOrd.greenName || ship.greenName,
+          qty: linkedOrd.acceptedQuantity || linkedOrd.orderQuantity || ship.qty,
+          warehouse: linkedOrd.warehouse || ship.warehouse,
+          status: syncedStatus,
+          orderStatus: linkedOrd.status,
+          timeline: linkedOrd.timeline || ship.timeline,
+        };
+      }
+      return {
+        ...ship,
+        orderStatus: null,
+      };
+    });
+
+    // 2. Dynamically surface any newly dispatched/in-transit/delivered/received/closed warehouse orders
+    const existingIds = new Set(mergedExisting.map(s => s.id));
+    const postDispatchOrders = orders
+      .filter(ord => !ord.isLocalFulfilled && ord.shipmentId && !matchedOrderIds.has(ord.id) && !existingIds.has(ord.shipmentId))
+      .map(ord => {
+        const syncedStatus = mapOrderStatusToShipment(ord.status);
+        const qty = ord.acceptedQuantity || ord.orderQuantity || 0;
+        return {
+          id: ord.shipmentId,
+          greenId: ord.greenId,
+          greenName: ord.greenName,
+          qty,
+          warehouse: ord.warehouse || 'Warehouse 1055',
+          eta: ord.needByFull || ord.needBy || 'TBD',
+          etaBucket: 'this-week',
+          status: syncedStatus,
+          orderStatus: ord.status,
+          delayed: false,
+          linkedOrder: ord.id,
+          statusUpdated: 'Just now',
+          timeline: ord.timeline || [],
+          impact: {
+            incomingQty: qty,
+            openDemand: ord.orderQuantity || qty,
+            projectedBalance: qty,
+          },
+        };
+      });
+
+    return [...postDispatchOrders, ...mergedExisting];
+  }, [shipmentsList, orders]);
+
   // Filtered Incoming Shipments
   const filteredShipments = useMemo(() => {
-    return shipmentsList.filter(ship => {
+    return syncedShipments.filter(ship => {
       if (shipStatusFilter !== 'all' && ship.status !== shipStatusFilter) return false;
       if (shipFromFilter !== 'all' && ship.warehouse !== shipFromFilter) return false;
       if (shipEtaFilter !== 'all' && ship.etaBucket !== shipEtaFilter) return false;
@@ -1007,7 +1092,7 @@ export default function Inventory() {
       }
       return true;
     });
-  }, [shipmentsList, shipSearch, shipStatusFilter, shipFromFilter, shipEtaFilter, shipDelayFilter]);
+  }, [syncedShipments, shipSearch, shipStatusFilter, shipFromFilter, shipEtaFilter, shipDelayFilter]);
 
   const totalShipPages = Math.max(1, Math.ceil(filteredShipments.length / ITEMS_PER_PAGE));
   const safeShipPage = Math.min(shipPage, totalShipPages);
@@ -1022,8 +1107,8 @@ export default function Inventory() {
   }, [computedItems, selectedGreenId]);
 
   const selectedShipment = useMemo(() => {
-    return shipmentsList.find(s => s.id === selectedShipmentId) || shipmentsList[0];
-  }, [shipmentsList, selectedShipmentId]);
+    return syncedShipments.find(s => s.id === selectedShipmentId) || syncedShipments[0];
+  }, [syncedShipments, selectedShipmentId]);
 
   // KPI Metrics
   const shortOrdersCount = computedItems.filter(i => i.statusMeta.key === 'short' || i.statusMeta.key === 'critical').length;
@@ -1935,7 +2020,11 @@ export default function Inventory() {
                       prefix="Status: "
                       options={[
                         { value: 'all', label: 'All' },
+                        { value: 'Dispatched', label: 'Dispatched' },
                         { value: 'In Transit', label: 'In Transit' },
+                        { value: 'Delivered', label: 'Delivered' },
+                        { value: 'Received', label: 'Received' },
+                        { value: 'Closed', label: 'Closed' },
                         { value: 'Delayed', label: 'Delayed' },
                         { value: 'Scheduled', label: 'Scheduled' },
                       ]}
@@ -2024,7 +2113,9 @@ export default function Inventory() {
                       ) : (
                         paginatedShipments.map((ship, idx) => {
                           const isSelected = selectedShipmentId === ship.id && showSidePanel;
-                          const badge = getShipmentStatusMeta(ship.status);
+                          const linkedOrderMeta = ship.orderStatus ? getOrderStatusMeta(ship.orderStatus) : null;
+                          const badge = linkedOrderMeta || getShipmentStatusMeta(ship.status);
+                          const badgeLabel = linkedOrderMeta ? linkedOrderMeta.label : ship.status;
 
                           return (
                             <tr
@@ -2069,6 +2160,7 @@ export default function Inventory() {
                                 <span style={{
                                   display: 'inline-flex',
                                   alignItems: 'center',
+                                  gap: 4,
                                   padding: '2px 9px',
                                   borderRadius: 20,
                                   fontSize: 10,
@@ -2077,11 +2169,27 @@ export default function Inventory() {
                                   color: badge.color,
                                   border: `1px solid ${badge.border}`,
                                 }}>
-                                  {ship.status}
+                                  {linkedOrderMeta && (
+                                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: linkedOrderMeta.dotBg }} />
+                                  )}
+                                  {badgeLabel}
                                 </span>
                               </td>
-                              <td style={{ padding: '10px 12px', fontSize: 11, fontWeight: ship.linkedOrder !== '—' ? 700 : 400, color: ship.linkedOrder !== '—' ? C.text : C.subtle, whiteSpace: 'nowrap' }}>
-                                {ship.linkedOrder}
+                              <td style={{ padding: '10px 12px', fontSize: 11, fontWeight: ship.linkedOrder !== '—' ? 700 : 400, color: ship.linkedOrder !== '—' ? C.rose : C.subtle, whiteSpace: 'nowrap' }}>
+                                {ship.linkedOrder !== '—' ? (
+                                  <span
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      navigate(`/orders/${ship.linkedOrder}`);
+                                    }}
+                                    style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                    title="View linked PO in Orders"
+                                  >
+                                    {ship.linkedOrder} ↗
+                                  </span>
+                                ) : (
+                                  '—'
+                                )}
                               </td>
                               <td style={{ padding: '10px 8px 10px 0', textAlign: 'center' }}>
                                 <ChevronRight size={12} style={{ color: isSelected ? C.rose : C.subtle }} />
@@ -2483,9 +2591,18 @@ export default function Inventory() {
 
         {/* ── RIGHT SIDE PANEL: SHIPMENT DETAILS (Unified with Synced Order State) ── */}
         {showSidePanel && activeTab === 'incoming' && selectedShipment && (() => {
-          const linkedOrder = orders.find(o => o.id === selectedShipment.linkedOrder);
-          const currentStatus = linkedOrder ? linkedOrder.status : (selectedShipment.delayed ? 'dispatched' : 'in transit');
+          const linkedOrder = selectedShipment.linkedOrder && selectedShipment.linkedOrder !== '—'
+            ? orders.find(o => o.id === selectedShipment.linkedOrder)
+            : null;
+          const fallbackStatus = selectedShipment.status === 'Scheduled'
+            ? 'accepted'
+            : selectedShipment.status === 'Delayed'
+              ? 'dispatched'
+              : 'in transit';
+          const currentStatus = linkedOrder ? linkedOrder.status : fallbackStatus;
           const orderMeta = getOrderStatusMeta(currentStatus);
+          const shipBadgeMeta = linkedOrder ? orderMeta : getShipmentStatusMeta(selectedShipment.status);
+          const shipBadgeLabel = linkedOrder ? orderMeta.label : selectedShipment.status;
           const impact = selectedShipment.impact;
           const auditTimeline = linkedOrder?.timeline || selectedShipment.timeline || [];
 
@@ -2539,13 +2656,13 @@ export default function Inventory() {
                   borderRadius: 20,
                   fontSize: 10,
                   fontWeight: 700,
-                  background: orderMeta.bg,
-                  color: orderMeta.color,
-                  border: `1px solid ${orderMeta.border}`,
+                  background: shipBadgeMeta.bg,
+                  color: shipBadgeMeta.color,
+                  border: `1px solid ${shipBadgeMeta.border}`,
                   textTransform: 'capitalize',
                 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: orderMeta.dotBg }} />
-                  {orderMeta.label}
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: linkedOrder ? orderMeta.dotBg : shipBadgeMeta.color }} />
+                  {shipBadgeLabel}
                 </span>
               </div>
 

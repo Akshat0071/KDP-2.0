@@ -445,11 +445,40 @@ export default function Orders() {
                       <span>{order.greenName}</span>
                     </div>
 
-                    {/* Bottom Line: Need By date & Status Badge */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, color: C.subtle }}>
-                        Need by {order.needBy}
-                      </span>
+                    {/* Bottom Line: Need By date, Shipment badge & Status Badge */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 10, color: C.subtle }}>
+                          Need by {order.needBy}
+                        </span>
+                        {order.shipmentId && (
+                          <span style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            fontFamily: 'monospace',
+                            color: C.rose,
+                            background: '#FAF2F6',
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            border: '1px solid #F2D8E4',
+                          }}>
+                            {order.shipmentId}
+                          </span>
+                        )}
+                        {order.isLocalFulfilled && (
+                          <span style={{
+                            fontSize: 9,
+                            fontWeight: 600,
+                            color: '#1E8A3C',
+                            background: '#EDF7F1',
+                            padding: '1px 5px',
+                            borderRadius: 4,
+                            border: '1px solid #B4DDBD',
+                          }}>
+                            Local Stock
+                          </span>
+                        )}
+                      </div>
                       <QueueStatusBadge status={order.status} />
                     </div>
                   </div>
@@ -496,7 +525,7 @@ export default function Orders() {
               {currentOrder.fgMaterialDescription} · {currentOrder.brand} ({currentOrder.brandType})
             </div>
 
-            {/* ── 9-STEP ORDER LIFECYCLE STEPPER ── */}
+            {/* ── ORDER LIFECYCLE STEPPER ── */}
             <div style={{
               padding: '12px 14px',
               background: '#FAF8F9',
@@ -504,16 +533,41 @@ export default function Orders() {
               border: `1px solid ${C.divider}`,
               marginBottom: 14,
             }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
-                Order Lifecycle (9 Stages)
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  {currentOrder.isLocalFulfilled ? 'Order Lifecycle (4 Local Stages)' : 'Order Lifecycle (9 Stages)'}
+                </div>
+                {currentOrder.shipmentId && !currentOrder.isLocalFulfilled && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      fontFamily: 'monospace',
+                      color: C.rose,
+                      background: '#FAF2F6',
+                      border: '1px solid #F2D8E4',
+                      borderRadius: 5,
+                      padding: '2px 8px',
+                      cursor: 'pointer',
+                    }}
+                    title="Open linked shipment in Inventory -> Incoming Shipments"
+                  >
+                    Shipment {currentOrder.shipmentId} ↗
+                  </button>
+                )}
               </div>
-              <OrderLifecycleStepper status={currentOrder.status} />
+              <OrderLifecycleStepper
+                status={currentOrder.status}
+                isLocalFulfilled={Boolean(currentOrder.isLocalFulfilled)}
+              />
             </div>
 
-            {/* 4 Metadata Columns */}
+            {/* 5 Metadata Columns */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+              gridTemplateColumns: 'repeat(5, 1fr)',
               gap: 12,
               padding: '12px 14px',
               background: '#FAF8F9',
@@ -555,11 +609,55 @@ export default function Orders() {
                   ASSIGNED HUB / ROUTE
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {currentOrder.warehouse || 'Warehouse 1055'}
+                  {currentOrder.isLocalFulfilled ? 'Site 1054 (Local)' : (currentOrder.warehouse || 'Warehouse 1055')}
                 </div>
                 <div style={{ fontSize: 10, color: '#1E8A3C', fontWeight: 600 }}>
-                  ${currentOrder.shippingCost || 589} freight (Lowest cost)
+                  {currentOrder.isLocalFulfilled ? '$0 freight (Local inventory)' : `$${currentOrder.shippingCost || 589} freight (Lowest cost)`}
                 </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
+                  SHIPMENT ID
+                </div>
+                {currentOrder.isLocalFulfilled ? (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>
+                      — (No Shipment)
+                    </div>
+                    <div style={{ fontSize: 10, color: '#1E8A3C', fontWeight: 600 }}>Local stock allocation</div>
+                  </>
+                ) : currentOrder.shipmentId ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
+                      style={{
+                        padding: 0,
+                        border: 'none',
+                        background: 'none',
+                        fontSize: 13,
+                        fontWeight: 800,
+                        fontFamily: 'monospace',
+                        color: C.rose,
+                        cursor: 'pointer',
+                      }}
+                      title="Inspect shipment in Incoming Shipments"
+                    >
+                      {currentOrder.shipmentId} ↗
+                    </button>
+                    <div style={{ fontSize: 10, color: C.muted }}>
+                      {currentOrder.carrierName || currentOrder.stagingBay || 'Hub transfer'}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.subtle }}>
+                      Pending Dispatch
+                    </div>
+                    <div style={{ fontSize: 10, color: C.subtle }}>Assigned when dispatched</div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -876,21 +974,39 @@ export default function Orders() {
 
                 {/* 2. If Status is 'approved' */}
                 {currentOrder.status === 'approved' && (
-                  <button
-                    onClick={handleBuyerRequest}
-                    style={{
-                      padding: '8px 20px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: '#D97706',
-                      color: '#FFFFFF',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    Submit Transfer Request to Central Hub
-                  </button>
+                  currentOrder.isLocalFulfilled ? (
+                    <button
+                      onClick={handleBuyerReceive}
+                      style={{
+                        padding: '8px 20px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: '#15803D',
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Verify & Receive Local Stock at Roasting Bay
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleBuyerRequest}
+                      style={{
+                        padding: '8px 20px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: '#D97706',
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Submit Transfer Request to Central Hub
+                    </button>
+                  )
                 )}
 
                 {/* 3. If Status is 'requested' */}

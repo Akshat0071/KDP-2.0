@@ -1,22 +1,29 @@
 import { Check, Clock, AlertCircle } from 'lucide-react';
 import { ORDER_LIFECYCLE, getOrderStatusMeta } from '../../context/OrdersContext';
 
+const LOCAL_LIFECYCLE = ['new', 'approved', 'received', 'closed'];
+
 export default function OrderLifecycleStepper({
   status,
   compact = false,
   orientation = 'horizontal',
   timeline = null,
   title = null,
+  isLocalFulfilled = false,
 }) {
   const isRejected = (status || '').toLowerCase() === 'rejected';
   const meta = getOrderStatusMeta(status);
-  const currentStep = meta.step;
+  const normStatus = (status || '').toLowerCase().trim();
+  const activeLifecycle = isLocalFulfilled ? LOCAL_LIFECYCLE : ORDER_LIFECYCLE;
+  const currentStep = isLocalFulfilled
+    ? Math.max(0, activeLifecycle.indexOf(normStatus))
+    : meta.step;
 
   // ── VERTICAL ORIENTATION (Drawer & Side Panels) ──
   if (orientation === 'vertical') {
     let steps = timeline;
     if (!steps || steps.length === 0) {
-      steps = ORDER_LIFECYCLE.map((stepKey, idx) => {
+      steps = activeLifecycle.map((stepKey, idx) => {
         const stepMeta = getOrderStatusMeta(stepKey);
         let state = 'pending';
         if (isRejected) {
@@ -196,7 +203,7 @@ export default function OrderLifecycleStepper({
         width: '100%',
         padding: '4px 0',
       }}>
-        {ORDER_LIFECYCLE.map((stepKey, idx) => {
+        {activeLifecycle.map((stepKey, idx) => {
           const stepMeta = getOrderStatusMeta(stepKey);
           const isDone = currentStep > idx;
           const isCurrent = currentStep === idx;
@@ -310,11 +317,13 @@ export default function OrderLifecycleStepper({
               background: meta.dotBg,
               display: 'inline-block',
             }} />
-            <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>
-              Stage {currentStep + 1} of 9: {meta.label}
-            </span>
-            <span style={{ fontSize: 10, color: '#746970' }}>· {meta.desc}</span>
-          </div>
+              <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>
+                Stage {currentStep + 1} of {activeLifecycle.length}: {meta.label}
+              </span>
+              <span style={{ fontSize: 10, color: '#746970' }}>
+                · {isLocalFulfilled ? 'Fulfilled via local inventory (hub transfer & transit stages bypassed)' : meta.desc}
+              </span>
+            </div>
 
           <span style={{
             fontSize: 9,
