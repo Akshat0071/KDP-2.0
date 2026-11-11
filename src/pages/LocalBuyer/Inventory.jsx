@@ -1377,9 +1377,20 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           position: 'relative',
         }}>
+          {/* Top-Right InfoTooltip */}
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
+            <InfoTooltip
+              title="Total Green Coffee Materials"
+              content="Unique green coffee materials active at Site 1054 Plano Roasting and tracked in inventory."
+              align="left"
+              position="top"
+              size={11}
+              color="#6B46C1"
+            />
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 34,
@@ -1403,14 +1414,6 @@ export default function Inventory() {
               </div>
             </div>
           </div>
-          <InfoTooltip
-            title="Total Green Coffee Materials"
-            content="Unique green coffee materials active at Site 1054 Plano Roasting and tracked in inventory."
-            align="left"
-            position="top"
-            size={11}
-            color="#6B46C1"
-          />
         </div>
 
         {/* Card 2: Short for Open Orders */}
@@ -1421,9 +1424,20 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           position: 'relative',
         }}>
+          {/* Top-Right InfoTooltip */}
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
+            <InfoTooltip
+              title="Open Order Shortage Risk"
+              content="Greens where unreserved stock is less than open production demand. Transfer PO or alternate bean required."
+              align="right"
+              position="top"
+              size={11}
+              color="#C53030"
+            />
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 34,
@@ -1447,14 +1461,6 @@ export default function Inventory() {
               </div>
             </div>
           </div>
-          <InfoTooltip
-            title="Open Order Shortage Risk"
-            content="Greens where unreserved stock is less than open production demand. Transfer PO or alternate bean required."
-            align="center"
-            position="top"
-            size={11}
-            color="#C53030"
-          />
         </div>
 
         {/* Card 3: Arriving This Week */}
@@ -1465,9 +1471,20 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           position: 'relative',
         }}>
+          {/* Top-Right InfoTooltip */}
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
+            <InfoTooltip
+              title="Scheduled Inbound Shipments"
+              content="Inbound transfer shipments scheduled to arrive at Site 1054 receiving bay within the next 7 calendar days."
+              align="right"
+              position="top"
+              size={11}
+              color="#22543D"
+            />
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 34,
@@ -1491,14 +1508,6 @@ export default function Inventory() {
               </div>
             </div>
           </div>
-          <InfoTooltip
-            title="Scheduled Inbound Shipments"
-            content="Inbound transfer shipments scheduled to arrive at Site 1054 receiving bay within the next 7 calendar days."
-            align="center"
-            position="top"
-            size={11}
-            color="#22543D"
-          />
         </div>
 
         {/* Card 4: Needs Attention */}
@@ -1509,9 +1518,20 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
           position: 'relative',
         }}>
+          {/* Top-Right InfoTooltip */}
+          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
+            <InfoTooltip
+              title="Safety Threshold Breaches"
+              content="Materials where unreserved stock is below the designated minimum safety threshold required to protect roasting uptime."
+              align="right"
+              position="top"
+              size={11}
+              color="#7B341E"
+            />
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
               width: 34,
@@ -1535,14 +1555,6 @@ export default function Inventory() {
               </div>
             </div>
           </div>
-          <InfoTooltip
-            title="Safety Threshold Breaches"
-            content="Materials where unreserved stock is below the designated minimum safety threshold required to protect roasting uptime."
-            align="right"
-            position="top"
-            size={11}
-            color="#7B341E"
-          />
         </div>
       </div>
 

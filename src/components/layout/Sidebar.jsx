@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutGrid, List, Package, BarChart2, Warehouse } from 'lucide-react';
+import { useOrders } from '../../context/OrdersContext';
 
 const NAV_ITEMS = [
   { to: '/',          label: 'Dashboard',  icon: LayoutGrid },
@@ -9,6 +10,9 @@ const NAV_ITEMS = [
 ];
 
 export default function Sidebar() {
+  const { orders } = useOrders();
+  const pendingHubCount = (orders || []).filter(o => o.status === 'requested').length;
+
   return (
     <aside className="sidebar">
       {/* Logo */}
@@ -79,16 +83,18 @@ export default function Sidebar() {
                   </div>
                 </div>
               </div>
-              <span style={{
-                background: '#D83F79',
-                color: '#FFFFFF',
-                fontSize: 9,
-                fontWeight: 800,
-                padding: '2px 6px',
-                borderRadius: 10,
-              }}>
-                3
-              </span>
+              {pendingHubCount > 0 && (
+                <span style={{
+                  background: '#D83F79',
+                  color: '#FFFFFF',
+                  fontSize: 9,
+                  fontWeight: 800,
+                  padding: '2px 6px',
+                  borderRadius: 10,
+                }}>
+                  {pendingHubCount}
+                </span>
+              )}
             </div>
           )}
         </NavLink>
