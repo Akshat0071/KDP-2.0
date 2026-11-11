@@ -926,8 +926,10 @@ export default function Inventory() {
   const setActiveTab = (tab) => setUserTab(tab);
 
   // Stock Filters & Pagination
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const greenParam = searchParams.get('green');
+  const statusParam = searchParams.get('status');
+  const [search, setSearch] = useState(greenParam || '');
+  const [statusFilter, setStatusFilter] = useState(statusParam || 'all');
   const [incomingFilter, setIncomingFilter] = useState('all');
   const [alternateFilter, setAlternateFilter] = useState('all');
   const [stockPage, setStockPage] = useState(1);
@@ -949,7 +951,7 @@ export default function Inventory() {
   const [batchBanner, setBatchBanner] = useState(null);
 
   // Selected items for side panels
-  const [selectedGreenId, setSelectedGreenId] = useState('Gc-04');
+  const [selectedGreenId, setSelectedGreenId] = useState(greenParam || 'Gc-04');
   const shipmentParam = searchParams.get('shipment');
   const [userSelectedShipmentId, setUserSelectedShipmentId] = useState(null);
   const selectedShipmentId = userSelectedShipmentId ?? shipmentParam ?? 'SH-7810';
