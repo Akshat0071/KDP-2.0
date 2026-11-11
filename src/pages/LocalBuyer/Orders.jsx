@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Search, Truck, RefreshCw } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
-import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
 
 // ── Color tokens ─────────────────────────────────────────────────────────────
@@ -525,45 +524,6 @@ export default function Orders() {
 
             <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
               {currentOrder.fgMaterialDescription} · {currentOrder.brand} ({currentOrder.brandType})
-            </div>
-
-            {/* ── ORDER LIFECYCLE STEPPER ── */}
-            <div style={{
-              padding: '12px 14px',
-              background: '#FAF8F9',
-              borderRadius: 8,
-              border: `1px solid ${C.divider}`,
-              marginBottom: 14,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                  {currentOrder.isLocalFulfilled ? 'Order Lifecycle (4 Local Stages)' : 'Order Lifecycle (9 Stages)'}
-                </div>
-                {currentOrder.shipmentId && !currentOrder.isLocalFulfilled && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      fontFamily: 'monospace',
-                      color: C.rose,
-                      background: '#FAF2F6',
-                      border: '1px solid #F2D8E4',
-                      borderRadius: 5,
-                      padding: '2px 8px',
-                      cursor: 'pointer',
-                    }}
-                    title="Open linked shipment in Inventory -> Incoming Shipments"
-                  >
-                    Shipment {currentOrder.shipmentId} ↗
-                  </button>
-                )}
-              </div>
-              <OrderLifecycleStepper
-                status={currentOrder.status}
-                isLocalFulfilled={Boolean(currentOrder.isLocalFulfilled)}
-              />
             </div>
 
             {/* 5 Metadata Columns */}

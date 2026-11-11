@@ -612,22 +612,6 @@ export default function CentralOrders() {
             </div>
           </div>
 
-          {/* ── 9-STAGE LIFECYCLE STEPPER ── */}
-          <div style={{
-            background: '#FAF8F9',
-            border: `1px solid ${C.divider}`,
-            borderRadius: 8,
-            padding: '12px 14px',
-          }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 }}>
-              Order Lifecycle Progress (9 Canonical Stages)
-            </div>
-            <OrderLifecycleStepper
-              status={selectedOrder.status}
-              isLocalFulfilled={Boolean(selectedOrder.isLocalFulfilled)}
-            />
-          </div>
-
           {/* Warehouse Stock Check Banner */}
           <div style={{
             background: '#FDFBFC',
