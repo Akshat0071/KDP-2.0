@@ -610,9 +610,29 @@ export default function Inventory() {
   const setSelectedShipmentId = (id) => setUserSelectedShipmentId(id);
   const [showSidePanel, setShowSidePanel] = useState(true);
 
-  // Process and compute Stock rows with Days of Supply (DoS)
+  // Process and compute Stock rows with Days of Supply (DoS) and live alternate balances
   const computedItems = useMemo(() => {
+    const invById = new Map(inventoryItems.map(i => [i.id, i]));
     return inventoryItems.map(item => {
+      const liveApprovedAlternates = (item.approvedAlternates || []).map(alt => {
+        const altId = String(alt.name || '').split('·')[0].trim();
+        const liveAlt = invById.get(altId);
+        if (!liveAlt) return alt;
+        return {
+          ...alt,
+          available: `${liveAlt.available.toLocaleString()} kg`,
+          price: `$${liveAlt.price.toFixed(2)}`,
+        };
+      });
+      let liveAlternateLabel = item.alternate;
+      if (liveApprovedAlternates.length > 0) {
+        const primaryAltId = String(liveApprovedAlternates[0].name || '').split('·')[0].trim();
+        const primaryAltInv = invById.get(primaryAltId);
+        if (primaryAltInv) {
+          liveAlternateLabel = `${primaryAltId} (${primaryAltInv.available.toLocaleString()} kg)`;
+        }
+      }
+
       const projectedBalance = item.available + item.incoming - item.openDemand;
       const statusMeta = evaluateItemStatus(item);
       const replenishQty = calculateReplenishmentQty(item);
@@ -621,6 +641,8 @@ export default function Inventory() {
       const daysOfSupply = (item.available / dailyBurnRate).toFixed(1);
       return {
         ...item,
+        alternate: liveAlternateLabel,
+        approvedAlternates: liveApprovedAlternates,
         projectedBalance,
         statusMeta,
         replenishQty,

@@ -225,6 +225,7 @@ export default function Orders() {
         order: currentOrder,
         option: {
           id: currentOption.id,
+          greenId: currentOption.greenId,
           greenName: currentOption.optionName,
           source: currentOption.tag,
           arrivalDate: currentOption.eta,

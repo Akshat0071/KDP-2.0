@@ -28,14 +28,14 @@ export const INITIAL_LOCAL_INVENTORY = [
   {
     id: 'Gc-11',
     name: 'Brazil Cerrado',
-    available: 1600,
+    available: 700,
     openDemand: 1200,
     minThreshold: 1000,
     incoming: 0,
     incomingEta: null,
     alternate: 'Gc-14 (1,300 kg)',
     price: 4.20,
-    updated: 'Today · PO-2848 allocated',
+    updated: 'Today · PO-2848 (-900 kg alt)',
     openOrders: [
       { id: 'PO-2848', qty: '900 kg (Auto-Approved Alt for Gd-09)', needBy: 'Nov 14' },
       { id: 'PO-2842', qty: '800 kg', needBy: 'Nov 09' },
@@ -117,7 +117,7 @@ export const INITIAL_LOCAL_INVENTORY = [
     minThreshold: 700,
     incoming: 500,
     incomingEta: 'Nov 07',
-    alternate: 'Gc-11 (1,600 kg)',
+    alternate: 'Gc-11 (700 kg)',
     price: 4.85,
     updated: 'Oct 25',
     openOrders: [
@@ -127,7 +127,7 @@ export const INITIAL_LOCAL_INVENTORY = [
       { id: 'TR-502', qty: '500 kg', from: 'Warehouse 1020', eta: 'Nov 07' },
     ],
     approvedAlternates: [
-      { name: 'Gc-11 · Brazil Cerrado', available: '1,600 kg', price: '$4.20' },
+      { name: 'Gc-11 · Brazil Cerrado', available: '700 kg', price: '$4.20' },
     ],
   },
   {
@@ -366,3 +366,4 @@ export function findCheapestLocalOption(greenId, orderQuantity, inventory = INIT
     requestedItem,
   };
 }
+

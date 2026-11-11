@@ -674,7 +674,7 @@ const INITIAL_SYNCED_ORDERS = [
     ],
   },
 
-  // 8. RECEIVED: Guatemala Antigua SHB (Site 1054) - Buyer marked received, ready to close into inventory (local alternate, no warehouse shipment)
+  // 8. RECEIVED: Guatemala Antigua SHB (Site 1054) - Buyer marked received, ready to close into inventory (local alternate Gc-14, no warehouse shipment)
   {
     id: 'PO-2842',
     siteId: '1054',
@@ -684,6 +684,10 @@ const INITIAL_SYNCED_ORDERS = [
     warehouseId: '1055',
     shipmentId: null,
     isLocalFulfilled: true,
+    inventoryAdjusted: false,
+    allocatedGreenId: 'Gc-14',
+    allocatedGreenName: 'Guatemala Antigua',
+    fulfillmentMode: 'local-alternate',
     shippingCost: 0,
     fgMaterialId: 'FG-3108',
     fgMaterialDescription: 'Barista Reserve Medium Roast K-Cup',
@@ -894,7 +898,7 @@ const INITIAL_SYNCED_ORDERS = [
 ];
 
 const STORAGE_KEY = 'kdp_synced_orders';
-const INVENTORY_STORAGE_KEY = 'kdp_local_inventory';
+const INVENTORY_STORAGE_KEY = 'kdp_local_inventory_v2';
 
 export function OrdersProvider({ children }) {
   const [localInventory, setLocalInventory] = useState(() => {
@@ -945,6 +949,13 @@ export function OrdersProvider({ children }) {
             if (ord.id === 'PO-2848' && ord.autoApproved === undefined) {
               return seed;
             }
+            // Ensure PO-2842 carries its local alternate Gc-14 allocation metadata
+            if (ord.id === 'PO-2842' && ord.allocatedGreenId === undefined) {
+              patch.allocatedGreenId = seed.allocatedGreenId;
+              patch.allocatedGreenName = seed.allocatedGreenName;
+              patch.fulfillmentMode = seed.fulfillmentMode;
+              patch.inventoryAdjusted = Boolean(ord.status === 'closed');
+            }
             if (ord.id === 'PO-2831' && ord.shipmentId === 'SH-7813') {
               patch.shipmentId = 'SH-7810';
             }
@@ -992,7 +1003,9 @@ export function OrdersProvider({ children }) {
     const opt = chosenOption || (targetOrder?.options && targetOrder.options[0]);
     const optIsLocal = opt?.isLocalFulfilled ?? opt?.tag?.includes('LOCAL') ?? opt?.source?.includes('LOCAL');
     const isLocal = optIsLocal !== undefined ? Boolean(optIsLocal) : Boolean(targetOrder?.isLocalFulfilled);
-    const allocatedId = opt?.greenId || targetOrder?.allocatedGreenId || targetOrder?.greenId;
+    const parsedOptId = String(opt?.optionName || opt?.greenName || '').split('·')[0].trim();
+    const validParsedId = /^[A-Za-z]{2}-\d{2}$/.test(parsedOptId) ? parsedOptId : null;
+    const allocatedId = opt?.greenId || validParsedId || targetOrder?.allocatedGreenId || targetOrder?.greenId;
 
     if (targetOrder && isLocal && !targetOrder.inventoryAdjusted && allocatedId) {
       const qty = targetOrder.orderQuantity || 0;
