@@ -5,6 +5,7 @@ import {
   Download, ArrowRight, Warehouse, Repeat, PackageCheck
 } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
+import InfoTooltip from '../../components/ui/InfoTooltip';
 
 const C = {
   text:         '#30272B',
@@ -235,6 +236,8 @@ export default function Analytics() {
       border: C.border,
       accent: C.plum,
       iconBg: '#F4EEF2',
+      infoTitle: 'Total Landed Procurement Spend',
+      infoDesc: 'Total delivered cost for all green coffee beans purchased during the selected period, including bean price and fixed freight charges from Central Warehouse 1055.',
     },
     {
       label: 'Sourcing Savings Captured',
@@ -245,6 +248,8 @@ export default function Analytics() {
       border: C.roseBorder,
       accent: C.rose,
       iconBg: '#FFFFFF',
+      infoTitle: 'Cost Savings vs Baseline',
+      infoDesc: 'Cumulative savings realized through the lowest-freight warehouse optimization rule ($589 fixed fee from Hub 1055) and approved alternate green bean substitutions.',
     },
     {
       label: 'On-Time Fulfillment (OTIF)',
@@ -255,6 +260,9 @@ export default function Analytics() {
       border: C.successBorder,
       accent: C.success,
       iconBg: '#FFFFFF',
+      infoTitle: 'On-Time In-Full Delivery Performance',
+      infoDesc: 'Percentage of purchase orders arriving on or before the requested Need-By date with 100% of quantity fulfilled.',
+      formula: '(On-Time Deliveries ÷ Total Deliveries) × 100',
     },
     {
       label: 'Threshold Safety Health',
@@ -265,6 +273,8 @@ export default function Analytics() {
       border: C.border,
       accent: C.text,
       iconBg: '#FAF8F9',
+      infoTitle: 'Inventory Safety Compliance',
+      infoDesc: 'Percentage of active roasting greens maintaining stock levels at or above the designated minimum safety threshold (buffer days) across Site 1054.',
     },
   ];
 
@@ -275,7 +285,7 @@ export default function Analytics() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <div style={{ fontSize: 10, color: C.muted, marginBottom: 3, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
-            Austin Local · Site 04 · Procurement Performance
+            Site 1054 Plano Roasting · Procurement Performance
           </div>
           <h1 style={{ fontSize: 23, fontWeight: 700, color: C.text, margin: 0, letterSpacing: '-0.3px' }}>
             Procurement Analytics
@@ -340,7 +350,7 @@ export default function Analytics() {
 
       {/* ── Essential KPI Cards (4 High-Signal Metrics) ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12 }}>
-        {kpiCards.map(card => {
+        {kpiCards.map((card, idx) => {
           const Icon = card.icon;
           return (
             <div
@@ -354,6 +364,8 @@ export default function Analytics() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 8,
+                position: 'relative',
+                overflow: 'visible',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -363,8 +375,20 @@ export default function Analytics() {
                   color: C.muted,
                   textTransform: 'uppercase',
                   letterSpacing: '0.4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
                 }}>
                   {card.label}
+                  <InfoTooltip
+                    title={card.infoTitle}
+                    content={card.infoDesc}
+                    formula={card.formula}
+                    align={idx === 0 ? 'left' : idx === 3 ? 'right' : 'center'}
+                    position="top"
+                    size={11}
+                    color={C.subtle}
+                  />
                 </span>
                 <span style={{
                   width: 28,

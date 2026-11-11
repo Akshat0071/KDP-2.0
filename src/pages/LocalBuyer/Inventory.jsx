@@ -8,6 +8,7 @@ import ThemedSelect from '../../components/ui/ThemedSelect';
 import { SITE_WAREHOUSE_MAPPING } from '../../data/mockData';
 import { useOrders, getOrderStatusMeta } from '../../context/OrdersContext';
 import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
+import InfoTooltip from '../../components/ui/InfoTooltip';
 
 const C = {
   text:      '#30272B',
@@ -1376,29 +1377,40 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          justifyContent: 'space-between',
+          position: 'relative',
         }}>
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            background: '#E9D8FD',
-            color: '#6B46C1',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <Leaf size={16} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#6B46C1', marginBottom: 2 }}>
-              Greens Tracked
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: '#E9D8FD',
+              color: '#6B46C1',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Leaf size={16} />
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
-              {computedItems.length}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#6B46C1', marginBottom: 2 }}>
+                Greens Tracked
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
+                {computedItems.length}
+              </div>
             </div>
           </div>
+          <InfoTooltip
+            title="Total Green Coffee Materials"
+            content="Unique green coffee materials active at Site 1054 Plano Roasting and tracked in inventory."
+            align="left"
+            position="top"
+            size={11}
+            color="#6B46C1"
+          />
         </div>
 
         {/* Card 2: Short for Open Orders */}
@@ -1409,29 +1421,40 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          justifyContent: 'space-between',
+          position: 'relative',
         }}>
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            background: '#FED7D7',
-            color: '#C53030',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <AlertTriangle size={16} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#C53030', marginBottom: 2 }}>
-              Short for Open Orders
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: '#FED7D7',
+              color: '#C53030',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <AlertTriangle size={16} />
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
-              {shortOrdersCount}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#C53030', marginBottom: 2 }}>
+                Short for Open Orders
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
+                {shortOrdersCount}
+              </div>
             </div>
           </div>
+          <InfoTooltip
+            title="Open Order Shortage Risk"
+            content="Greens where unreserved stock is less than open production demand. Transfer PO or alternate bean required."
+            align="center"
+            position="top"
+            size={11}
+            color="#C53030"
+          />
         </div>
 
         {/* Card 3: Arriving This Week */}
@@ -1442,29 +1465,40 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          justifyContent: 'space-between',
+          position: 'relative',
         }}>
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            background: '#C6F6D5',
-            color: '#22543D',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <Truck size={16} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#22543D', marginBottom: 2 }}>
-              Arriving This Week
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: '#C6F6D5',
+              color: '#22543D',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Truck size={16} />
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
-              {arrivingCount}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#22543D', marginBottom: 2 }}>
+                Arriving This Week
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
+                {arrivingCount}
+              </div>
             </div>
           </div>
+          <InfoTooltip
+            title="Scheduled Inbound Shipments"
+            content="Inbound transfer shipments scheduled to arrive at Site 1054 receiving bay within the next 7 calendar days."
+            align="center"
+            position="top"
+            size={11}
+            color="#22543D"
+          />
         </div>
 
         {/* Card 4: Needs Attention */}
@@ -1475,29 +1509,40 @@ export default function Inventory() {
           padding: '12px 14px',
           display: 'flex',
           alignItems: 'center',
-          gap: 12,
+          justifyContent: 'space-between',
+          position: 'relative',
         }}>
-          <div style={{
-            width: 34,
-            height: 34,
-            borderRadius: '50%',
-            background: '#FEEBC8',
-            color: '#7B341E',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}>
-            <Bell size={16} />
-          </div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#7B341E', marginBottom: 2 }}>
-              Needs Attention
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              background: '#FEEBC8',
+              color: '#7B341E',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Bell size={16} />
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
-              {needsAttentionCount}
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 600, color: '#7B341E', marginBottom: 2 }}>
+                Needs Attention
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: C.text, lineHeight: 1 }}>
+                {needsAttentionCount}
+              </div>
             </div>
           </div>
+          <InfoTooltip
+            title="Safety Threshold Breaches"
+            content="Materials where unreserved stock is below the designated minimum safety threshold required to protect roasting uptime."
+            align="right"
+            position="top"
+            size={11}
+            color="#7B341E"
+          />
         </div>
       </div>
 

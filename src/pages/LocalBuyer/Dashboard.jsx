@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, ArrowRight } from 'lucide-react';
 import { useOrders, getOrderStatusMeta } from '../../context/OrdersContext';
+import InfoTooltip from '../../components/ui/InfoTooltip';
 
 // ── Shared tokens ──────────────────────────────────────────────────────────────
 const C = {
@@ -146,9 +147,28 @@ export default function Dashboard() {
           borderRadius: 8, padding: '12px 16px',
           textAlign: 'right', flexShrink: 0,
           boxShadow: '0 1px 2px rgba(59,45,52,0.06)',
+          position: 'relative',
         }}>
-          <div style={{ fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>
-            OTIF - Site 1054
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: 4,
+            fontSize: 9,
+            color: C.muted,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: 2,
+          }}>
+            <span>OTIF - Site 1054</span>
+            <InfoTooltip
+              title="OTIF Delivery Fulfillment Rate"
+              content="On-Time In-Full (OTIF) measures the percentage of green coffee orders delivered on or before the requested Need-By date with 100% of quantity fulfilled."
+              formula="(On-Time & Full Deliveries ÷ Total Deliveries) × 100"
+              align="right"
+              position="bottom"
+              size={11}
+            />
           </div>
           <div style={{ fontSize: 26, fontWeight: 800, color: '#56A82F', lineHeight: 1 }}>94.8%</div>
           <LinkBtn onClick={() => navigate('/analytics')}>
@@ -160,11 +180,43 @@ export default function Dashboard() {
       {/* ── Summary Cards ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
         {[
-          { label: 'TOTAL ACTIVE ORDERS', value: counts.total, sub: 'Site 1054 demand orders', variant: 'neutral' },
-          { label: 'NEEDS DECISION', value: counts.decision, sub: 'New demand & approved options', variant: 'warning' },
-          { label: 'WAREHOUSE FULFILLMENT', value: counts.fulfillment, sub: 'Requested, accepted, or in transit', variant: 'purple' },
-          { label: 'DOCK RECEIVING', value: counts.dock, sub: 'Delivered / ready for buyer inspection', variant: 'success' },
-        ].map(card => {
+          {
+            label: 'TOTAL ACTIVE ORDERS',
+            value: counts.total,
+            sub: 'Site 1054 demand orders',
+            variant: 'neutral',
+            infoTitle: 'Total Active Sourcing Orders',
+            infoDesc: 'All current open purchase orders originating from Site 1054 across the active canonical lifecycle stages (excluding closed & rejected orders).',
+            infoStages: ['new', 'approved', 'requested', 'accepted', 'dispatched', 'in transit', 'delivered'],
+          },
+          {
+            label: 'NEEDS DECISION',
+            value: counts.decision,
+            sub: 'New demand & approved options',
+            variant: 'warning',
+            infoTitle: 'Buyer Action Required',
+            infoDesc: 'Orders pending Maya Torres\'s sign-off: new demand batches needing recipe/alternate verification, or approved options awaiting transfer requests.',
+            infoStages: ['new', 'approved'],
+          },
+          {
+            label: 'WAREHOUSE FULFILLMENT',
+            value: counts.fulfillment,
+            sub: 'Requested, accepted, or in transit',
+            variant: 'purple',
+            infoTitle: 'Central Logistics Pipeline',
+            infoDesc: 'Orders actively processed by Central Warehouse 1055 or en route via carrier: transfer requests in queue, orders staged in warehouse bays, or in transit.',
+            infoStages: ['requested', 'accepted', 'dispatched', 'in transit'],
+          },
+          {
+            label: 'DOCK RECEIVING',
+            value: counts.dock,
+            sub: 'Delivered / ready for buyer inspection',
+            variant: 'success',
+            infoTitle: 'Dock Receiving & Inspection',
+            infoDesc: 'Shipments arrived at Site 1054 receiving bay awaiting physical bag inspection, moisture check, lot verification, and final inventory booking.',
+            infoStages: ['delivered', 'received'],
+          },
+        ].map((card, idx) => {
           const vs = {
             neutral: { bg: '#fff', border: C.border, label: C.muted, val: C.text, sub: C.subtle },
             warning: { bg: '#FFFCF2', border: '#EDD98A', label: '#8A6200', val: '#B86A00', sub: '#B86A00' },
@@ -172,10 +224,38 @@ export default function Dashboard() {
             success: { bg: '#F4FBF0', border: '#B4DDBD', label: '#1E6630', val: '#1E8A3C', sub: '#1E6630' },
           }[card.variant];
           return (
-            <Card key={card.label} style={{ background: vs.bg, border: `1px solid ${vs.border}`, borderRadius: 8 }}>
+            <Card
+              key={card.label}
+              style={{
+                background: vs.bg,
+                border: `1px solid ${vs.border}`,
+                borderRadius: 8,
+                overflow: 'visible',
+                position: 'relative',
+              }}
+            >
               <div style={{ padding: '12px 14px' }}>
-                <div style={{ fontSize: 9, fontWeight: 600, color: vs.label, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6 }}>
-                  {card.label}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: 9,
+                  fontWeight: 600,
+                  color: vs.label,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.5px',
+                  marginBottom: 6,
+                }}>
+                  <span>{card.label}</span>
+                  <InfoTooltip
+                    title={card.infoTitle}
+                    content={card.infoDesc}
+                    stages={card.infoStages}
+                    align={idx === 0 ? 'left' : idx === 3 ? 'right' : 'center'}
+                    position="top"
+                    size={11}
+                    color={vs.label}
+                  />
                 </div>
                 <div style={{ fontSize: 28, fontWeight: 800, color: vs.val, lineHeight: 1 }}>
                   {card.value}

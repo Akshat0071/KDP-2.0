@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
+import InfoTooltip from '../../components/ui/InfoTooltip';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
 
 const C = {
@@ -287,6 +288,8 @@ export default function CentralOrders() {
             bg: C.warnBg,
             border: C.warnBorder,
             icon: Clock,
+            infoTitle: 'Pending Hub Review & Allocation',
+            infoDesc: 'Transfer POs requested by local buyers that require Central Warehouse 1055 inventory reservation, approval, or partial accept.',
           },
           {
             label: 'ACCEPTED & STAGING',
@@ -296,6 +299,8 @@ export default function CentralOrders() {
             bg: C.successBg,
             border: C.successBorder,
             icon: Package,
+            infoTitle: 'Accepted & Staged in Bays',
+            infoDesc: 'Orders accepted by warehouse manager where green bags are physically allocated in Hub 1055 staging bays awaiting carrier pickup.',
           },
           {
             label: 'DISPATCHED & TRANSIT',
@@ -305,6 +310,8 @@ export default function CentralOrders() {
             bg: C.purpleBg,
             border: C.purpleBorder,
             icon: Truck,
+            infoTitle: 'Outbound Carrier Transit',
+            infoDesc: 'Orders loaded onto regional carriers and currently en route along assigned lowest-freight routes to destination roasting sites.',
           },
           {
             label: 'DELIVERED & RECEIVED',
@@ -314,8 +321,10 @@ export default function CentralOrders() {
             bg: '#FFFFFF',
             border: C.border,
             icon: ShieldCheck,
+            infoTitle: 'Delivered & Received at Site',
+            infoDesc: 'Shipments that have reached destination roasting dock and completed physical inspection and inventory booking by local buyers.',
           },
-        ].map(kpi => {
+        ].map((kpi, idx) => {
           const Icon = kpi.icon;
           return (
             <div
@@ -329,11 +338,21 @@ export default function CentralOrders() {
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 4,
+                position: 'relative',
+                overflow: 'visible',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, letterSpacing: '0.4px' }}>
+                <span style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, letterSpacing: '0.4px', display: 'flex', alignItems: 'center', gap: 4 }}>
                   {kpi.label}
+                  <InfoTooltip
+                    title={kpi.infoTitle}
+                    content={kpi.infoDesc}
+                    align={idx === 0 ? 'left' : idx === 3 ? 'right' : 'center'}
+                    position="top"
+                    size={11}
+                    color={C.subtle}
+                  />
                 </span>
                 <Icon size={14} style={{ color: kpi.color }} />
               </div>
