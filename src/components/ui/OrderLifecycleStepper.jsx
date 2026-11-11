@@ -1,11 +1,170 @@
 import { Check, Clock, AlertCircle } from 'lucide-react';
 import { ORDER_LIFECYCLE, getOrderStatusMeta } from '../../context/OrdersContext';
 
-export default function OrderLifecycleStepper({ status, compact = false }) {
+export default function OrderLifecycleStepper({
+  status,
+  compact = false,
+  orientation = 'horizontal',
+  timeline = null,
+  title = null,
+}) {
   const isRejected = (status || '').toLowerCase() === 'rejected';
   const meta = getOrderStatusMeta(status);
   const currentStep = meta.step;
 
+  // ── VERTICAL ORIENTATION (Drawer & Side Panels) ──
+  if (orientation === 'vertical') {
+    let steps = timeline;
+    if (!steps || steps.length === 0) {
+      steps = ORDER_LIFECYCLE.map((stepKey, idx) => {
+        const stepMeta = getOrderStatusMeta(stepKey);
+        let state = 'pending';
+        if (isRejected) {
+          state = 'crit';
+        } else if (currentStep > idx) {
+          state = 'done';
+        } else if (currentStep === idx) {
+          state = 'active';
+        }
+        return {
+          title: stepMeta.label,
+          time: state === 'done' ? 'Completed' : state === 'active' ? 'Active Stage' : 'Pending',
+          actor: stepMeta.actor,
+          state,
+        };
+      });
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        {title && (
+          <div style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#30272B',
+            marginBottom: 10,
+          }}>
+            {title}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {steps.map((step, sIdx) => {
+            const isLast = sIdx === steps.length - 1;
+            const isDone = step.state === 'done';
+            const isActive = step.state === 'active';
+            const isCrit = step.state === 'active-crit' || step.state === 'crit';
+
+            return (
+              <div key={sIdx} style={{ display: 'flex', gap: 10, position: 'relative' }}>
+                {/* Left Column: Marker + Connector Line */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  width: 18,
+                  flexShrink: 0,
+                }}>
+                  {isDone ? (
+                    <div style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: '#5C3A57',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1,
+                    }}>
+                      <Check size={10} strokeWidth={3} />
+                    </div>
+                  ) : isActive ? (
+                    <div style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: '#FFFFFF',
+                      border: '2px solid #D83F79',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1,
+                    }}>
+                      <div style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: '#D83F79',
+                      }} />
+                    </div>
+                  ) : isCrit ? (
+                    <div style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: '#FFFFFF',
+                      border: '2px solid #D83040',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 1,
+                    }}>
+                      <div style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: '50%',
+                        background: '#D83040',
+                      }} />
+                    </div>
+                  ) : (
+                    <div style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      background: '#FFFFFF',
+                      border: '1.5px solid #E6DCE2',
+                      zIndex: 1,
+                    }} />
+                  )}
+
+                  {!isLast && (
+                    <div style={{
+                      width: 1.5,
+                      flex: 1,
+                      minHeight: 18,
+                      background: isDone ? '#BFAAB6' : '#E6DCE2',
+                      margin: '2px 0',
+                    }} />
+                  )}
+                </div>
+
+                {/* Right Column: Title + Subtitle */}
+                <div style={{ paddingBottom: isLast ? 0 : 12, flex: 1 }}>
+                  <div style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: isCrit ? '#D83040' : (step.state === 'pending' ? '#9CA3AF' : '#30272B'),
+                    lineHeight: 1.3,
+                  }}>
+                    {step.title}
+                  </div>
+                  <div style={{
+                    fontSize: 9.5,
+                    color: step.state === 'pending' ? '#9CA3AF' : '#746970',
+                    marginTop: 1,
+                  }}>
+                    {step.time} {step.actor ? `· ${step.actor}` : ''}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // ── HORIZONTAL ORIENTATION (Wide Page Cards) ──
   if (isRejected) {
     return (
       <div style={{

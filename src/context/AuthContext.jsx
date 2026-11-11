@@ -68,8 +68,8 @@ export function AuthProvider({ children }) {
       email: emailLower,
       role: 'Local Buyer',
       title: 'Local Buyer · Lead Sourcing',
-      site: 'Austin Local — Site 04',
-      siteId: 'site-04',
+      site: 'Site 1054 — Plano Roasting',
+      siteId: '1054',
       initials: capFirst.charAt(0).toUpperCase(),
     };
 
@@ -98,8 +98,8 @@ export function AuthProvider({ children }) {
       email: email.trim().toLowerCase(),
       role: role || 'Local Buyer',
       title: `${role || 'Local Buyer'} · Green Procurement`,
-      site: site || 'Austin Local — Site 04',
-      siteId: 'site-04',
+      site: site || 'Site 1054 — Plano Roasting',
+      siteId: '1054',
       initials: firstName.trim().charAt(0).toUpperCase(),
     };
 

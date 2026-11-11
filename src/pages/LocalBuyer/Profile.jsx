@@ -75,7 +75,7 @@ export default function Profile() {
     phone: '+1 (512) 555-0148',
     title: user?.title || 'Local Buyer',
     department: 'Green Coffee Procurement',
-    primarySite: user?.siteId || 'site-04',
+    primarySite: user?.siteId || '1054',
     timezone: 'cst',
   });
 
@@ -243,7 +243,7 @@ export default function Profile() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <MapPin size={12} style={{ color: C.rose, flexShrink: 0 }} />
-                  <span style={{ color: C.text, fontWeight: 600 }}>Austin Local — Site 04</span>
+                  <span style={{ color: C.text, fontWeight: 600 }}>Site 1054 — Plano Roasting</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Award size={12} style={{ color: C.subtle, flexShrink: 0 }} />
@@ -280,8 +280,8 @@ export default function Profile() {
                 alignItems: 'center',
               }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: C.text }}>Austin Local — Site 04</div>
-                  <div style={{ fontSize: 9.5, color: C.muted }}>Primary roasting facility</div>
+                  <div style={{ fontWeight: 700, color: C.text }}>Site 1054 — Plano Roasting</div>
+                  <div style={{ fontSize: 9.5, color: C.muted }}>Primary roasting facility (Assigned Hub: Warehouse 1055 · $589 fixed freight)</div>
                 </div>
                 <span style={{
                   fontSize: 9, fontWeight: 700, padding: '2px 7px', borderRadius: 12,
@@ -301,14 +301,14 @@ export default function Profile() {
                 alignItems: 'center',
               }}>
                 <div>
-                  <div style={{ fontWeight: 600, color: C.text }}>Dallas Local — Site 02</div>
-                  <div style={{ fontSize: 9.5, color: C.muted }}>Regional distribution hub</div>
+                  <div style={{ fontWeight: 600, color: C.text }}>Warehouse 1055 — Central Hub</div>
+                  <div style={{ fontSize: 9.5, color: C.muted }}>Designated lowest-freight supply hub</div>
                 </div>
                 <span style={{
                   fontSize: 9, fontWeight: 600, padding: '2px 7px', borderRadius: 12,
                   background: '#FFFFFF', color: C.muted, border: `1px solid ${C.border}`,
                 }}>
-                  View Only
+                  Transfer Request
                 </span>
               </div>
 
@@ -474,10 +474,13 @@ export default function Profile() {
                   value={form.primarySite}
                   onChange={val => setForm(f => ({ ...f, primarySite: val }))}
                   options={[
-                    { value: 'site-04', label: 'Austin Local — Site 04' },
-                    { value: 'site-02', label: 'Dallas Local — Site 02' },
-                    { value: 'site-01', label: 'Portland Local — Site 01' },
-                    { value: 'site-05', label: 'Chicago Local — Site 05' },
+                    { value: '1054', label: 'Site 1054 — Plano Roasting (Primary · Hub 1055)' },
+                    { value: '1003', label: 'Site 1003 — Houston Roasting (Hub 1020)' },
+                    { value: '1004', label: 'Site 1004 — Dallas Roasting (Hub 1055)' },
+                    { value: '1006', label: 'Site 1006 — San Antonio Roasting (Hub 1021)' },
+                    { value: '1009', label: 'Site 1009 — Austin Roasting (Hub 1055)' },
+                    { value: '1102', label: 'Site 1102 — Fort Worth Roasting (Hub 1055)' },
+                    { value: '1103', label: 'Site 1103 — El Paso Roasting (Hub 1055)' },
                   ]}
                   size="md"
                   style={{ width: '100%' }}
@@ -491,8 +494,8 @@ export default function Profile() {
                   value={form.timezone}
                   onChange={val => setForm(f => ({ ...f, timezone: val }))}
                   options={[
-                    { value: 'cst', label: 'Central Time (CST · Austin)' },
-                    { value: 'pst', label: 'Pacific Time (PST · Portland)' },
+                    { value: 'cst', label: 'Central Time (CST · Plano / Dallas)' },
+                    { value: 'pst', label: 'Pacific Time (PST)' },
                     { value: 'est', label: 'Eastern Time (EST)' },
                     { value: 'utc', label: 'UTC (Global Standard)' },
                   ]}
@@ -617,7 +620,7 @@ export default function Profile() {
                     <span>Current Session</span>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: C.text }}>
                       <KeyRound size={11} style={{ color: C.rose }} />
-                      Austin, TX · Active now
+                      Plano, TX · Active now
                     </span>
                   </div>
 

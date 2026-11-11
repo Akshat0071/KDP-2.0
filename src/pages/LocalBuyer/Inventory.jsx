@@ -2492,19 +2492,6 @@ export default function Inventory() {
                 </span>
               </div>
 
-              {/* ── 9-STAGE CANONICAL STEPPER (COMPACT) ── */}
-              <div style={{
-                background: '#FAF8F9',
-                border: `1px solid ${C.divider}`,
-                borderRadius: 8,
-                padding: '10px 12px',
-              }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 4 }}>
-                  Order Lifecycle Progress
-                </div>
-                <OrderLifecycleStepper status={currentStatus} compact />
-              </div>
-
               {/* 2-Column Metadata Grid */}
               <div style={{
                 display: 'grid',
@@ -2569,96 +2556,14 @@ export default function Inventory() {
                 </div>
               </div>
 
-              {/* ── UNIFIED TIMELINE AUDIT TRAIL ── */}
+              {/* ── UNIFIED VERTICAL LIFECYCLE STEPPER & AUDIT TRAIL ── */}
               <div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 10 }}>
-                  Unified Lifecycle Audit Trail
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  {auditTimeline.map((step, sIdx) => {
-                    const isLast = sIdx === auditTimeline.length - 1;
-                    const isDone = step.state === 'done';
-                    const isActive = step.state === 'active' || step.state === 'active-crit';
-                    const isCritActive = step.state === 'active-crit';
-
-                    return (
-                      <div key={sIdx} style={{ display: 'flex', gap: 10, position: 'relative' }}>
-                        {/* Left Marker + Vertical Line */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 18, flexShrink: 0 }}>
-                          {isDone ? (
-                            <div style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: '50%',
-                              background: C.plum,
-                              color: '#FFFFFF',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 1,
-                            }}>
-                              <Check size={10} strokeWidth={3} />
-                            </div>
-                          ) : isActive ? (
-                            <div style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: '50%',
-                              background: '#FFFFFF',
-                              border: `2px solid ${isCritActive ? C.crit : C.rose}`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              zIndex: 1,
-                            }}>
-                              <div style={{
-                                width: 6,
-                                height: 6,
-                                borderRadius: '50%',
-                                background: isCritActive ? C.crit : C.rose,
-                              }} />
-                            </div>
-                          ) : (
-                            <div style={{
-                              width: 16,
-                              height: 16,
-                              borderRadius: '50%',
-                              background: '#FFFFFF',
-                              border: `1.5px solid ${C.border}`,
-                              zIndex: 1,
-                            }} />
-                          )}
-
-                          {!isLast && (
-                            <div style={{
-                              width: 1.5,
-                              flex: 1,
-                              minHeight: 18,
-                              background: isDone ? '#BFAAB6' : C.divider,
-                              margin: '2px 0',
-                            }} />
-                          )}
-                        </div>
-
-                        {/* Right Content */}
-                        <div style={{ paddingBottom: isLast ? 0 : 12 }}>
-                          <div style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: step.state === 'pending' ? C.muted : (isCritActive ? C.crit : C.text),
-                            lineHeight: 1.3,
-                          }}>
-                            {step.title}
-                          </div>
-                          <div style={{ fontSize: 9.5, color: C.muted, marginTop: 1 }}>
-                            {step.time} {step.actor ? `· ${step.actor}` : ''}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <OrderLifecycleStepper
+                  status={currentStatus}
+                  orientation="vertical"
+                  timeline={auditTimeline}
+                  title="Unified Lifecycle Audit Trail"
+                />
               </div>
 
               {/* Related Inventory Impact Card */}
