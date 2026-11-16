@@ -100,7 +100,7 @@ export default function Orders() {
   const queueStatuses = useMemo(() => ORDER_LIFECYCLE.filter(s => s !== 'closed'), []);
 
   // Selected order state
-  const initialOrderId = paramId || (siteOrders[0]?.id || 'PO-2846');
+  const initialOrderId = paramId || (siteOrders.find(o => o.id === 'PO-2842')?.id || siteOrders[0]?.id || 'PO-2842');
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
 
   // Sourcing Scenarios & Comparison state (matches Figma design)
@@ -161,8 +161,171 @@ export default function Orders() {
     return siteOrders.find(o => o.id === selectedOrderId) || siteOrders[0] || {};
   }, [siteOrders, selectedOrderId]);
 
-  // Dynamic 5-Scenario Evaluation (matches Figma mockup: 3 feasible + 2 excluded)
+  // Dynamic 5-Scenario Evaluation (matches Figma mockups: PO-2842 & general orders)
   const evaluationScenarios = useMemo(() => {
+    if (currentOrder.id === 'PO-2842') {
+      return [
+        {
+          id: 'sc-1',
+          num: 1,
+          scenarioTag: 'LOCAL ALTERNATE · Gc-14 · LOT LC-118',
+          isRecommended: true,
+          isFeasible: true,
+          sourceType: 'local',
+          matchType: 'alternate',
+          title: 'Local approved alternate',
+          greenId: 'Gc-14',
+          greenName: 'Gc-14 · LC-118',
+          subtitle: '920 kg available · covers full 800 kg',
+          baselineSub: '$440 below $5,400 planning baseline',
+          totalDelivered: 4960,
+          totalDeliveredStr: '$4,960',
+          perKgStr: '$6.20 / kg',
+          arrivalStr: 'ETA Nov 08 · 1 day early',
+          arrivalIcon: 'truck',
+          savingsBadge: 'SAVE $440 VS BASELINE',
+          bestValue: true,
+          rationale: 'Lowest-cost feasible option · Full quantity available on-site at Site 1054.',
+          whyWinsLong: 'Lowest total cost feasible option with full 800 kg available in local warehouse stock.',
+          whyWinsBullets: [
+            'Lowest-cost feasible option',
+            'Full quantity available',
+          ],
+          warningNotice: null,
+          subNotice: 'Local approved alternate',
+          breakdownRows: [
+            { label: 'Green / bean cost', val: '$4,760' },
+            { label: 'Handling & QA', val: '$200' },
+            { label: 'Local transfer / freight', val: '$0' },
+            { label: 'Expedite / pallet fee', val: '$0' },
+          ],
+        },
+        {
+          id: 'sc-2',
+          num: 2,
+          scenarioTag: 'LOCAL ALTERNATE · Gc-22 · LOT LC-204',
+          isRecommended: false,
+          isFeasible: true,
+          sourceType: 'local',
+          matchType: 'alternate',
+          title: 'Local approved alternate',
+          greenId: 'Gc-22',
+          greenName: 'Gc-22 · LC-204',
+          subtitle: '850 kg available · covers full 800 kg',
+          baselineSub: '$280 below $5,400 planning baseline',
+          totalDelivered: 5120,
+          totalDeliveredStr: '$5,120',
+          perKgStr: '$6.40 / kg',
+          arrivalStr: 'ETA Nov 08 · 1 day early',
+          arrivalIcon: 'truck',
+          savingsBadge: 'SAVE $280 VS BASELINE',
+          bestValue: false,
+          rationale: 'Secondary local alternate option with full demand quantity coverage.',
+          whyWinsLong: 'Reliable secondary local alternate lot in Bay 4. $160 higher green cost than Gc-14.',
+          whyWinsBullets: [
+            'Full quantity available on-site',
+            'Pre-qualified approved substitute',
+          ],
+          warningNotice: null,
+          subNotice: 'Local approved alternate',
+          breakdownRows: [
+            { label: 'Green / bean cost', val: '$4,920' },
+            { label: 'Handling & QA', val: '$200' },
+            { label: 'Local transfer / freight', val: '$0' },
+            { label: 'Expedite / pallet fee', val: '$0' },
+          ],
+        },
+        {
+          id: 'sc-3',
+          num: 3,
+          scenarioTag: 'CENTRAL WAREHOUSE · WAREHOUSE 1055',
+          isRecommended: false,
+          isFeasible: true,
+          sourceType: 'central',
+          matchType: 'same_green',
+          title: 'Warehouse 1055 Central Transfer',
+          greenId: 'Gc-11',
+          greenName: 'Brazil Cerrado (exact)',
+          subtitle: 'WH-1055 · 4,200 kg avail · 2-day transfer',
+          baselineSub: '$120 above baseline due to freight',
+          totalDelivered: 5520,
+          totalDeliveredStr: '$5,520',
+          perKgStr: '$6.90 / kg',
+          arrivalStr: 'ETA Nov 10 · On time',
+          arrivalIcon: 'truck',
+          savingsBadge: null,
+          rationale: 'Central warehouse transfer requires $589 freight. Bypassed under cascade rule because local alternate is feasible.',
+          whyWinsLong: 'Exact botanical match from central hub. Freight makes total cost higher than local alternates.',
+          warningNotice: 'Central options are intentionally not compared once an approved local alternate can fulfill.',
+          subNotice: 'Central Warehouse Dispatch',
+          breakdownRows: [
+            { label: 'Green / bean cost', val: '$4,931' },
+            { label: 'Handling & QA', val: '$0' },
+            { label: 'Local transfer / freight', val: '$589' },
+            { label: 'Expedite / pallet fee', val: '$0' },
+          ],
+        },
+        {
+          id: 'sc-4',
+          num: 4,
+          scenarioTag: 'LOCAL SAME GREEN · Gc-11 • Excluded',
+          isRecommended: false,
+          isFeasible: false,
+          sourceType: 'local',
+          matchType: 'same_green',
+          title: 'Gc-11 — Brazil Cerrado (exact)',
+          greenId: 'Gc-11',
+          greenName: 'Gc-11 — Brazil Cerrado',
+          subtitle: 'Austin Local · 500 kg available — 300 kg short',
+          totalDelivered: null,
+          totalDeliveredStr: '—',
+          perKgStr: '—',
+          arrivalStr: null,
+          arrivalBadge: 'Insufficient qty',
+          arrivalIcon: 'truck',
+          savingsBadge: null,
+          rationale: 'Local Gc-11 has only 500 kg available (300 kg short of 800 kg required). Single-source rule excludes split lot.',
+          whyWinsLong: 'Insufficient stock in Site 1054 inventory to cover 800 kg production batch.',
+          warningNotice: 'Blocked by Single-Source Inventory Policy.',
+          subNotice: 'Infeasible Local Stock Allocation',
+          breakdownRows: [
+            { label: 'Bean cost (insufficient)', val: '—' },
+            { label: 'Shortfall', val: '300 kg short' },
+            { label: 'Feasibility status', val: 'Disqualified' },
+          ],
+        },
+        {
+          id: 'sc-5',
+          num: 5,
+          scenarioTag: 'LOCAL NON-APPROVED · Gc-18 • Excluded',
+          isRecommended: false,
+          isFeasible: false,
+          sourceType: 'local',
+          matchType: 'alternate',
+          title: 'Gc-18 ex Site 1054 Stock',
+          greenId: 'Gc-18',
+          greenName: 'Gc-18 — Non-approved alternate',
+          subtitle: 'Site 1054 Stock · Excluded — not on approved alternate list',
+          totalDelivered: null,
+          totalDeliveredStr: '—',
+          perKgStr: '—',
+          arrivalStr: null,
+          arrivalBadge: 'Not approved alternate',
+          arrivalIcon: 'truck',
+          savingsBadge: null,
+          rationale: 'Gc-18 is not on the recipe-approved alternate substitution list for this brand.',
+          whyWinsLong: 'QA flavor profile rejection: bean density and acidity fall outside roasting spec tolerance.',
+          warningNotice: 'Disqualified by Master Recipe BOM.',
+          subNotice: 'Infeasible Alternate Allocation',
+          breakdownRows: [
+            { label: 'Flavor profile score', val: 'Below tolerance' },
+            { label: 'Approval status', val: 'Not on approved list' },
+            { label: 'Feasibility status', val: 'Disqualified' },
+          ],
+        },
+      ];
+    }
+
     const qty = currentOrder.orderQuantity || 1200;
     const needBy = currentOrder.needBy || 'Nov 05';
     const baseGreenId = currentOrder.greenId || 'Gb-04';
@@ -1076,11 +1239,91 @@ export default function Orders() {
                   </div>
                 </div>
 
+                {/* Sourcing Cascade Strip (Matches Figma Mockup) */}
+                {currentOrder.cascade && (
+                  <div style={{
+                    background: '#FAF9FA',
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      HOW THE SOURCING CASCADE RAN
+                    </div>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                      {currentOrder.cascade.map((step, sIdx) => {
+                        const isPass = step.status === 'pass';
+                        const isFail = step.status === 'fail';
+                        return (
+                          <div
+                            key={sIdx}
+                            style={{
+                              background: isPass ? '#F8FCF9' : '#FFFFFF',
+                              border: isPass ? '1.5px solid #86EFAC' : `1px solid ${C.border}`,
+                              borderRadius: 6,
+                              padding: '10px 12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 3,
+                            }}
+                          >
+                            <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
+                              {step.step}
+                            </div>
+                            <div style={{
+                              fontSize: 10.5,
+                              fontWeight: 600,
+                              color: isPass ? '#16A34A' : isFail ? '#D83040' : C.muted,
+                            }}>
+                              {step.note}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {currentOrder.cascadeNote && (
+                      <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.4, marginTop: 2 }}>
+                        {currentOrder.cascadeNote}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Two-Column Sourcing Grid */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(310px, 0.95fr)', gap: 16, alignItems: 'start' }}>
 
                   {/* LEFT SUB-COLUMN: Scenario Cards */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                    {/* Available Options Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                          Available sourcing options
+                        </div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                          {feasibleScenarios.length} feasible options · full {(currentOrder.orderQuantity || 800).toLocaleString()} kg required
+                        </div>
+                      </div>
+
+                      <span style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        background: '#FAF5F8',
+                        color: C.plum,
+                        border: '1px solid #E6DCE2',
+                        letterSpacing: '0.4px',
+                      }}>
+                        FEASIBLE OPTIONS
+                      </span>
+                    </div>
 
                     {/* 1. Feasible Scenarios */}
                     {feasibleScenarios.map(sc => {
@@ -1092,7 +1335,7 @@ export default function Orders() {
                           style={{
                             background: '#FFFFFF',
                             borderRadius: 10,
-                            border: isSelected ? `1.5px solid ${C.rose}` : `1px solid ${C.border}`,
+                            border: isSelected ? (sc.bestValue ? '1.5px solid #86EFAC' : `1.5px solid ${C.rose}`) : `1px solid ${C.border}`,
                             padding: '14px 16px',
                             cursor: 'pointer',
                             transition: 'all 0.12s ease',
@@ -1111,7 +1354,6 @@ export default function Orders() {
                                 color: sc.num === 1 ? '#FFFFFF' : '#5C4E57',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                justifyCenter: 'center',
                                 justifyContent: 'center',
                                 fontSize: 11,
                                 fontWeight: 700,
@@ -1120,12 +1362,30 @@ export default function Orders() {
                               </span>
 
                               {/* Scenario Tag */}
-                              <span style={{ fontSize: 10, fontWeight: 700, color: '#746970', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                              <span style={{
+                                fontSize: 10,
+                                fontWeight: 700,
+                                color: sc.bestValue ? '#15803D' : '#746970',
+                                letterSpacing: '0.4px',
+                                textTransform: 'uppercase',
+                              }}>
                                 {sc.scenarioTag}
                               </span>
 
-                              {/* Recommended Badge */}
-                              {sc.isRecommended && (
+                              {/* Best Value / Recommended Badge */}
+                              {sc.bestValue ? (
+                                <span style={{
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  padding: '2px 7px',
+                                  borderRadius: 10,
+                                  background: '#EDF7F1',
+                                  color: '#1E8A3C',
+                                  border: '1px solid #B4DDBD',
+                                }}>
+                                  BEST VALUE
+                                </span>
+                              ) : sc.isRecommended && (
                                 <span style={{
                                   fontSize: 9.5,
                                   fontWeight: 600,
@@ -1220,6 +1480,11 @@ export default function Orders() {
                               <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginTop: 1 }}>
                                 {sc.totalDeliveredStr}
                               </div>
+                              {sc.baselineSub && (
+                                <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>
+                                  {sc.baselineSub}
+                                </div>
+                              )}
                             </div>
 
                             <div>
@@ -1235,8 +1500,8 @@ export default function Orders() {
                               <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
                                 Arrival
                               </div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                {sc.arrivalIcon === 'calendar' ? <Calendar size={13} style={{ color: C.muted }} /> : <Truck size={13} style={{ color: C.muted }} />}
+                              <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                                {sc.arrivalIcon === 'calendar' ? <Calendar size={13} style={{ color: '#16A34A' }} /> : <Truck size={13} style={{ color: '#16A34A' }} />}
                                 {sc.arrivalStr}
                               </div>
                             </div>
@@ -1273,6 +1538,41 @@ export default function Orders() {
                         </div>
                       );
                     })}
+
+                    {/* Not Eligible / Not Evaluated Section (Matches Mockup) */}
+                    {currentOrder.ineligible && currentOrder.ineligible.length > 0 && (
+                      <div style={{
+                        background: '#FAF9FA',
+                        border: `1px solid ${C.border}`,
+                        borderRadius: 10,
+                        padding: '14px 16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                          Not eligible / not evaluated
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {currentOrder.ineligible.map((item, iIdx) => {
+                            const isExcluded = item.startsWith('✕');
+                            return (
+                              <div
+                                key={iIdx}
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: isExcluded ? 600 : 500,
+                                  color: isExcluded ? '#D83040' : C.muted,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                {item}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 2. Excluded Section */}
                     {excludedScenarios.length > 0 && (
@@ -1453,7 +1753,7 @@ export default function Orders() {
 
                   </div>
 
-                  {/* RIGHT SUB-COLUMN: Sticky Scenario Summary Card */}
+                  {/* RIGHT SUB-COLUMN: Sticky Scenario Summary Card (Matches Figma Mockup) */}
                   <div style={{
                     background: '#FFFFFF',
                     border: `1px solid ${C.border}`,
@@ -1468,32 +1768,35 @@ export default function Orders() {
                   }}>
                     {/* Header Tag */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, fontWeight: 800, color: C.rose, letterSpacing: '0.6px', textTransform: 'uppercase' }}>
-                        {activeScenario.isRecommended
-                          ? `RECOMMENDED · OPTION ${activeScenario.num}`
-                          : `OPTION ${activeScenario.num} · ${activeScenario.sourceType.toUpperCase()}`}
+                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                        Selected option
                       </span>
-                      {activeScenario.isRecommended && (
+                      {activeScenario.isRecommended ? (
                         <span style={{
                           fontSize: 9,
                           fontWeight: 700,
-                          padding: '2px 7px',
+                          padding: '2px 8px',
                           borderRadius: 10,
                           background: '#EDF7F1',
                           color: '#1E8A3C',
                           border: '1px solid #B4DDBD',
+                          letterSpacing: '0.4px',
                         }}>
-                          BEST VALUE
+                          RECOMMENDED
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 9.5, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
+                          OPTION {activeScenario.num}
                         </span>
                       )}
                     </div>
 
                     {/* Title & Subtitle */}
                     <div>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: C.text, lineHeight: 1.2 }}>
-                        {activeScenario.title}
+                      <div style={{ fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1.2 }}>
+                        {activeScenario.greenName || activeScenario.title}
                       </div>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                         {activeScenario.subNotice}
                       </div>
                     </div>
@@ -1516,34 +1819,60 @@ export default function Orders() {
                     </div>
 
                     {/* Total & Per-Kg */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                      <div>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                          Estimated total
-                        </div>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', lineHeight: 1.1, marginTop: 2 }}>
+                    <div>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        TOTAL DELIVERED COST
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 2 }}>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', lineHeight: 1.1 }}>
                           {activeScenario.totalDeliveredStr}
                         </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 9.5, color: C.subtle }}>Cost per kg</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 1 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
                           {activeScenario.perKgStr}
                         </div>
                       </div>
                     </div>
 
+                    {/* Savings Pill */}
+                    {activeScenario.savingsBadge && (
+                      <div style={{
+                        padding: '6px 10px',
+                        borderRadius: 6,
+                        background: '#EDF7EE',
+                        border: '1px solid #C7EBD0',
+                        color: '#1E8A3C',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        textAlign: 'center',
+                      }}>
+                        {activeScenario.savingsBadge}
+                      </div>
+                    )}
+
                     {/* Green Callout: Why This Wins */}
                     <div style={{
-                      padding: '9px 12px',
-                      borderRadius: 6,
-                      background: '#EDF7EE',
-                      border: '1px solid #C7EBD0',
-                      color: '#1E8A3C',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
                       fontSize: 10.5,
-                      lineHeight: 1.45,
+                      color: C.text,
                     }}>
-                      <strong>Why this wins:</strong> {activeScenario.whyWinsLong || activeScenario.rationale}
+                      <div style={{ fontWeight: 700, color: C.muted, textTransform: 'uppercase', fontSize: 9.5, letterSpacing: '0.4px' }}>
+                        WHY THIS WINS
+                      </div>
+                      {activeScenario.whyWinsBullets ? (
+                        activeScenario.whyWinsBullets.map((bullet, bIdx) => (
+                          <div key={bIdx} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#1E8A3C', fontWeight: 600 }}>
+                            <CheckCircle2 size={12} style={{ color: '#1E8A3C' }} />
+                            <span>{bullet}</span>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, color: '#1E8A3C', lineHeight: 1.4 }}>
+                          <CheckCircle2 size={12} style={{ color: '#1E8A3C', marginTop: 2, flexShrink: 0 }} />
+                          <span>{activeScenario.whyWinsLong || activeScenario.rationale}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Amber Warning Box (if applicable) */}
@@ -1575,7 +1904,7 @@ export default function Orders() {
                           padding: '10px 16px',
                           borderRadius: 6,
                           border: 'none',
-                          background: '#30272B',
+                          background: C.rose,
                           color: '#FFFFFF',
                           fontSize: 12,
                           fontWeight: 700,
@@ -1585,10 +1914,10 @@ export default function Orders() {
                           justifyContent: 'center',
                           gap: 6,
                           transition: 'all 0.12s ease',
-                          boxShadow: '0 2px 6px rgba(48,39,43,0.15)',
+                          boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
                         }}
                       >
-                        Select This Option
+                        Choose this option
                         <ArrowRight size={13} />
                       </button>
                     ) : (
@@ -1713,90 +2042,116 @@ export default function Orders() {
             )}
           </div>
 
-          {/* ── SECTION 4: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR) ── */}
+          {/* ── SECTION 4: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR - MATCHES FIGMA MOCKUP) ── */}
           <div style={{
             borderTop: `1px solid ${C.divider}`,
             padding: '14px 24px',
             background: '#FAF8F9',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: 10,
           }}>
-            <button
-              onClick={() => setShowHistoryModal(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 14px',
-                borderRadius: 6,
-                border: `1px solid ${C.border}`,
-                background: '#FFFFFF',
-                color: C.text,
-                fontSize: 11,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.12s ease',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = C.hover}
-              onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
-            >
-              <Clock size={12} style={{ color: C.plum }} />
-              View Audit Trail
-            </button>
+            <div style={{ fontSize: 10.5, color: C.subtle }}>
+              Estimates are simulated. Availability is rechecked before confirmation; no partial or split sourcing.
+            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {/* 1. If Status is 'new' */}
-              {currentOrder.status === 'new' && (
-                <>
-                  <button
-                    onClick={handleBuyerApprove}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 6,
-                      border: `1px solid ${C.border}`,
-                      background: '#FFFFFF',
-                      color: C.text,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.12s ease',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = C.hover}
-                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
-                  >
-                    Approve Sourcing Option
-                  </button>
-                  <button
-                    disabled={!activeScenario?.isFeasible}
-                    onClick={handleProceedToConfirm}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '8px 18px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: C.rose,
-                      color: '#FFFFFF',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: activeScenario?.isFeasible ? 'pointer' : 'not-allowed',
-                      boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
-                      transition: 'all 0.12s ease',
-                    }}
-                    onMouseEnter={e => {
-                      if (activeScenario?.isFeasible) e.currentTarget.style.background = C.roseHover;
-                    }}
-                    onMouseLeave={e => {
-                      if (activeScenario?.isFeasible) e.currentTarget.style.background = C.rose;
-                    }}
-                  >
-                    Proceed to Confirm
-                    <ArrowRight size={12} />
-                  </button>
-                </>
-              )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <button
+                  onClick={() => navigate('/order-history')}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 6,
+                    border: `1px solid ${C.border}`,
+                    background: '#FFFFFF',
+                    color: C.text,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.12s ease',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                  onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                >
+                  View order history
+                </button>
+
+                <button
+                  onClick={() => setShowHistoryModal(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '8px 14px',
+                    borderRadius: 6,
+                    border: `1px solid ${C.border}`,
+                    background: '#FFFFFF',
+                    color: C.muted,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.12s ease',
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                  onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                >
+                  <Clock size={12} style={{ color: C.plum }} />
+                  Audit Trail
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* 1. If Status is 'new' */}
+                {currentOrder.status === 'new' && (
+                  <>
+                    <button
+                      onClick={handleBuyerApprove}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 6,
+                        border: `1px solid ${C.border}`,
+                        background: '#FFFFFF',
+                        color: C.text,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.12s ease',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                      onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                    >
+                      Approve Sourcing Option
+                    </button>
+                    <button
+                      disabled={!activeScenario?.isFeasible}
+                      onClick={handleProceedToConfirm}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 22px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: C.rose,
+                        color: '#FFFFFF',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: activeScenario?.isFeasible ? 'pointer' : 'not-allowed',
+                        boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
+                        transition: 'all 0.12s ease',
+                      }}
+                      onMouseEnter={e => {
+                        if (activeScenario?.isFeasible) e.currentTarget.style.background = C.roseHover;
+                      }}
+                      onMouseLeave={e => {
+                        if (activeScenario?.isFeasible) e.currentTarget.style.background = C.rose;
+                      }}
+                    >
+                      Choose this option
+                      <ArrowRight size={13} />
+                    </button>
+                  </>
+                )}
 
               {/* 2. If Status is 'approved' */}
               {currentOrder.status === 'approved' && (
@@ -1945,6 +2300,7 @@ export default function Orders() {
               )}
             </div>
           </div>
+        </div>
 
         </div>
       </div>
