@@ -14,11 +14,6 @@ import {
   Building2,
   Send,
   Boxes,
-  Calendar,
-  AlertTriangle,
-  Info,
-  XCircle,
-  Shield,
 } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
@@ -100,18 +95,15 @@ export default function Orders() {
   const queueStatuses = useMemo(() => ORDER_LIFECYCLE.filter(s => s !== 'closed'), []);
 
   // Selected order state
-  const initialOrderId = paramId || (siteOrders.find(o => o.id === 'PO-2842')?.id || siteOrders[0]?.id || 'PO-2842');
+  const initialOrderId = paramId || (siteOrders[0]?.id || 'PO-2846');
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
-
-  // Sourcing Scenarios & Comparison state (matches Figma design)
-  const [compareFilter, setCompareFilter] = useState('all'); // 'all' | 'local' | 'central' | 'same_green' | 'alternate' | 'feasible_only'
-  const [selectedScenarioId, setSelectedScenarioId] = useState('sc-1');
-  const [viewTrackingTab, setViewTrackingTab] = useState(false);
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
 
   // Status Filter Tabs
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('urgency');
+  const [sourcingSort, setSourcingSort] = useState('cost');
 
   // History modal toggle
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -161,382 +153,42 @@ export default function Orders() {
     return siteOrders.find(o => o.id === selectedOrderId) || siteOrders[0] || {};
   }, [siteOrders, selectedOrderId]);
 
-  // Dynamic 5-Scenario Evaluation (matches Figma mockups: PO-2842 & general orders)
-  const evaluationScenarios = useMemo(() => {
-    if (currentOrder.id === 'PO-2842') {
-      return [
-        {
-          id: 'sc-1',
-          num: 1,
-          scenarioTag: 'LOCAL ALTERNATE · Gc-14 · LOT LC-118',
-          isRecommended: true,
-          isFeasible: true,
-          sourceType: 'local',
-          matchType: 'alternate',
-          title: 'Local approved alternate',
-          greenId: 'Gc-14',
-          greenName: 'Gc-14 · LC-118',
-          subtitle: '920 kg available · covers full 800 kg',
-          baselineSub: '$440 below $5,400 planning baseline',
-          totalDelivered: 4960,
-          totalDeliveredStr: '$4,960',
-          perKgStr: '$6.20 / kg',
-          arrivalStr: 'ETA Nov 08 · 1 day early',
-          arrivalIcon: 'truck',
-          savingsBadge: 'SAVE $440 VS BASELINE',
-          bestValue: true,
-          rationale: 'Lowest-cost feasible option · Full quantity available on-site at Site 1054.',
-          whyWinsLong: 'Lowest total cost feasible option with full 800 kg available in local warehouse stock.',
-          whyWinsBullets: [
-            'Lowest-cost feasible option',
-            'Full quantity available',
-          ],
-          warningNotice: null,
-          subNotice: 'Local approved alternate',
-          breakdownRows: [
-            { label: 'Green / bean cost', val: '$4,760' },
-            { label: 'Handling & QA', val: '$200' },
-            { label: 'Local transfer / freight', val: '$0' },
-            { label: 'Expedite / pallet fee', val: '$0' },
-          ],
-        },
-        {
-          id: 'sc-2',
-          num: 2,
-          scenarioTag: 'LOCAL ALTERNATE · Gc-22 · LOT LC-204',
-          isRecommended: false,
-          isFeasible: true,
-          sourceType: 'local',
-          matchType: 'alternate',
-          title: 'Local approved alternate',
-          greenId: 'Gc-22',
-          greenName: 'Gc-22 · LC-204',
-          subtitle: '850 kg available · covers full 800 kg',
-          baselineSub: '$280 below $5,400 planning baseline',
-          totalDelivered: 5120,
-          totalDeliveredStr: '$5,120',
-          perKgStr: '$6.40 / kg',
-          arrivalStr: 'ETA Nov 08 · 1 day early',
-          arrivalIcon: 'truck',
-          savingsBadge: 'SAVE $280 VS BASELINE',
-          bestValue: false,
-          rationale: 'Secondary local alternate option with full demand quantity coverage.',
-          whyWinsLong: 'Reliable secondary local alternate lot in Bay 4. $160 higher green cost than Gc-14.',
-          whyWinsBullets: [
-            'Full quantity available on-site',
-            'Pre-qualified approved substitute',
-          ],
-          warningNotice: null,
-          subNotice: 'Local approved alternate',
-          breakdownRows: [
-            { label: 'Green / bean cost', val: '$4,920' },
-            { label: 'Handling & QA', val: '$200' },
-            { label: 'Local transfer / freight', val: '$0' },
-            { label: 'Expedite / pallet fee', val: '$0' },
-          ],
-        },
-        {
-          id: 'sc-3',
-          num: 3,
-          scenarioTag: 'CENTRAL WAREHOUSE · WAREHOUSE 1055',
-          isRecommended: false,
-          isFeasible: true,
-          sourceType: 'central',
-          matchType: 'same_green',
-          title: 'Warehouse 1055 Central Transfer',
-          greenId: 'Gc-11',
-          greenName: 'Brazil Cerrado (exact)',
-          subtitle: 'WH-1055 · 4,200 kg avail · 2-day transfer',
-          baselineSub: '$120 above baseline due to freight',
-          totalDelivered: 5520,
-          totalDeliveredStr: '$5,520',
-          perKgStr: '$6.90 / kg',
-          arrivalStr: 'ETA Nov 10 · On time',
-          arrivalIcon: 'truck',
-          savingsBadge: null,
-          rationale: 'Central warehouse transfer requires $589 freight. Bypassed under cascade rule because local alternate is feasible.',
-          whyWinsLong: 'Exact botanical match from central hub. Freight makes total cost higher than local alternates.',
-          warningNotice: 'Central options are intentionally not compared once an approved local alternate can fulfill.',
-          subNotice: 'Central Warehouse Dispatch',
-          breakdownRows: [
-            { label: 'Green / bean cost', val: '$4,931' },
-            { label: 'Handling & QA', val: '$0' },
-            { label: 'Local transfer / freight', val: '$589' },
-            { label: 'Expedite / pallet fee', val: '$0' },
-          ],
-        },
-        {
-          id: 'sc-4',
-          num: 4,
-          scenarioTag: 'LOCAL SAME GREEN · Gc-11 • Excluded',
-          isRecommended: false,
-          isFeasible: false,
-          sourceType: 'local',
-          matchType: 'same_green',
-          title: 'Gc-11 — Brazil Cerrado (exact)',
-          greenId: 'Gc-11',
-          greenName: 'Gc-11 — Brazil Cerrado',
-          subtitle: 'Austin Local · 500 kg available — 300 kg short',
-          totalDelivered: null,
-          totalDeliveredStr: '—',
-          perKgStr: '—',
-          arrivalStr: null,
-          arrivalBadge: 'Insufficient qty',
-          arrivalIcon: 'truck',
-          savingsBadge: null,
-          rationale: 'Local Gc-11 has only 500 kg available (300 kg short of 800 kg required). Single-source rule excludes split lot.',
-          whyWinsLong: 'Insufficient stock in Site 1054 inventory to cover 800 kg production batch.',
-          warningNotice: 'Blocked by Single-Source Inventory Policy.',
-          subNotice: 'Infeasible Local Stock Allocation',
-          breakdownRows: [
-            { label: 'Bean cost (insufficient)', val: '—' },
-            { label: 'Shortfall', val: '300 kg short' },
-            { label: 'Feasibility status', val: 'Disqualified' },
-          ],
-        },
-        {
-          id: 'sc-5',
-          num: 5,
-          scenarioTag: 'LOCAL NON-APPROVED · Gc-18 • Excluded',
-          isRecommended: false,
-          isFeasible: false,
-          sourceType: 'local',
-          matchType: 'alternate',
-          title: 'Gc-18 ex Site 1054 Stock',
-          greenId: 'Gc-18',
-          greenName: 'Gc-18 — Non-approved alternate',
-          subtitle: 'Site 1054 Stock · Excluded — not on approved alternate list',
-          totalDelivered: null,
-          totalDeliveredStr: '—',
-          perKgStr: '—',
-          arrivalStr: null,
-          arrivalBadge: 'Not approved alternate',
-          arrivalIcon: 'truck',
-          savingsBadge: null,
-          rationale: 'Gc-18 is not on the recipe-approved alternate substitution list for this brand.',
-          whyWinsLong: 'QA flavor profile rejection: bean density and acidity fall outside roasting spec tolerance.',
-          warningNotice: 'Disqualified by Master Recipe BOM.',
-          subNotice: 'Infeasible Alternate Allocation',
-          breakdownRows: [
-            { label: 'Flavor profile score', val: 'Below tolerance' },
-            { label: 'Approval status', val: 'Not on approved list' },
-            { label: 'Feasibility status', val: 'Disqualified' },
-          ],
-        },
-      ];
-    }
-
-    const qty = currentOrder.orderQuantity || 1200;
-    const needBy = currentOrder.needBy || 'Nov 05';
-    const baseGreenId = currentOrder.greenId || 'Gb-04';
-    const baseGreenName = currentOrder.greenName || 'Colombia Supremo';
-
-    return [
-      {
-        id: 'sc-1',
-        num: 1,
-        scenarioTag: 'SCENARIO 2 · LOCAL · ALTERNATE',
-        isRecommended: true,
-        isFeasible: true,
-        sourceType: 'local',
-        matchType: 'alternate',
-        title: currentOrder.allocatedGreenName
-          ? `${currentOrder.allocatedGreenId} — ${currentOrder.allocatedGreenName}`
-          : 'Gc-14 — Brazil Cerrado Natural',
-        greenId: currentOrder.allocatedGreenId || 'Gc-14',
-        greenName: currentOrder.allocatedGreenName || 'Brazil Cerrado Natural',
-        subtitle: 'Austin Local · Lot L-1171 · 2,400 kg avail · covers 200% of need',
-        totalDelivered: 5112,
-        totalDeliveredStr: '$5,112',
-        perKgStr: '$4.26/kg',
-        arrivalStr: 'Oct 30',
-        arrivalIcon: 'calendar',
-        savingsBadge: '$1,188 saved vs baseline',
-        rationale: `Lowest total delivered cost. In-hand stock, no transfer, arrives 6 days early. Approved alternate (one-way ${baseGreenId} || Gc-14).`,
-        whyWinsLong: '$300 cheaper than WH-02 same-green and arrives 3 days earlier. Cup-score 83.5 vs 84.0 — within approved tolerance.',
-        warningNotice: 'Substitution acknowledgement required at confirmation. Roast profile R-22 applies.',
-        subNotice: `Approved alternate to ${baseGreenId} · One-way substitution`,
-        breakdownRows: [
-          { label: `Bean cost — ${qty.toLocaleString()} kg × $3.90`, val: '$4,680' },
-          { label: 'Local handling + QA', val: '$132' },
-          { label: 'Internal transfer (local — none)', val: '$0' },
-          { label: 'Expedite / pallet fee', val: '$300' },
-        ],
-      },
-      {
-        id: 'sc-2',
-        num: 2,
-        scenarioTag: 'SCENARIO 3 · CENTRAL · SAME GREEN',
-        isRecommended: false,
-        isFeasible: true,
-        sourceType: 'central',
-        matchType: 'same_green',
-        title: `${baseGreenId} — ${baseGreenName} (exact)`,
-        greenId: baseGreenId,
-        greenName: `${baseGreenName} (exact)`,
-        subtitle: 'WH-02 Dallas · 5,200 kg avail · 2-day transfer · covers 433% of need',
-        totalDelivered: 5412,
-        totalDeliveredStr: '$5,412',
-        perKgStr: '$4.51/kg',
-        arrivalStr: 'Nov 02',
-        arrivalIcon: 'truck',
-        savingsBadge: '$888 saved vs baseline',
-        rationale: 'Exact match, $300 more than Option 1 due to $420 freight + $110 handling. Still arrives 3 days before deadline.',
-        whyWinsLong: 'Exact botanical origin and moisture spec. Zero substitution risk, delivers directly via regional shuttle.',
-        warningNotice: null,
-        subNotice: 'Direct exact green fulfillment from WH-02 Dallas Hub',
-        breakdownRows: [
-          { label: `Bean cost — ${qty.toLocaleString()} kg × $4.00`, val: '$4,800' },
-          { label: 'Local handling + QA', val: '$110' },
-          { label: 'Internal transfer (WH-02 freight)', val: '$420' },
-          { label: 'Expedite / pallet fee', val: '$82' },
-        ],
-      },
-      {
-        id: 'sc-3',
-        num: 3,
-        scenarioTag: 'SCENARIO 4 · CENTRAL · ALTERNATE',
-        isRecommended: false,
-        isFeasible: true,
-        sourceType: 'central',
-        matchType: 'alternate',
-        title: 'Gb-12 — Huila Washed (approved alt)',
-        greenId: 'Gb-12',
-        greenName: 'Huila Washed (approved alt)',
-        subtitle: 'WH-01 Chicago · 3,100 kg avail · 3-day transfer · covers 258% of need',
-        totalDelivered: 5890,
-        totalDeliveredStr: '$5,890',
-        perKgStr: '$4.91/kg',
-        arrivalStr: 'Nov 03',
-        arrivalIcon: 'truck',
-        savingsBadge: '$410 saved vs baseline',
-        rationale: 'Feasible alternate but higher freight ($610) from Chicago. Backup if local lot is held.',
-        whyWinsLong: 'Backup option if local lot is held. Reliable stock available at Chicago hub.',
-        warningNotice: 'Requires secondary cupping approval before blending.',
-        subNotice: 'Approved secondary alternate · Two-way substitution',
-        breakdownRows: [
-          { label: `Bean cost — ${qty.toLocaleString()} kg × $4.10`, val: '$4,920' },
-          { label: 'Local handling + QA', val: '$180' },
-          { label: 'Internal transfer (WH-01 freight)', val: '$610' },
-          { label: 'Expedite / pallet fee', val: '$180' },
-        ],
-      },
-      {
-        id: 'sc-4',
-        num: 4,
-        scenarioTag: 'SCENARIO 1 · LOCAL · SAME GREEN • Excluded',
-        isRecommended: false,
-        isFeasible: false,
-        sourceType: 'local',
-        matchType: 'same_green',
-        title: `${baseGreenId} — ${baseGreenName} (exact)`,
-        greenId: baseGreenId,
-        greenName: `${baseGreenName} (exact)`,
-        subtitle: 'Austin Local · Lot L-1180 · 500 kg avail • short by 700 kg',
-        totalDelivered: null,
-        totalDeliveredStr: '—',
-        perKgStr: '—',
-        arrivalStr: null,
-        arrivalBadge: 'Insufficient qty',
-        arrivalIcon: 'truck',
-        savingsBadge: null,
-        rationale: `Only 500 kg available after 320 kg reserved. Cannot cover ${qty.toLocaleString()} kg. Suggested: combine is not allowed — single-source rule.`,
-        whyWinsLong: 'Local warehouse stock is depleted below batch safety threshold. Partial split orders are blocked by single-source QA compliance policy.',
-        warningNotice: 'Blocked by Single-Source Inventory Policy.',
-        subNotice: 'Infeasible Local Stock Allocation',
-        breakdownRows: [
-          { label: 'Bean cost (insufficient)', val: '—' },
-          { label: 'Shortfall', val: '700 kg short' },
-          { label: 'Feasibility status', val: 'Disqualified' },
-        ],
-      },
-      {
-        id: 'sc-5',
-        num: 5,
-        scenarioTag: 'SCENARIO 5 · CENTRAL · SAME GREEN • Excluded',
-        isRecommended: false,
-        isFeasible: false,
-        sourceType: 'central',
-        matchType: 'same_green',
-        title: `${baseGreenId} ex WH-03 Portland`,
-        greenId: baseGreenId,
-        greenName: `${baseGreenId} ex WH-03 Portland`,
-        subtitle: 'WH-03 Portland · Incoming 4,000 kg ETA Nov 07 • arrives after deadline',
-        totalDelivered: null,
-        totalDeliveredStr: '—',
-        perKgStr: '—',
-        arrivalStr: 'Nov 09',
-        arrivalBadge: `Misses ${needBy} deadline`,
-        arrivalIcon: 'truck',
-        savingsBadge: null,
-        rationale: 'Inbound arrives Nov 07, earliest Austin delivery Nov 09 — 4 days late. Incoming not counted as available. Excluded as infeasible.',
-        whyWinsLong: 'Inbound maritime shipment arrives at Portland port after local roasting cut-off. Transit days exceed schedule tolerance.',
-        warningNotice: 'Arrival date breaches roasting batch SLA.',
-        subNotice: 'Infeasible Inbound Schedule Allocation',
-        breakdownRows: [
-          { label: 'Inbound ETA at Hub', val: 'Nov 07' },
-          { label: 'Earliest Dock Delivery', val: 'Nov 09' },
-          { label: 'Schedule Variance', val: '+4 days late' },
-        ],
-      },
-    ];
-  }, [currentOrder]);
-
-  // Filtered scenarios for display
-  const filteredScenarios = useMemo(() => {
-    return evaluationScenarios.filter(sc => {
-      if (compareFilter === 'all') return true;
-      if (compareFilter === 'local') return sc.sourceType === 'local';
-      if (compareFilter === 'central') return sc.sourceType === 'central';
-      if (compareFilter === 'same_green') return sc.matchType === 'same_green';
-      if (compareFilter === 'alternate') return sc.matchType === 'alternate';
-      if (compareFilter === 'feasible_only') return sc.isFeasible;
-      return true;
+  // Sourcing options
+  const sortedOptions = useMemo(() => {
+    if (!currentOrder.options || currentOrder.options.length === 0) return [];
+    return [...currentOrder.options].sort((a, b) => {
+      if (sourcingSort === 'cost') {
+        const costA = parseInt(String(a.totalPrice || '').replace(/[^0-9]/g, ''), 10) || 0;
+        const costB = parseInt(String(b.totalPrice || '').replace(/[^0-9]/g, ''), 10) || 0;
+        return costA - costB;
+      }
+      if (sourcingSort === 'eta') {
+        return String(a.eta || '').localeCompare(String(b.eta || ''));
+      }
+      return 0;
     });
-  }, [evaluationScenarios, compareFilter]);
+  }, [currentOrder, sourcingSort]);
 
-  const feasibleScenarios = useMemo(() => {
-    return filteredScenarios.filter(s => s.isFeasible);
-  }, [filteredScenarios]);
-
-  const excludedScenarios = useMemo(() => {
-    return filteredScenarios.filter(s => !s.isFeasible);
-  }, [filteredScenarios]);
-
-  const activeScenario = useMemo(() => {
-    return evaluationScenarios.find(s => s.id === selectedScenarioId) || evaluationScenarios[0];
-  }, [evaluationScenarios, selectedScenarioId]);
+  // Currently chosen fulfillment option inside the selected order
+  const currentOption = useMemo(() => {
+    if (sortedOptions.length === 0) return null;
+    return sortedOptions[selectedOptionIndex] || sortedOptions[0];
+  }, [sortedOptions, selectedOptionIndex]);
 
   // Handle order selection
   const handleSelectOrder = (orderId) => {
     setSelectedOrderId(orderId);
-    setSelectedScenarioId('sc-1');
+    setSelectedOptionIndex(0);
   };
 
   // Actions for Local Buyer
   const handleBuyerApprove = () => {
-    const selectedOpt = {
-      id: activeScenario.id,
-      title: activeScenario.title,
-      totalPrice: activeScenario.totalDeliveredStr,
-      greenId: activeScenario.greenId,
-      isLocalFulfilled: activeScenario.sourceType === 'local',
-      eta: activeScenario.arrivalStr,
-    };
-    buyerApprove(currentOrder.id, selectedOpt);
-    triggerNotice(`Order ${currentOrder.id} approved by Local Buyer using ${activeScenario.title}.`);
+    buyerApprove(currentOrder.id, currentOption);
+    triggerNotice(`Order ${currentOrder.id} approved by Local Buyer.`);
   };
 
   const handleBuyerRequest = () => {
-    const selectedOpt = {
-      id: activeScenario.id,
-      title: activeScenario.title,
-      totalPrice: activeScenario.totalDeliveredStr,
-      greenId: activeScenario.greenId,
-      isLocalFulfilled: activeScenario.sourceType === 'local',
-      eta: activeScenario.arrivalStr,
-    };
-    buyerRequestTransfer(currentOrder.id, selectedOpt);
+    buyerRequestTransfer(currentOrder.id, currentOption);
     triggerNotice(`Transfer request submitted to Central Warehouse Manager for ${currentOrder.id}.`);
   };
 
@@ -569,7 +221,7 @@ export default function Orders() {
     setShowNewOrderModal(false);
     setStatusFilter('all');
     setSelectedOrderId(created.id);
-    setSelectedScenarioId('sc-1');
+    setSelectedOptionIndex(0);
 
     if (created.autoApproved) {
       triggerNotice(
@@ -584,19 +236,20 @@ export default function Orders() {
   };
 
   const handleProceedToConfirm = () => {
+    if (!currentOption) return;
     navigate('/confirm-order', {
       state: {
         order: currentOrder,
         option: {
-          id: activeScenario.id,
-          greenId: activeScenario.greenId,
-          greenName: activeScenario.greenName,
-          source: activeScenario.sourceType.toUpperCase(),
-          arrivalDate: activeScenario.arrivalStr || currentOrder.needBy,
-          totalDelivered: activeScenario.totalDelivered || currentOrder.totalDelivered || 5112,
-          isAlternate: activeScenario.isAlternate,
-          isLocalFulfilled: activeScenario.isLocal,
-          costBreakdown: activeScenario.breakdownRows,
+          id: currentOption.id,
+          greenId: currentOption.greenId,
+          greenName: currentOption.optionName,
+          source: currentOption.tag,
+          arrivalDate: currentOption.eta,
+          totalDelivered: parseInt(String(currentOption.totalPrice).replace(/[^0-9]/g, '')),
+          isAlternate: currentOption.tag?.includes('ALTERNATE') || Boolean(currentOption.isLocalFulfilled),
+          isLocalFulfilled: Boolean(currentOption.isLocalFulfilled) || currentOption.tag?.includes('LOCAL'),
+          costBreakdown: currentOption.breakdown,
         },
       },
     });
@@ -1118,840 +771,185 @@ export default function Orders() {
 
           {/* ── BODY AREA: Padding 20px ── */}
           <div style={{
-            padding: '18px 24px 22px',
+            padding: '20px 24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 16,
+            gap: 18,
           }}>
 
-            {/* In-Flight Order Mode Switcher (If order is already past New stage) */}
-            {currentOrder.status !== 'new' && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '6px 10px',
-                background: '#FAF8F9',
-                borderRadius: 8,
-                border: `1px solid ${C.border}`,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button
-                    type="button"
-                    onClick={() => setViewTrackingTab(false)}
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: !viewTrackingTab ? 700 : 500,
-                      background: !viewTrackingTab ? '#FFFFFF' : 'transparent',
-                      color: !viewTrackingTab ? C.text : C.muted,
-                      border: !viewTrackingTab ? `1px solid ${C.border}` : '1px solid transparent',
-                      cursor: 'pointer',
-                      boxShadow: !viewTrackingTab ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
-                    }}
-                  >
-                    Sourcing Scenarios (5 Evaluated)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setViewTrackingTab(true)}
-                    style={{
-                      padding: '4px 12px',
-                      borderRadius: 6,
-                      fontSize: 11,
-                      fontWeight: viewTrackingTab ? 700 : 500,
-                      background: viewTrackingTab ? '#FFFFFF' : 'transparent',
-                      color: viewTrackingTab ? C.text : C.muted,
-                      border: viewTrackingTab ? `1px solid ${C.border}` : '1px solid transparent',
-                      cursor: 'pointer',
-                      boxShadow: viewTrackingTab ? '0 1px 3px rgba(0,0,0,0.04)' : 'none',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <Truck size={12} />
-                    Active Tracking & Execution ({currentMeta.label})
-                  </button>
-                </div>
+            {/* ── SECTION 3: SOURCING OPTIONS (EVALUATION) vs ACTIVE TRACKING (EXECUTION) ── */}
+            {currentOrder.options && currentOrder.options.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 290px', gap: 16, alignItems: 'start' }}>
 
-                <span style={{ fontSize: 10.5, color: C.subtle }}>
-                  Status: <strong style={{ color: currentMeta.color }}>{currentMeta.label}</strong>
-                </span>
-              </div>
-            )}
-
-            {/* ── VIEW 1: SOURCING SCENARIOS COMPARISON (Matches Figma Mockup) ── */}
-            {!viewTrackingTab ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-                {/* Top Filter & Compare Bar */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  paddingBottom: 4,
-                  flexWrap: 'wrap',
-                  gap: 8,
-                }}>
-                  {/* Left: Filter Pills */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: C.muted, marginRight: 2 }}>
-                      Compare:
-                    </span>
-                    {[
-                      { id: 'all', label: 'All (5)' },
-                      { id: 'local', label: 'Local (2)' },
-                      { id: 'central', label: 'Central (3)' },
-                      { id: 'same_green', label: 'Same green (3)' },
-                      { id: 'alternate', label: 'Alternate (2)' },
-                      { id: 'feasible_only', label: 'Feasible only' },
-                    ].map(tab => {
-                      const isTabActive = compareFilter === tab.id;
-                      return (
-                        <button
-                          key={tab.id}
-                          type="button"
-                          onClick={() => setCompareFilter(tab.id)}
-                          style={{
-                            padding: '4px 12px',
-                            borderRadius: 20,
-                            fontSize: 11,
-                            fontWeight: isTabActive ? 700 : 500,
-                            background: isTabActive ? '#30272B' : '#FFFFFF',
-                            color: isTabActive ? '#FFFFFF' : C.text,
-                            border: `1px solid ${isTabActive ? '#30272B' : C.border}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.12s ease',
-                          }}
-                        >
-                          {tab.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Right: Feasibility Hint */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: C.subtle, fontSize: 11 }}>
-                    <Info size={13} style={{ color: C.subtle }} />
-                    <span>Feasibility = qty + substitution + arrival date</span>
-                  </div>
-                </div>
-
-                {/* Sourcing Cascade Strip (Matches Figma Mockup) */}
-                {currentOrder.cascade && (
-                  <div style={{
-                    background: '#FAF9FA',
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 8,
-                    padding: '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 8,
-                  }}>
-                    <div style={{ fontSize: 10.5, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                      HOW THE SOURCING CASCADE RAN
+                {/* Left Inner: Sourcing options list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                        Feasible Sourcing Options
+                      </div>
+                      <div style={{ fontSize: 10, color: C.subtle, marginTop: 1 }}>
+                        {currentOrder.options.length} options evaluated · 100% demand quantity covered
+                      </div>
                     </div>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                      {currentOrder.cascade.map((step, sIdx) => {
-                        const isPass = step.status === 'pass';
-                        const isFail = step.status === 'fail';
-                        return (
-                          <div
-                            key={sIdx}
-                            style={{
-                              background: isPass ? '#F8FCF9' : '#FFFFFF',
-                              border: isPass ? '1.5px solid #86EFAC' : `1px solid ${C.border}`,
-                              borderRadius: 6,
-                              padding: '10px 12px',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 3,
-                            }}
-                          >
-                            <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
-                              {step.step}
-                            </div>
-                            <div style={{
-                              fontSize: 10.5,
-                              fontWeight: 600,
-                              color: isPass ? '#16A34A' : isFail ? '#D83040' : C.muted,
+
+                    <ThemedSelect
+                      value={sourcingSort}
+                      onChange={val => {
+                        setSourcingSort(val);
+                        setSelectedOptionIndex(0);
+                      }}
+                      options={[
+                        { value: 'cost', label: 'Lowest total cost' },
+                        { value: 'eta', label: 'Earliest arrival' },
+                      ]}
+                      prefix="Sort: "
+                      size="sm"
+                      align="right"
+                    />
+                  </div>
+
+                  {sortedOptions.map((opt, oIdx) => {
+                    const isOptSelected = selectedOptionIndex === oIdx;
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => setSelectedOptionIndex(oIdx)}
+                        style={{
+                          padding: '13px 15px',
+                          borderRadius: 8,
+                          border: isOptSelected ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
+                          borderLeft: isOptSelected ? '4px solid #16A34A' : `1px solid ${C.border}`,
+                          background: isOptSelected ? '#FBFDFB' : '#FFFFFF',
+                          cursor: 'pointer',
+                          transition: 'all 0.12s ease',
+                          boxShadow: isOptSelected ? '0 2px 6px rgba(22,163,74,0.08)' : 'none',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 9.5, fontWeight: 700, color: isOptSelected ? '#15803D' : C.plum, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                            {opt.tag}
+                          </span>
+                          {opt.bestValue && (
+                            <span style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: 10,
+                              background: '#EDF7F1',
+                              color: '#1E8A3C',
+                              border: '1px solid #B4DDBD',
                             }}>
-                              {step.note}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {currentOrder.cascadeNote && (
-                      <div style={{ fontSize: 10.5, color: C.muted, lineHeight: 1.4, marginTop: 2 }}>
-                        {currentOrder.cascadeNote}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Two-Column Sourcing Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(310px, 0.95fr)', gap: 16, alignItems: 'start' }}>
-
-                  {/* LEFT SUB-COLUMN: Scenario Cards */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-                    {/* Available Options Header */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                          Available sourcing options
+                              BEST VALUE
+                            </span>
+                          )}
                         </div>
-                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                          {feasibleScenarios.length} feasible options · full {(currentOrder.orderQuantity || 800).toLocaleString()} kg required
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+                          {opt.title}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
+                          {opt.subtitle}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: `1px solid ${C.divider}` }}>
+                          <div>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{opt.totalPrice}</span>
+                            <span style={{ fontSize: 10.5, color: C.subtle, marginLeft: 4 }}>({opt.perKg})</span>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3C', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Clock size={11} />
+                            {opt.eta}
+                          </span>
                         </div>
                       </div>
+                    );
+                  })}
+                </div>
 
-                      <span style={{
-                        fontSize: 9.5,
-                        fontWeight: 700,
-                        padding: '3px 8px',
-                        borderRadius: 4,
-                        background: '#FAF5F8',
-                        color: C.plum,
-                        border: '1px solid #E6DCE2',
-                        letterSpacing: '0.4px',
-                      }}>
-                        FEASIBLE OPTIONS
-                      </span>
-                    </div>
-
-                    {/* 1. Feasible Scenarios */}
-                    {feasibleScenarios.map(sc => {
-                      const isSelected = selectedScenarioId === sc.id;
-                      return (
-                        <div
-                          key={sc.id}
-                          onClick={() => setSelectedScenarioId(sc.id)}
-                          style={{
-                            background: '#FFFFFF',
-                            borderRadius: 10,
-                            border: isSelected ? (sc.bestValue ? '1.5px solid #86EFAC' : `1.5px solid ${C.rose}`) : `1px solid ${C.border}`,
-                            padding: '14px 16px',
-                            cursor: 'pointer',
-                            transition: 'all 0.12s ease',
-                            boxShadow: isSelected ? '0 2px 10px rgba(216,63,121,0.08)' : '0 1px 3px rgba(0,0,0,0.02)',
-                          }}
-                        >
-                          {/* Top Row: Number badge, Scenario tag, Recommended badge & Select button */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                              {/* Number Circle Badge */}
-                              <span style={{
-                                width: 22,
-                                height: 22,
-                                borderRadius: '50%',
-                                background: sc.num === 1 ? '#30272B' : '#EAE5E9',
-                                color: sc.num === 1 ? '#FFFFFF' : '#5C4E57',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                fontSize: 11,
-                                fontWeight: 700,
-                              }}>
-                                {sc.num}
-                              </span>
-
-                              {/* Scenario Tag */}
-                              <span style={{
-                                fontSize: 10,
-                                fontWeight: 700,
-                                color: sc.bestValue ? '#15803D' : '#746970',
-                                letterSpacing: '0.4px',
-                                textTransform: 'uppercase',
-                              }}>
-                                {sc.scenarioTag}
-                              </span>
-
-                              {/* Best Value / Recommended Badge */}
-                              {sc.bestValue ? (
-                                <span style={{
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                  padding: '2px 7px',
-                                  borderRadius: 10,
-                                  background: '#EDF7F1',
-                                  color: '#1E8A3C',
-                                  border: '1px solid #B4DDBD',
-                                }}>
-                                  BEST VALUE
-                                </span>
-                              ) : sc.isRecommended && (
-                                <span style={{
-                                  fontSize: 9.5,
-                                  fontWeight: 600,
-                                  padding: '2px 7px',
-                                  borderRadius: 10,
-                                  background: '#30272B',
-                                  color: '#FFFFFF',
-                                }}>
-                                  Recommended
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Top Right Action Button & Cost breakdown link */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                              {isSelected ? (
-                                <button
-                                  type="button"
-                                  style={{
-                                    padding: '5px 14px',
-                                    borderRadius: 6,
-                                    border: 'none',
-                                    background: '#30272B',
-                                    color: '#FFFFFF',
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    cursor: 'default',
-                                  }}
-                                >
-                                  Selected
-                                </button>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={e => {
-                                    e.stopPropagation();
-                                    setSelectedScenarioId(sc.id);
-                                  }}
-                                  style={{
-                                    padding: '5px 14px',
-                                    borderRadius: 6,
-                                    border: 'none',
-                                    background: C.rose,
-                                    color: '#FFFFFF',
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                    cursor: 'pointer',
-                                    transition: 'all 0.12s ease',
-                                  }}
-                                >
-                                  Select This Option
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={e => {
-                                  e.stopPropagation();
-                                  setSelectedScenarioId(sc.id);
-                                }}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  padding: 0,
-                                  color: C.rose,
-                                  fontSize: 10,
-                                  fontWeight: 600,
-                                  cursor: 'pointer',
-                                  marginTop: 1,
-                                }}
-                              >
-                                Cost breakdown
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Title & Subtitle */}
-                          <div style={{ marginBottom: 10 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                              {sc.title}
-                            </div>
-                            <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                              {sc.subtitle}
-                            </div>
-                          </div>
-
-                          {/* Metrics Row: Total delivered, Per kg, Arrival, Savings Badge */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 10, flexWrap: 'wrap' }}>
-                            <div>
-                              <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
-                                Total delivered
-                              </div>
-                              <div style={{ fontSize: 16, fontWeight: 800, color: C.text, marginTop: 1 }}>
-                                {sc.totalDeliveredStr}
-                              </div>
-                              {sc.baselineSub && (
-                                <div style={{ fontSize: 9, color: C.muted, marginTop: 1 }}>
-                                  {sc.baselineSub}
-                                </div>
-                              )}
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
-                                Per kg
-                              </div>
-                              <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 1 }}>
-                                {sc.perKgStr}
-                              </div>
-                            </div>
-
-                            <div>
-                              <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
-                                Arrival
-                              </div>
-                              <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A', marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                {sc.arrivalIcon === 'calendar' ? <Calendar size={13} style={{ color: '#16A34A' }} /> : <Truck size={13} style={{ color: '#16A34A' }} />}
-                                {sc.arrivalStr}
-                              </div>
-                            </div>
-
-                            {sc.savingsBadge && (
-                              <div style={{
-                                padding: '3px 8px',
-                                borderRadius: 4,
-                                background: '#EAF7EE',
-                                color: '#1E8A3C',
-                                border: '1px solid #C7EBD0',
-                                fontSize: 10,
-                                fontWeight: 700,
-                              }}>
-                                {sc.savingsBadge}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Footer Callout with Checkmark */}
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 7,
-                            paddingTop: 8,
-                            borderTop: `1px solid ${C.divider}`,
-                            fontSize: 10.5,
-                            color: '#5C4E57',
-                            lineHeight: 1.4,
-                          }}>
-                            <CheckCircle2 size={13} style={{ color: '#30272B', flexShrink: 0, marginTop: 2 }} />
-                            <span>{sc.rationale}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-
-                    {/* Not Eligible / Not Evaluated Section (Matches Mockup) */}
-                    {currentOrder.ineligible && currentOrder.ineligible.length > 0 && (
-                      <div style={{
-                        background: '#FAF9FA',
-                        border: `1px solid ${C.border}`,
-                        borderRadius: 10,
-                        padding: '14px 16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 8,
-                      }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                          Not eligible / not evaluated
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {currentOrder.ineligible.map((item, iIdx) => {
-                            const isExcluded = item.startsWith('✕');
-                            return (
-                              <div
-                                key={iIdx}
-                                style={{
-                                  fontSize: 11,
-                                  fontWeight: isExcluded ? 600 : 500,
-                                  color: isExcluded ? '#D83040' : C.muted,
-                                  lineHeight: 1.4,
-                                }}
-                              >
-                                {item}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* 2. Excluded Section */}
-                    {excludedScenarios.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#746970', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                          EXCLUDED — WITH REASONS ({excludedScenarios.length})
-                        </div>
-
-                        {excludedScenarios.map(sc => {
-                          const isSelected = selectedScenarioId === sc.id;
-                          return (
-                            <div
-                              key={sc.id}
-                              onClick={() => setSelectedScenarioId(sc.id)}
-                              style={{
-                                background: '#FAF9FA',
-                                borderRadius: 10,
-                                border: isSelected ? `1.5px solid ${C.rose}` : `1px solid ${C.border}`,
-                                padding: '14px 16px',
-                                cursor: 'pointer',
-                                transition: 'all 0.12s ease',
-                              }}
-                            >
-                              {/* Top Row: Number badge, Scenario tag & View Why button */}
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                                  <span style={{
-                                    width: 22,
-                                    height: 22,
-                                    borderRadius: '50%',
-                                    background: '#EAE5E9',
-                                    color: '#8C7F87',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontSize: 11,
-                                    fontWeight: 700,
-                                  }}>
-                                    {sc.num}
-                                  </span>
-
-                                  <span style={{ fontSize: 10, fontWeight: 700, color: '#746970', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
-                                    {sc.scenarioTag}
-                                  </span>
-                                </div>
-
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                                  <button
-                                    type="button"
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      setSelectedScenarioId(sc.id);
-                                    }}
-                                    style={{
-                                      padding: '4px 12px',
-                                      borderRadius: 6,
-                                      border: `1px solid ${C.border}`,
-                                      background: '#F0EAEE',
-                                      color: C.text,
-                                      fontSize: 10.5,
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                    }}
-                                  >
-                                    View Why
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={e => {
-                                      e.stopPropagation();
-                                      setSelectedScenarioId(sc.id);
-                                    }}
-                                    style={{
-                                      background: 'none',
-                                      border: 'none',
-                                      padding: 0,
-                                      color: C.rose,
-                                      fontSize: 10,
-                                      fontWeight: 600,
-                                      cursor: 'pointer',
-                                      marginTop: 1,
-                                    }}
-                                  >
-                                    Cost breakdown
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Title & Subtitle */}
-                              <div style={{ marginBottom: 10 }}>
-                                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
-                                  {sc.title}
-                                </div>
-                                <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                                  {sc.subtitle}
-                                </div>
-                              </div>
-
-                              {/* Metrics Row: Blanked out with Warning Badge */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 10, flexWrap: 'wrap' }}>
-                                <div>
-                                  <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
-                                    Total delivered
-                                  </div>
-                                  <div style={{ fontSize: 16, fontWeight: 700, color: C.subtle, marginTop: 1 }}>
-                                    —
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
-                                    Per kg
-                                  </div>
-                                  <div style={{ fontSize: 13, fontWeight: 700, color: C.subtle, marginTop: 1 }}>
-                                    —
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <div style={{ fontSize: 9.5, color: C.subtle, fontWeight: 500 }}>
-                                    Arrival
-                                  </div>
-                                  <div style={{ fontSize: 11, fontWeight: 600, color: C.text, marginTop: 1, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                                    <Truck size={13} style={{ color: C.muted }} />
-                                    {sc.arrivalStr && <span>{sc.arrivalStr}</span>}
-                                    {sc.arrivalBadge && (
-                                      <span style={{
-                                        padding: '2px 7px',
-                                        borderRadius: 4,
-                                        background: '#EAE5E9',
-                                        color: '#5C4E57',
-                                        fontSize: 10,
-                                        fontWeight: 600,
-                                      }}>
-                                        {sc.arrivalBadge}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Footer Callout with X */}
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'flex-start',
-                                gap: 7,
-                                paddingTop: 8,
-                                borderTop: `1px solid ${C.divider}`,
-                                fontSize: 10.5,
-                                color: '#5C4E57',
-                                lineHeight: 1.4,
-                              }}>
-                                <XCircle size={13} style={{ color: '#746970', flexShrink: 0, marginTop: 2 }} />
-                                <span>{sc.rationale}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* 3. Bottom Rules Enforced Strip */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      gap: 8,
-                      padding: '10px 14px',
-                      borderRadius: 8,
-                      background: '#FAF8F9',
-                      border: `1px solid ${C.border}`,
-                      marginTop: 4,
-                    }}>
-                      <Shield size={14} style={{ color: '#746970', marginTop: 2, flexShrink: 0 }} />
-                      <div style={{ fontSize: 10.5, color: '#746970', lineHeight: 1.45 }}>
-                        <strong>Rules enforced:</strong> no warehouse-to-warehouse, no local-to-local, alternates only if explicitly approved. Incoming counted only if receipt + transfer meet deadline.
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* RIGHT SUB-COLUMN: Sticky Scenario Summary Card (Matches Figma Mockup) */}
+                {/* Right Inner: Selected Option Breakdown Card */}
+                {currentOption && (
                   <div style={{
                     background: '#FFFFFF',
                     border: `1px solid ${C.border}`,
                     borderRadius: 10,
-                    padding: '18px 20px',
+                    padding: '16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 13,
-                    boxShadow: '0 2px 8px rgba(48,39,43,0.04)',
-                    position: 'sticky',
-                    top: 14,
+                    gap: 12,
+                    boxShadow: '0 2px 6px rgba(48,39,43,0.04)',
                   }}>
-                    {/* Header Tag */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                        Selected option
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                        Selected Sourcing Model
                       </span>
-                      {activeScenario.isRecommended ? (
-                        <span style={{
-                          fontSize: 9,
-                          fontWeight: 700,
-                          padding: '2px 8px',
-                          borderRadius: 10,
-                          background: '#EDF7F1',
-                          color: '#1E8A3C',
-                          border: '1px solid #B4DDBD',
-                          letterSpacing: '0.4px',
-                        }}>
-                          RECOMMENDED
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: 9.5, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
-                          OPTION {activeScenario.num}
-                        </span>
-                      )}
+                      <span style={{
+                        fontSize: 8.5,
+                        fontWeight: 700,
+                        padding: '2px 7px',
+                        borderRadius: 10,
+                        background: '#EDF7F1',
+                        color: '#1E8A3C',
+                        border: '1px solid #B4DDBD',
+                      }}>
+                        RECOMMENDED
+                      </span>
                     </div>
 
-                    {/* Title & Subtitle */}
                     <div>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: C.text, lineHeight: 1.2 }}>
-                        {activeScenario.greenName || activeScenario.title}
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
+                        {currentOption.optionName}
                       </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                        {activeScenario.subNotice}
+                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                        {currentOption.optionSub}
                       </div>
                     </div>
 
-                    {/* Itemized Cost Breakdown Table */}
+                    {/* Breakdown Rows */}
                     <div style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: 7,
-                      padding: '10px 0',
+                      gap: 6,
+                      padding: '8px 0',
                       borderTop: `1px solid ${C.divider}`,
                       borderBottom: `1px solid ${C.divider}`,
                     }}>
-                      {activeScenario.breakdownRows.map((row, rIdx) => (
-                        <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11 }}>
+                      {currentOption.breakdown?.map((row, rIdx) => (
+                        <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5 }}>
                           <span style={{ color: C.muted }}>{row.label}</span>
                           <span style={{ fontWeight: 600, color: C.text }}>{row.val}</span>
                         </div>
                       ))}
                     </div>
 
-                    {/* Total & Per-Kg */}
+                    {/* Total Cost Highlight */}
                     <div>
                       <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        TOTAL DELIVERED COST
+                        Total Delivered Cost
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 2 }}>
-                        <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', lineHeight: 1.1 }}>
-                          {activeScenario.totalDeliveredStr}
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                          {activeScenario.perKgStr}
-                        </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', lineHeight: 1.1, marginTop: 3 }}>
+                        {currentOption.totalDelivered}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>
+                        {currentOption.totalPerKg} · Landed at Roasting Bay
                       </div>
                     </div>
 
-                    {/* Savings Pill */}
-                    {activeScenario.savingsBadge && (
-                      <div style={{
-                        padding: '6px 10px',
-                        borderRadius: 6,
-                        background: '#EDF7EE',
-                        border: '1px solid #C7EBD0',
-                        color: '#1E8A3C',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        textAlign: 'center',
-                      }}>
-                        {activeScenario.savingsBadge}
-                      </div>
-                    )}
-
-                    {/* Green Callout: Why This Wins */}
                     <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 4,
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      background: '#EDF7F1',
+                      color: '#1E8A3C',
                       fontSize: 10.5,
-                      color: C.text,
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      border: '1px solid #B4DDBD',
                     }}>
-                      <div style={{ fontWeight: 700, color: C.muted, textTransform: 'uppercase', fontSize: 9.5, letterSpacing: '0.4px' }}>
-                        WHY THIS WINS
-                      </div>
-                      {activeScenario.whyWinsBullets ? (
-                        activeScenario.whyWinsBullets.map((bullet, bIdx) => (
-                          <div key={bIdx} style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#1E8A3C', fontWeight: 600 }}>
-                            <CheckCircle2 size={12} style={{ color: '#1E8A3C' }} />
-                            <span>{bullet}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, color: '#1E8A3C', lineHeight: 1.4 }}>
-                          <CheckCircle2 size={12} style={{ color: '#1E8A3C', marginTop: 2, flexShrink: 0 }} />
-                          <span>{activeScenario.whyWinsLong || activeScenario.rationale}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Amber Warning Box (if applicable) */}
-                    {activeScenario.warningNotice && (
-                      <div style={{
-                        padding: '9px 12px',
-                        borderRadius: 6,
-                        background: '#FFFBEB',
-                        border: '1px solid #FDE68A',
-                        color: '#92400E',
-                        fontSize: 10.5,
-                        lineHeight: 1.45,
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 6,
-                      }}>
-                        <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
-                        <span>{activeScenario.warningNotice}</span>
-                      </div>
-                    )}
-
-                    {/* Primary Action Button */}
-                    {activeScenario.isFeasible ? (
-                      <button
-                        type="button"
-                        onClick={handleProceedToConfirm}
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          borderRadius: 6,
-                          border: 'none',
-                          background: C.rose,
-                          color: '#FFFFFF',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6,
-                          transition: 'all 0.12s ease',
-                          boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
-                        }}
-                      >
-                        Choose this option
-                        <ArrowRight size={13} />
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        style={{
-                          width: '100%',
-                          padding: '10px 16px',
-                          borderRadius: 6,
-                          border: `1px solid ${C.border}`,
-                          background: '#F0EAEE',
-                          color: C.subtle,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: 'not-allowed',
-                          textAlign: 'center',
-                        }}
-                      >
-                        Infeasible Option (Excluded)
-                      </button>
-                    )}
-
-                    {/* Caption */}
-                    <div style={{ fontSize: 9.5, color: C.subtle, textAlign: 'center', marginTop: -4 }}>
-                      Estimates simulated · Final invoice may vary
+                      {currentOption.savingsTag}
                     </div>
                   </div>
-
-                </div>
-
+                )}
               </div>
             ) : (
-              /* ── VIEW 2: ACTIVE TRACKING & EXECUTION ── */
+              /* Active Lifecycle Status / Tracking Info for In-Flight Orders */
               <div style={{
                 background: '#FAF9FA',
                 border: `1px solid ${C.divider}`,
@@ -2042,116 +1040,90 @@ export default function Orders() {
             )}
           </div>
 
-          {/* ── SECTION 4: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR - MATCHES FIGMA MOCKUP) ── */}
+          {/* ── SECTION 4: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR) ── */}
           <div style={{
             borderTop: `1px solid ${C.divider}`,
             padding: '14px 24px',
             background: '#FAF8F9',
             display: 'flex',
-            flexDirection: 'column',
-            gap: 10,
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}>
-            <div style={{ fontSize: 10.5, color: C.subtle }}>
-              Estimates are simulated. Availability is rechecked before confirmation; no partial or split sourcing.
-            </div>
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 6,
+                border: `1px solid ${C.border}`,
+                background: '#FFFFFF',
+                color: C.text,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.12s ease',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = C.hover}
+              onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+            >
+              <Clock size={12} style={{ color: C.plum }} />
+              View Audit Trail
+            </button>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button
-                  onClick={() => navigate('/order-history')}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: 6,
-                    border: `1px solid ${C.border}`,
-                    background: '#FFFFFF',
-                    color: C.text,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.12s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.hover}
-                  onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                  View order history
-                </button>
-
-                <button
-                  onClick={() => setShowHistoryModal(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    padding: '8px 14px',
-                    borderRadius: 6,
-                    border: `1px solid ${C.border}`,
-                    background: '#FFFFFF',
-                    color: C.muted,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.12s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = C.hover}
-                  onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
-                >
-                  <Clock size={12} style={{ color: C.plum }} />
-                  Audit Trail
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                {/* 1. If Status is 'new' */}
-                {currentOrder.status === 'new' && (
-                  <>
-                    <button
-                      onClick={handleBuyerApprove}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: 6,
-                        border: `1px solid ${C.border}`,
-                        background: '#FFFFFF',
-                        color: C.text,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        transition: 'all 0.12s ease',
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.background = C.hover}
-                      onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
-                    >
-                      Approve Sourcing Option
-                    </button>
-                    <button
-                      disabled={!activeScenario?.isFeasible}
-                      onClick={handleProceedToConfirm}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: '8px 22px',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: C.rose,
-                        color: '#FFFFFF',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        cursor: activeScenario?.isFeasible ? 'pointer' : 'not-allowed',
-                        boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
-                        transition: 'all 0.12s ease',
-                      }}
-                      onMouseEnter={e => {
-                        if (activeScenario?.isFeasible) e.currentTarget.style.background = C.roseHover;
-                      }}
-                      onMouseLeave={e => {
-                        if (activeScenario?.isFeasible) e.currentTarget.style.background = C.rose;
-                      }}
-                    >
-                      Choose this option
-                      <ArrowRight size={13} />
-                    </button>
-                  </>
-                )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* 1. If Status is 'new' */}
+              {currentOrder.status === 'new' && (
+                <>
+                  <button
+                    onClick={handleBuyerApprove}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 6,
+                      border: `1px solid ${C.border}`,
+                      background: '#FFFFFF',
+                      color: C.text,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                  >
+                    Approve Sourcing Option
+                  </button>
+                  <button
+                    disabled={!currentOption}
+                    onClick={handleProceedToConfirm}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 18px',
+                      borderRadius: 6,
+                      border: 'none',
+                      background: C.rose,
+                      color: '#FFFFFF',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: currentOption ? 'pointer' : 'not-allowed',
+                      boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
+                      transition: 'all 0.12s ease',
+                    }}
+                    onMouseEnter={e => {
+                      if (currentOption) e.currentTarget.style.background = C.roseHover;
+                    }}
+                    onMouseLeave={e => {
+                      if (currentOption) e.currentTarget.style.background = C.rose;
+                    }}
+                  >
+                    Proceed to Confirm
+                    <ArrowRight size={12} />
+                  </button>
+                </>
+              )}
 
               {/* 2. If Status is 'approved' */}
               {currentOrder.status === 'approved' && (
@@ -2300,7 +1272,6 @@ export default function Orders() {
               )}
             </div>
           </div>
-        </div>
 
         </div>
       </div>
