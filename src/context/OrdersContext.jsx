@@ -169,11 +169,11 @@ const INITIAL_SYNCED_ORDERS = [
   // 1. NEW DEMAND: Sumatra Mandheling (Site 1054) - Needs sourcing evaluation
   {
     id: 'PO-2846',
+    orderType: 'PRODUCTION',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
     warehouse: 'Warehouse 1055',
-    warehouseId: '1055',
     shipmentId: null,
     shippingCost: 589,
     fgMaterialId: 'FG-5510',
@@ -189,7 +189,10 @@ const INITIAL_SYNCED_ORDERS = [
     totalDelivered: 7489,
     needBy: 'Nov 12',
     needByFull: 'Nov 12, 2026',
+    deliveryTargetDate: '2026-11-12',
+    selectedOptionId: null,
     status: 'new',
+    rejectionReason: null,
     buyerName: 'Maya Torres',
     buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
     notes: 'Urgent roasting run. Local stock is zero. Reviewing central warehouse allocation.',
@@ -1157,8 +1160,10 @@ export function OrdersProvider({ children }) {
         return {
           ...o,
           status: 'in transit',
-          carrierName: carrier,
-          trackingNumber,
+          shippedDate: new Date().toISOString().split('T')[0],
+          estimatedArrivalDate: o.deliveryTargetDate || o.needByFull || '2026-11-12',
+          shippingCost: o.shippingCost || 589,
+          isDelayed: false,
           updatedDate: new Date().toISOString(),
           timeline: updatedTimeline,
         };
@@ -1534,6 +1539,101 @@ export function OrdersProvider({ children }) {
     return newOrder;
   };
 
+  // ── Create a threshold replenishment order to central warehouse
+  const createReplenishmentOrder = ({
+    orderNumber,
+    greenId,
+    greenName,
+    orderQuantity,
+    warehouse = 'Warehouse 1055',
+    warehouseId = '1055',
+    shippingCost = 589,
+    unitPrice = 4.10,
+    totalCost,
+    shipmentId,
+    eta,
+    status = 'requested',
+    notes,
+  }) => {
+    const qty = Number(orderQuantity) || 500;
+    const price = Number(unitPrice) || 4.10;
+    const freight = Number(shippingCost) || 589;
+    const total = totalCost || (qty * price + freight);
+    const newId = orderNumber || `RO-${Math.floor(3000 + Math.random() * 900)}`;
+
+    const newReplenishment = {
+      id: newId,
+      orderNumber: newId,
+      orderType: 'REPLENISHMENT',
+      siteId: '1054',
+      destinationSite: 'Site 1054 — Plano Roasting',
+      destinationCity: 'Plano, TX',
+      warehouse,
+      warehouseId,
+      shipmentId: shipmentId || null,
+      shippingCost: freight,
+      fgMaterialId: null,
+      fgMaterialDescription: null,
+      brand: null,
+      brandType: null,
+      greenId,
+      greenName: greenName || greenId,
+      orderQuantity: qty,
+      quantityStr: `${qty.toLocaleString()} kg`,
+      acceptedQuantity: qty,
+      unitPrice: price,
+      totalDelivered: total,
+      needBy: eta || 'This Week',
+      needByFull: eta || 'Nov 15, 2026',
+      deliveryTargetDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+      status: status || 'requested',
+      buyerName: 'Maya Torres',
+      buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
+      notes: notes || `Safety threshold replenishment order for ${greenName || greenId}. Auto-routed to lowest-freight ${warehouse}.`,
+      category: 'replenishment',
+      urgencyRank: 2,
+      selectedOptionId: 1,
+      selectedOption: null,
+      rejectionReason: null,
+      options: [
+        {
+          id: `opt-${newId}-1`,
+          tag: `CENTRAL WAREHOUSE · ${warehouse.toUpperCase()}`,
+          bestValue: true,
+          title: `${warehouse} Sourcing Transfer`,
+          subtitle: `${qty.toLocaleString()} kg replenishment to restore safety threshold`,
+          totalPrice: `$${total.toLocaleString()}`,
+          perKg: `$${(total / qty).toFixed(2)} / kg`,
+          baselineComparison: `Designated lowest freight hub ($${freight} fixed shipping cost)`,
+          eta: eta || '3-4 Business Days',
+          etaRisk: false,
+          optionName: `${greenId} · ${greenName}`,
+          optionSub: `${warehouse} Central Transfer`,
+          breakdown: [
+            { label: `Bean cost (${qty.toLocaleString()} kg × $${price.toFixed(2)})`, val: `$${(qty * price).toLocaleString()}` },
+            { label: 'Shipping cost (fixed)', val: `$${freight}` },
+          ],
+          totalDelivered: `$${total.toLocaleString()}`,
+          whyWins: [
+            `Designated lowest-freight warehouse (${warehouse}, $${freight} fixed cost)`,
+            'Restores minimum safe green stock threshold',
+          ],
+        },
+      ],
+      timeline: [
+        { title: 'Threshold Replenishment Order Placed', time: 'Just now', actor: 'Local Buyer · Maya Torres', state: 'done' },
+        { title: `Transfer Requested from ${warehouse}`, time: 'Just now', actor: 'System Auto-Replenish', state: 'active' },
+        { title: 'Hub Acceptance & Allocation', time: 'Pending warehouse manager review', actor: 'Warehouse Manager', state: 'pending' },
+        { title: 'Dock Staging & Palletizing', time: 'Scheduled upon acceptance', actor: 'Warehouse Manager', state: 'pending' },
+        { title: 'Carrier In Transit', time: 'Estimated 2-day freight transit', actor: 'Logistics Carrier', state: 'pending' },
+        { title: 'Local Dock Receipt', time: eta || 'Expected delivery', actor: 'Local Roasting Dock', state: 'pending' },
+      ],
+    };
+
+    setOrders(prev => [newReplenishment, ...prev]);
+    return newReplenishment;
+  };
+
   // Reset to initial seed state
   const resetOrders = () => {
     setOrders(INITIAL_SYNCED_ORDERS);
@@ -1561,6 +1661,7 @@ export function OrdersProvider({ children }) {
         buyerClose,
         warehouseReject,
         createOrder,
+        createReplenishmentOrder,
         resetOrders,
       }}
     >

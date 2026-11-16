@@ -570,6 +570,7 @@ export default function Inventory() {
     setLocalInventory: setInventoryItems,
     buyerReceive,
     buyerClose,
+    createReplenishmentOrder,
   } = useOrders();
 
   // Active tab: 'stock' | 'incoming' (derived from searchParams with local switch)
@@ -824,11 +825,17 @@ export default function Inventory() {
     // 2. Add to Incoming Shipments list
     const newShipment = {
       id: shipmentId,
+      orderNumber: null,
+      replenishmentId: poId,
       greenId: item.id,
       greenName: item.name,
       qty: qtyToOrder,
       warehouse: bestWh.warehouse,
       eta: bestWh.etaFull,
+      estimatedArrivalDate: bestWh.etaFull,
+      shippedDate: null,
+      shippingCost: bestWh.shippingCost || 589,
+      isDelayed: false,
       etaBucket: 'this-week',
       status: 'Scheduled',
       delayed: false,
@@ -848,7 +855,25 @@ export default function Inventory() {
     };
     setShipmentsList(prev => [newShipment, ...prev]);
 
-    // 3. Record confirmation banner for side panel
+    // 3. Register replenishment order in OrdersContext so it appears in Orders & Order History
+    if (typeof createReplenishmentOrder === 'function') {
+      createReplenishmentOrder({
+        orderNumber: poId,
+        greenId: item.id,
+        greenName: item.name,
+        orderQuantity: qtyToOrder,
+        warehouse: bestWh.warehouse,
+        shippingCost: bestWh.shippingCost || 589,
+        unitPrice: item.price,
+        totalCost: bestWh.totalCost,
+        shipmentId,
+        eta: bestWh.etaShort,
+        status: 'accepted',
+        notes: `Safety threshold replenishment order to restore ${item.name} (${item.id}) minimum safe stock level.`,
+      });
+    }
+
+    // 4. Record confirmation banner for side panel
     setReplenishConfirmations(prev => ({
       ...prev,
       [item.id]: {
@@ -898,11 +923,17 @@ export default function Inventory() {
 
       newShipments.push({
         id: shipmentId,
+        orderNumber: null,
+        replenishmentId: poId,
         greenId: inv.id,
         greenName: inv.name,
         qty: qtyToOrder,
         warehouse: bestWh.warehouse,
         eta: bestWh.etaFull,
+        estimatedArrivalDate: bestWh.etaFull,
+        shippedDate: null,
+        shippingCost: bestWh.shippingCost || 589,
+        isDelayed: false,
         etaBucket: 'this-week',
         status: 'Scheduled',
         delayed: false,
@@ -920,6 +951,23 @@ export default function Inventory() {
           projectedBalance: inv.available + inv.incoming + qtyToOrder - inv.openDemand,
         },
       });
+
+      if (typeof createReplenishmentOrder === 'function') {
+        createReplenishmentOrder({
+          orderNumber: poId,
+          greenId: inv.id,
+          greenName: inv.name,
+          orderQuantity: qtyToOrder,
+          warehouse: bestWh.warehouse,
+          shippingCost: bestWh.shippingCost || 589,
+          unitPrice: inv.price,
+          totalCost: bestWh.totalCost,
+          shipmentId,
+          eta: bestWh.etaShort,
+          status: 'accepted',
+          notes: `Batch safety replenishment order for ${inv.name} (${inv.id}).`,
+        });
+      }
 
       return {
         ...inv,

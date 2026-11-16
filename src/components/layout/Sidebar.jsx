@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutGrid, List, Package, BarChart2, Warehouse } from 'lucide-react';
+import { LayoutGrid, List, Package, BarChart2, Warehouse, History } from 'lucide-react';
 import { useOrders } from '../../context/OrdersContext';
 
 const NAV_ITEMS = [
-  { to: '/',          label: 'Dashboard',  icon: LayoutGrid },
-  { to: '/orders',    label: 'Orders',    icon: List       },
-  { to: '/inventory', label: 'Inventory', icon: Package    },
-  { to: '/analytics', label: 'Analytics', icon: BarChart2  },
+  { to: '/',              label: 'Dashboard',     icon: LayoutGrid },
+  { to: '/orders',        label: 'Orders',        icon: List       },
+  { to: '/order-history', label: 'Order History', icon: History    },
+  { to: '/inventory',     label: 'Inventory',     icon: Package    },
+  { to: '/analytics',     label: 'Analytics',     icon: BarChart2  },
 ];
 
 export default function Sidebar() {

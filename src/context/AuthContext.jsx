@@ -15,6 +15,8 @@ const DEFAULT_USER = {
   site: 'Site 1054 — Plano Roasting',
   siteId: '1054',
   initials: 'M',
+  createdAt: '2026-01-15T08:00:00Z',
+  lastLogin: '2026-11-16T09:30:00Z',
 };
 
 export function AuthProvider({ children }) {

@@ -6,6 +6,7 @@ import Dashboard from './pages/LocalBuyer/Dashboard';
 import Inventory from './pages/LocalBuyer/Inventory';
 import ConfirmOrder from './pages/LocalBuyer/ConfirmOrder';
 import Orders from './pages/LocalBuyer/Orders';
+import OrderHistory from './pages/LocalBuyer/OrderHistory';
 import Analytics from './pages/LocalBuyer/Analytics';
 import Profile from './pages/LocalBuyer/Profile';
 import CentralOrders from './pages/CentralWarehouse/CentralOrders';
@@ -55,6 +56,8 @@ export default function App() {
               <Route path="/confirm-order" element={<ConfirmOrder />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/orders/:id" element={<Orders />} />
+              <Route path="/order-history" element={<OrderHistory />} />
+              <Route path="/history" element={<Navigate to="/order-history" replace />} />
               <Route path="/transfers" element={<Navigate to="/inventory?tab=incoming" replace />} />
               <Route path="/catalogue" element={<Navigate to="/inventory" replace />} />
               <Route path="/alerts" element={<Navigate to="/" replace />} />

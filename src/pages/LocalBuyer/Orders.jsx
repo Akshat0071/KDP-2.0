@@ -7,14 +7,11 @@ import {
   Plus,
   Sparkles,
   CheckCircle2,
-  XCircle,
   Clock,
   ArrowRight,
   ShieldCheck,
   PackageCheck,
   Building2,
-  Calendar,
-  Check,
   Send,
   Boxes,
 } from 'lucide-react';
@@ -89,10 +86,13 @@ export default function Orders() {
     return findCheapestLocalOption(newGreenId, qty, localInventory);
   }, [newGreenId, newOrderQty, localInventory]);
 
-  // Filter orders for active site (Site 1054)
+  // Filter orders for active site (Site 1054) - excludes closed orders so they only appear in Order History
   const siteOrders = useMemo(() => {
-    return orders.filter(o => o.siteId === '1054');
+    return orders.filter(o => o.siteId === '1054' && o.status !== 'closed');
   }, [orders]);
+
+  // Active queue statuses (closed orders are moved to Order History)
+  const queueStatuses = useMemo(() => ORDER_LIFECYCLE.filter(s => s !== 'closed'), []);
 
   // Selected order state
   const initialOrderId = paramId || (siteOrders[0]?.id || 'PO-2846');
@@ -114,14 +114,14 @@ export default function Orders() {
     setTimeout(() => setActionNotice(null), 3500);
   };
 
-  // Status tab counts
+  // Status tab counts (for active queue)
   const statusCounts = useMemo(() => {
     const counts = { all: siteOrders.length };
-    ORDER_LIFECYCLE.forEach(s => {
+    queueStatuses.forEach(s => {
       counts[s] = siteOrders.filter(o => o.status === s).length;
     });
     return counts;
-  }, [siteOrders]);
+  }, [siteOrders, queueStatuses]);
 
   // Filtered orders for queue
   const filteredOrders = useMemo(() => {
@@ -378,7 +378,7 @@ export default function Orders() {
             </span>
           </button>
 
-          {ORDER_LIFECYCLE.map(statusKey => {
+          {queueStatuses.map(statusKey => {
             const meta = getOrderStatusMeta(statusKey);
             const isActive = statusFilter === statusKey;
             const count = statusCounts[statusKey] || 0;
@@ -421,6 +421,27 @@ export default function Orders() {
               </button>
             );
           })}
+
+          <button
+            onClick={() => navigate('/order-history')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '4px 11px',
+              borderRadius: 20,
+              fontSize: 10.5,
+              fontWeight: 600,
+              background: '#FAF5F8',
+              color: C.rose,
+              border: '1px solid #F3D2E2',
+              cursor: 'pointer',
+              marginLeft: 'auto',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Closed Orders in History →
+          </button>
         </div>
       </div>
 
@@ -589,52 +610,47 @@ export default function Orders() {
           overflow: 'hidden',
         }}>
 
-          {/* ── SECTION 1: POLISHED HEADER & IDENTITY ── */}
+          {/* ── SECTION 1: MINIMALIST HEADER & SPECIFICATION STRIP ── */}
           <div style={{
-            padding: '20px 24px 18px',
+            padding: '18px 24px 16px',
             borderBottom: `1px solid ${C.divider}`,
-            background: 'linear-gradient(180deg, #FFFFFF 0%, #FDFBFC 100%)',
+            background: '#FFFFFF',
           }}>
-            {/* Top Row: Facility & Badges */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            {/* Top Row: Location & Status Badges */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: C.muted,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.6px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 5,
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: C.plum,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
                 }}>
                   <Building2 size={12} style={{ color: C.rose }} />
-                  Site 1054 · Sumner Roasting Facility
-                </span>
-                <span style={{ color: C.border }}>|</span>
-                <span style={{ fontSize: 10, color: C.muted, fontWeight: 500 }}>
-                  Demand Requisition
+                  Site 1054 · Plano Roasting
                 </span>
               </div>
 
-              {/* Status and Special Badges */}
+              {/* Status & Badges */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {currentOrder.autoApproved && (
                   <span style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
-                    padding: '3px 9px',
-                    borderRadius: 20,
+                    padding: '2px 8px',
+                    borderRadius: 12,
                     fontSize: 10,
                     fontWeight: 700,
                     background: '#EDF7F1',
                     color: '#1E8A3C',
                     border: '1px solid #B4DDBD',
-                    boxShadow: '0 1px 2px rgba(30,138,60,0.06)',
                   }}>
-                    <Sparkles size={11} />
-                    Auto-Approved by System
+                    <Sparkles size={10} />
+                    Auto-Approved
                   </span>
                 )}
                 {currentOrder.isLocalFulfilled && (
@@ -642,260 +658,112 @@ export default function Orders() {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
-                    padding: '3px 9px',
-                    borderRadius: 20,
+                    padding: '2px 8px',
+                    borderRadius: 12,
                     fontSize: 10,
                     fontWeight: 700,
                     background: '#FAF5FF',
                     color: '#6B21A8',
                     border: '1px solid #E9D5FF',
                   }}>
-                    <Boxes size={11} />
-                    Local Inventory Fulfilled
+                    <Boxes size={10} />
+                    Local Inventory
                   </span>
                 )}
                 <QueueStatusBadge status={currentOrder.status} />
               </div>
             </div>
 
-            {/* Main Order ID Title & Brand Meta */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                <span style={{
-                  fontSize: 24,
-                  fontWeight: 800,
-                  color: '#1F171B',
-                  letterSpacing: '-0.4px',
-                }}>
-                  {currentOrder.id}
-                </span>
-                <span style={{
-                  fontSize: 10.5,
-                  fontWeight: 700,
-                  color: C.plum,
-                  background: '#F5EDF3',
-                  padding: '2px 8px',
-                  borderRadius: 4,
-                  border: '1px solid #EADBEC',
-                  letterSpacing: '0.4px',
-                }}>
-                  PLANO BUYER PO
-                </span>
+            {/* Main Order ID Title & Clean Subtitle */}
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+                {currentOrder.id}
               </div>
-
-              {/* Finished Goods Specs Subtitle */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.muted }}>
-                <span style={{ fontWeight: 600, color: C.text }}>{currentOrder.fgMaterialDescription}</span>
-                <span style={{ color: C.subtle }}>·</span>
-                <span style={{
-                  background: '#FFFFFF',
-                  border: `1px solid ${C.border}`,
-                  padding: '1px 7px',
-                  borderRadius: 4,
-                  fontSize: 10,
-                  fontWeight: 600,
-                  color: C.plum,
-                }}>
-                  {currentOrder.brand} ({currentOrder.brandType})
-                </span>
+              <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>
+                {currentOrder.orderType === 'REPLENISHMENT' ? (
+                  <span style={{ fontWeight: 700, color: '#16A34A' }}>
+                    Safety Threshold Replenishment · Raw Green Coffee Restock
+                  </span>
+                ) : (
+                  <span>
+                    <strong style={{ color: C.text, fontWeight: 600 }}>{currentOrder.fgMaterialDescription || 'Finished Goods Roasting Batch'}</strong>
+                    {currentOrder.brand ? ` · ${currentOrder.brand}` : ''}
+                    {currentOrder.brandType ? ` (${currentOrder.brandType})` : ''}
+                  </span>
+                )}
               </div>
             </div>
 
-            {/* 5-Column Clean Spec Deck */}
+            {/* Minimalist Professional Specs Strip (Single clean surface, unboxed) */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: 10,
-              marginTop: 16,
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              background: '#FAF8F9',
+              borderRadius: 8,
+              border: `1px solid ${C.border}`,
+              padding: '10px 14px',
             }}>
-              {/* Card 1: Green Material */}
-              <div style={{
-                background: '#FAF8F9',
-                border: '1px solid #EFE8EC',
-                borderRadius: 8,
-                padding: '10px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
-                    Green Material
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1F171B' }}>
-                    {currentOrder.greenId}
-                  </div>
-                  <div style={{ fontSize: 10, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
-                    {currentOrder.greenName}
-                  </div>
+              {/* Metric 1: Green Material */}
+              <div style={{ paddingRight: 12, borderRight: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Green Material
                 </div>
-                {currentOrder.allocatedGreenId && currentOrder.allocatedGreenId !== currentOrder.greenId ? (
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    marginTop: 6,
-                    padding: '2px 5px',
-                    borderRadius: 4,
-                    background: '#EDF7F1',
-                    color: '#1E8A3C',
-                    fontSize: 9,
-                    fontWeight: 700,
-                    border: '1px solid #B4DDBD',
-                  }}>
-                    <Check size={9} />
-                    Alt: {currentOrder.allocatedGreenId}
-                  </div>
-                ) : (
-                  <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
-                    Primary SKU
-                  </div>
-                )}
-              </div>
-
-              {/* Card 2: Order Quantity */}
-              <div style={{
-                background: '#FAF8F9',
-                border: '1px solid #EFE8EC',
-                borderRadius: 8,
-                padding: '10px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
-                    Order Quantity
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1F171B' }}>
-                    {currentOrder.quantityStr || `${currentOrder.orderQuantity?.toLocaleString()} kg`}
-                  </div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
-                    ~{Math.round((currentOrder.orderQuantity || 1000) / 60)} bags (60kg std)
-                  </div>
-                </div>
-                <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
-                  Batch Lot Sized
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentOrder.greenId} · {currentOrder.greenName}
                 </div>
               </div>
 
-              {/* Card 3: Need-By Date */}
-              <div style={{
-                background: '#FAF8F9',
-                border: '1px solid #EFE8EC',
-                borderRadius: 8,
-                padding: '10px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
-                    <Calendar size={10} style={{ color: C.muted }} />
-                    Need-By Date
-                  </div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1F171B' }}>
-                    {currentOrder.needByFull || currentOrder.needBy}
-                  </div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
-                    Roasting Schedule
-                  </div>
+              {/* Metric 2: Quantity */}
+              <div style={{ padding: '0 12px', borderRight: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Order Quantity
                 </div>
-                <div style={{ fontSize: 9, color: '#1E8A3C', fontWeight: 600, marginTop: 4 }}>
-                  On-Time Target
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>
+                  {currentOrder.quantityStr || `${(currentOrder.orderQuantity || 0).toLocaleString()} kg`}
                 </div>
               </div>
 
-              {/* Card 4: Assigned Hub / Route */}
-              <div style={{
-                background: '#FAF8F9',
-                border: '1px solid #EFE8EC',
-                borderRadius: 8,
-                padding: '10px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
-                    Assigned Route
-                  </div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#1F171B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {currentOrder.isLocalFulfilled ? 'Site 1054 (Local)' : (currentOrder.warehouse || 'Central Hub 1055')}
-                  </div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: currentOrder.isLocalFulfilled ? '#1E8A3C' : C.plum, marginTop: 1 }}>
-                    {currentOrder.isLocalFulfilled ? '$0 Freight' : `$${currentOrder.shippingCost || 589} Fixed Freight`}
-                  </div>
+              {/* Metric 3: Need-By Target */}
+              <div style={{ padding: '0 12px', borderRight: `1px solid ${C.border}` }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Need-By Date
                 </div>
-                <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
-                  {currentOrder.isLocalFulfilled ? 'Internal Bay Pull' : 'Dedicated Shuttle'}
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>
+                  {currentOrder.needByFull || currentOrder.needBy || 'On Schedule'}
                 </div>
               </div>
 
-              {/* Card 5: Shipment / Tracking Ref */}
-              <div style={{
-                background: '#FAF8F9',
-                border: '1px solid #EFE8EC',
-                borderRadius: 8,
-                padding: '10px 12px',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-              }}>
-                <div>
-                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
-                    Shipment Ref
-                  </div>
+              {/* Metric 4: Shipment Ref */}
+              <div style={{ paddingLeft: 12 }}>
+                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                  Shipment Tracking
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: currentOrder.shipmentId ? C.rose : C.subtle, marginTop: 2 }}>
                   {currentOrder.isLocalFulfilled ? (
-                    <>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>
-                        Internal Bay
-                      </div>
-                      <div style={{ fontSize: 10, color: '#1E8A3C', fontWeight: 600, marginTop: 1 }}>
-                        No Transit Needed
-                      </div>
-                    </>
+                    <span style={{ color: '#16A34A', fontSize: 12 }}>Internal Bay Pull</span>
                   ) : currentOrder.shipmentId ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
-                        style={{
-                          padding: 0,
-                          border: 'none',
-                          background: 'none',
-                          fontSize: 13,
-                          fontWeight: 800,
-                          fontFamily: 'monospace',
-                          color: C.rose,
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 3,
-                        }}
-                        title="Inspect shipment in Incoming Shipments tab"
-                      >
-                        {currentOrder.shipmentId}
-                        <ArrowRight size={10} />
-                      </button>
-                      <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
-                        {currentOrder.carrierName || currentOrder.stagingBay || 'Hub Transfer'}
-                      </div>
-                    </>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
+                      style={{
+                        padding: 0,
+                        border: 'none',
+                        background: 'none',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: C.rose,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 3,
+                      }}
+                    >
+                      {currentOrder.shipmentId}
+                      <ArrowRight size={10} />
+                    </button>
                   ) : (
-                    <>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.subtle }}>
-                        Pending Dispatch
-                      </div>
-                      <div style={{ fontSize: 10, color: C.subtle, marginTop: 1 }}>
-                        Assigned on Dispatch
-                      </div>
-                    </>
+                    <span style={{ fontSize: 12, fontWeight: 500 }}>Pending Dispatch</span>
                   )}
-                </div>
-                <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
-                  {currentOrder.shipmentId ? 'Click to inspect ↗' : 'Site 1054 Dock 2'}
                 </div>
               </div>
             </div>
@@ -908,124 +776,6 @@ export default function Orders() {
             flexDirection: 'column',
             gap: 18,
           }}>
-
-            {/* ── SECTION 2: SOURCING CASCADE DECISION PIPELINE ── */}
-            {currentOrder.cascade && currentOrder.cascade.length > 0 && (
-              <div style={{
-                background: '#FAF9FA',
-                border: `1px solid ${C.divider}`,
-                borderRadius: 10,
-                padding: '14px 16px',
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ShieldCheck size={14} style={{ color: C.plum }} />
-                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text, letterSpacing: '0.3px', textTransform: 'uppercase' }}>
-                      Automated Sourcing Cascade Engine
-                    </span>
-                  </div>
-                  <span style={{ fontSize: 9.5, color: C.muted, fontWeight: 500 }}>
-                    Deterministic Hierarchy: Local Same Green → Local Approved Alt → Central Hub
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
-                  {currentOrder.cascade.map((step, sIdx) => {
-                    const isPass = step.status === 'pass';
-                    const isFail = step.status === 'fail';
-                    return (
-                      <div
-                        key={sIdx}
-                        style={{
-                          padding: '10px 12px',
-                          borderRadius: 8,
-                          border: isPass ? '1.5px solid #86EFAC' : isFail ? '1px solid #FECACA' : `1px solid ${C.border}`,
-                          background: isPass ? '#F0FDF4' : isFail ? '#FEF2F2' : '#FFFFFF',
-                          boxShadow: isPass ? '0 1px 3px rgba(34,197,94,0.1)' : 'none',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: isPass ? '#14532D' : isFail ? '#7F1D1D' : C.text }}>
-                            {step.step}
-                          </span>
-                          {isPass ? (
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3,
-                              fontSize: 9,
-                              fontWeight: 800,
-                              color: '#15803D',
-                              background: '#DCFCE7',
-                              padding: '1px 6px',
-                              borderRadius: 4,
-                            }}>
-                              <CheckCircle2 size={10} />
-                              SELECTED
-                            </span>
-                          ) : isFail ? (
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3,
-                              fontSize: 9,
-                              fontWeight: 700,
-                              color: '#B91C1C',
-                              background: '#FEE2E2',
-                              padding: '1px 6px',
-                              borderRadius: 4,
-                            }}>
-                              <XCircle size={10} />
-                              INSUFFICIENT
-                            </span>
-                          ) : (
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 3,
-                              fontSize: 9,
-                              fontWeight: 600,
-                              color: C.subtle,
-                              background: '#F0EAEE',
-                              padding: '1px 6px',
-                              borderRadius: 4,
-                            }}>
-                              BYPASSED
-                            </span>
-                          )}
-                        </div>
-                        <div style={{
-                          fontSize: 10.5,
-                          color: isPass ? '#166534' : isFail ? '#991B1B' : C.muted,
-                          fontWeight: isPass ? 600 : 400,
-                          lineHeight: 1.35,
-                        }}>
-                          {step.note}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {currentOrder.cascadeNote && (
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 8,
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    background: '#FFFFFF',
-                    border: '1px solid #EFE8EC',
-                    borderLeft: `3px solid ${C.plum}`,
-                  }}>
-                    <Sparkles size={12} style={{ color: C.rose, flexShrink: 0, marginTop: 1 }} />
-                    <div style={{ fontSize: 10.5, color: C.text, lineHeight: 1.45 }}>
-                      <strong>System Decision: </strong>{currentOrder.cascadeNote}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* ── SECTION 3: SOURCING OPTIONS (EVALUATION) vs ACTIVE TRACKING (EXECUTION) ── */}
             {currentOrder.options && currentOrder.options.length > 0 ? (

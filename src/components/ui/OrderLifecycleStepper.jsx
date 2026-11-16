@@ -5,42 +5,55 @@ const LOCAL_LIFECYCLE = ['new', 'approved', 'received', 'closed'];
 
 export default function OrderLifecycleStepper({
   status,
+  currentStatus,
   compact = false,
   orientation = 'horizontal',
   timeline = null,
   title = null,
   isLocalFulfilled = false,
 }) {
-  const isRejected = (status || '').toLowerCase() === 'rejected';
-  const meta = getOrderStatusMeta(status);
-  const normStatus = (status || '').toLowerCase().trim();
+  const effectiveStatus = status || currentStatus || 'new';
+  const isRejected = (effectiveStatus || '').toLowerCase() === 'rejected';
+  const meta = getOrderStatusMeta(effectiveStatus);
+  const normStatus = (effectiveStatus || '').toLowerCase().trim();
   const activeLifecycle = isLocalFulfilled ? LOCAL_LIFECYCLE : ORDER_LIFECYCLE;
+  const isClosed = normStatus === 'closed';
+
   const currentStep = isLocalFulfilled
     ? Math.max(0, activeLifecycle.indexOf(normStatus))
-    : meta.step;
+    : (meta.step !== undefined ? meta.step : Math.max(0, ORDER_LIFECYCLE.indexOf(normStatus)));
 
-  // ── VERTICAL ORIENTATION (Drawer & Side Panels) ──
+  // ── VERTICAL ORIENTATION (Drawer & Side Panels & Modals) ──
   if (orientation === 'vertical') {
-    let steps = timeline;
-    if (!steps || steps.length === 0) {
-      steps = activeLifecycle.map((stepKey, idx) => {
-        const stepMeta = getOrderStatusMeta(stepKey);
-        let state = 'pending';
-        if (isRejected) {
-          state = 'crit';
-        } else if (currentStep > idx) {
-          state = 'done';
-        } else if (currentStep === idx) {
-          state = 'active';
-        }
-        return {
-          title: stepMeta.label,
-          time: state === 'done' ? 'Completed' : state === 'active' ? 'Active Stage' : 'Pending',
-          actor: stepMeta.actor,
-          state,
-        };
-      });
-    }
+    const steps = activeLifecycle.map((stepKey, idx) => {
+      const stepMeta = getOrderStatusMeta(stepKey);
+      let state = 'pending';
+      if (isRejected) {
+        state = 'crit';
+      } else if (isClosed || currentStep > idx) {
+        state = 'done';
+      } else if (currentStep === idx) {
+        state = 'active';
+      }
+
+      // Check if timeline has recorded events for this step
+      const matchedTimeline = Array.isArray(timeline)
+        ? timeline.find(t =>
+            (t.title || '').toLowerCase().includes(stepKey) ||
+            (t.title || '').toLowerCase().includes(stepMeta.label.toLowerCase())
+          )
+        : null;
+
+      return {
+        stageNumber: idx + 1,
+        totalStages: activeLifecycle.length,
+        title: stepMeta.label,
+        time: matchedTimeline?.time || (state === 'done' ? 'Completed' : state === 'active' ? 'Active Stage' : 'Pending Stage'),
+        actor: matchedTimeline?.actor || stepMeta.actor,
+        notes: matchedTimeline?.notes || stepMeta.desc,
+        state,
+      };
+    });
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -68,27 +81,28 @@ export default function OrderLifecycleStepper({
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  width: 18,
+                  width: 20,
                   flexShrink: 0,
                 }}>
                   {isDone ? (
                     <div style={{
-                      width: 16,
-                      height: 16,
+                      width: 18,
+                      height: 18,
                       borderRadius: '50%',
-                      background: '#5C3A57',
+                      background: '#16A34A',
                       color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       zIndex: 1,
+                      boxShadow: '0 1px 3px rgba(22,163,74,0.2)',
                     }}>
-                      <Check size={10} strokeWidth={3} />
+                      <Check size={11} strokeWidth={3} />
                     </div>
                   ) : isActive ? (
                     <div style={{
-                      width: 16,
-                      height: 16,
+                      width: 18,
+                      height: 18,
                       borderRadius: '50%',
                       background: '#FFFFFF',
                       border: '2px solid #D83F79',
@@ -96,6 +110,7 @@ export default function OrderLifecycleStepper({
                       alignItems: 'center',
                       justifyContent: 'center',
                       zIndex: 1,
+                      boxShadow: '0 0 0 3px rgba(216,63,121,0.15)',
                     }}>
                       <div style={{
                         width: 6,
@@ -106,62 +121,96 @@ export default function OrderLifecycleStepper({
                     </div>
                   ) : isCrit ? (
                     <div style={{
-                      width: 16,
-                      height: 16,
+                      width: 18,
+                      height: 18,
                       borderRadius: '50%',
-                      background: '#FFFFFF',
-                      border: '2px solid #D83040',
+                      background: '#D83040',
+                      color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       zIndex: 1,
                     }}>
-                      <div style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: '50%',
-                        background: '#D83040',
-                      }} />
+                      <AlertCircle size={10} strokeWidth={2.5} />
                     </div>
                   ) : (
                     <div style={{
-                      width: 16,
-                      height: 16,
+                      width: 18,
+                      height: 18,
                       borderRadius: '50%',
                       background: '#FFFFFF',
-                      border: '1.5px solid #E6DCE2',
+                      border: '1.5px solid #D1D5DB',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       zIndex: 1,
-                    }} />
+                    }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF' }}>
+                        {step.stageNumber}
+                      </span>
+                    </div>
                   )}
 
+                  {/* Vertical Connector Line */}
                   {!isLast && (
                     <div style={{
-                      width: 1.5,
-                      flex: 1,
-                      minHeight: 18,
-                      background: isDone ? '#BFAAB6' : '#E6DCE2',
+                      width: 2,
+                      flexGrow: 1,
+                      minHeight: 28,
+                      background: isDone ? '#16A34A' : '#E5E7EB',
                       margin: '2px 0',
+                      transition: 'background 0.2s ease',
                     }} />
                   )}
                 </div>
 
-                {/* Right Column: Title + Subtitle */}
-                <div style={{ paddingBottom: isLast ? 0 : 12, flex: 1 }}>
-                  <div style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: isCrit ? '#D83040' : (step.state === 'pending' ? '#9CA3AF' : '#30272B'),
-                    lineHeight: 1.3,
-                  }}>
-                    {step.title}
+                {/* Right Column: Step Text */}
+                <div style={{
+                  paddingBottom: isLast ? 0 : 14,
+                  paddingTop: 1,
+                  flex: 1,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{
+                      fontSize: 9.5,
+                      fontWeight: 700,
+                      color: isDone ? '#16A34A' : isActive ? '#D83F79' : '#9CA3AF',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.4px',
+                    }}>
+                      Stage {step.stageNumber} of {step.totalStages}
+                    </span>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: isCrit ? '#D83040' : (step.state === 'pending' ? '#9CA3AF' : '#1F171B'),
+                    }}>
+                      {step.title}
+                    </span>
+                    {isDone && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '1px 5px', borderRadius: 4 }}>
+                        Completed
+                      </span>
+                    )}
+                    {isActive && (
+                      <span style={{ fontSize: 9, fontWeight: 700, color: '#D83F79', background: '#FCE7F3', padding: '1px 5px', borderRadius: 4 }}>
+                        Current Stage
+                      </span>
+                    )}
                   </div>
+
                   <div style={{
-                    fontSize: 9.5,
-                    color: step.state === 'pending' ? '#9CA3AF' : '#746970',
-                    marginTop: 1,
+                    fontSize: 10,
+                    color: step.state === 'pending' ? '#9CA3AF' : '#71656B',
+                    marginTop: 2,
                   }}>
-                    {step.time} {step.actor ? `· ${step.actor}` : ''}
+                    {step.time} {step.actor ? `· Actor: ${step.actor}` : ''}
                   </div>
+                  {step.notes && (
+                    <div style={{ fontSize: 9.5, color: '#A0949B', marginTop: 1 }}>
+                      {step.notes}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -171,7 +220,7 @@ export default function OrderLifecycleStepper({
     );
   }
 
-  // ── HORIZONTAL ORIENTATION (Wide Page Cards) ──
+  // ── HORIZONTAL ORIENTATION (Wide Page Cards & Stepper Deck) ──
   if (isRejected) {
     return (
       <div style={{
@@ -205,16 +254,16 @@ export default function OrderLifecycleStepper({
       }}>
         {activeLifecycle.map((stepKey, idx) => {
           const stepMeta = getOrderStatusMeta(stepKey);
-          const isDone = currentStep > idx;
-          const isCurrent = currentStep === idx;
+          const isDone = isClosed || currentStep > idx;
+          const isCurrent = !isClosed && currentStep === idx;
 
           let circleBg = '#FFFFFF';
-          let circleBorder = '#E6DCE2';
+          let circleBorder = '#E5E7EB';
           let circleColor = '#9CA3AF';
 
           if (isDone) {
-            circleBg = '#1E8A3C';
-            circleBorder = '#1E8A3C';
+            circleBg = '#16A34A';
+            circleBorder = '#16A34A';
             circleColor = '#FFFFFF';
           } else if (isCurrent) {
             circleBg = stepMeta.dotBg || '#D83F79';
@@ -243,7 +292,7 @@ export default function OrderLifecycleStepper({
                     right: '50%',
                     left: '-50%',
                     height: 2,
-                    background: currentStep >= idx ? '#1E8A3C' : '#E6DCE2',
+                    background: (isClosed || currentStep >= idx) ? '#16A34A' : '#E5E7EB',
                     zIndex: -1,
                     transition: 'background 0.2s ease',
                   }}
@@ -282,7 +331,7 @@ export default function OrderLifecycleStepper({
                 style={{
                   fontSize: compact ? 9 : 10,
                   fontWeight: isCurrent ? 700 : isDone ? 600 : 400,
-                  color: isCurrent ? '#30272B' : isDone ? '#1E8A3C' : '#9CA3AF',
+                  color: isCurrent ? '#1F171B' : isDone ? '#16A34A' : '#9CA3AF',
                   textAlign: 'center',
                   marginTop: 4,
                   textTransform: 'capitalize',
@@ -304,8 +353,8 @@ export default function OrderLifecycleStepper({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '6px 12px',
-          background: meta.bg,
-          border: `1px solid ${meta.border}`,
+          background: isClosed ? '#F0FDF4' : meta.bg,
+          border: `1px solid ${isClosed ? '#BBF7D0' : meta.border}`,
           borderRadius: 6,
           marginTop: 4,
         }}>
@@ -314,16 +363,16 @@ export default function OrderLifecycleStepper({
               width: 8,
               height: 8,
               borderRadius: '50%',
-              background: meta.dotBg,
+              background: isClosed ? '#16A34A' : meta.dotBg,
               display: 'inline-block',
             }} />
-              <span style={{ fontSize: 11, fontWeight: 700, color: meta.color }}>
-                Stage {currentStep + 1} of {activeLifecycle.length}: {meta.label}
-              </span>
-              <span style={{ fontSize: 10, color: '#746970' }}>
-                · {isLocalFulfilled ? 'Fulfilled via local inventory (hub transfer & transit stages bypassed)' : meta.desc}
-              </span>
-            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: isClosed ? '#15803D' : meta.color }}>
+              Stage {isClosed ? activeLifecycle.length : currentStep + 1} of {activeLifecycle.length}: {isClosed ? 'Order Closed & Reconciled' : meta.label}
+            </span>
+            <span style={{ fontSize: 10, color: '#71656B' }}>
+              · {isClosed ? 'All lifecycle milestones verified and completed' : (isLocalFulfilled ? 'Fulfilled via local inventory (hub transfer & transit stages bypassed)' : meta.desc)}
+            </span>
+          </div>
 
           <span style={{
             fontSize: 9,
@@ -331,12 +380,12 @@ export default function OrderLifecycleStepper({
             padding: '2px 8px',
             borderRadius: 12,
             background: '#FFFFFF',
-            border: `1px solid ${meta.border}`,
-            color: meta.color,
+            border: `1px solid ${isClosed ? '#BBF7D0' : meta.border}`,
+            color: isClosed ? '#15803D' : meta.color,
             textTransform: 'uppercase',
             letterSpacing: '0.4px',
           }}>
-            Actor: {meta.actor}
+            Actor: {isClosed ? 'System Reconciled' : meta.actor}
           </span>
         </div>
       )}
