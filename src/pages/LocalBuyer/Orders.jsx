@@ -1,6 +1,23 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Search, Truck, RefreshCw, Plus, Sparkles } from 'lucide-react';
+import {
+  Search,
+  Truck,
+  RefreshCw,
+  Plus,
+  Sparkles,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ArrowRight,
+  ShieldCheck,
+  PackageCheck,
+  Building2,
+  Calendar,
+  Check,
+  Send,
+  Boxes,
+} from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
 import { findCheapestLocalOption } from '../../data/localInventory';
@@ -565,588 +582,944 @@ export default function Orders() {
         <div style={{
           background: '#FFFFFF',
           border: `1px solid ${C.border}`,
-          borderRadius: 10,
-          boxShadow: '0 1px 3px rgba(59,45,52,0.05)',
-          padding: '18px 20px',
+          borderRadius: 12,
+          boxShadow: '0 2px 8px rgba(48,39,43,0.04), 0 1px 3px rgba(48,39,43,0.02)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 16,
+          overflow: 'hidden',
         }}>
 
-          {/* Section 1: Order Details Header */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 2 }}>
-                  ORDER DETAILS · SITE 1054
-                </div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: C.text, letterSpacing: '-0.3px' }}>
-                  {currentOrder.id}
-                </div>
+          {/* ── SECTION 1: POLISHED HEADER & IDENTITY ── */}
+          <div style={{
+            padding: '20px 24px 18px',
+            borderBottom: `1px solid ${C.divider}`,
+            background: 'linear-gradient(180deg, #FFFFFF 0%, #FDFBFC 100%)',
+          }}>
+            {/* Top Row: Facility & Badges */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: C.plum,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.6px',
+                }}>
+                  <Building2 size={12} style={{ color: C.rose }} />
+                  Site 1054 · Sumner Roasting Facility
+                </span>
+                <span style={{ color: C.border }}>|</span>
+                <span style={{ fontSize: 10, color: C.muted, fontWeight: 500 }}>
+                  Demand Requisition
+                </span>
               </div>
+
+              {/* Status and Special Badges */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 {currentOrder.autoApproved && (
                   <span style={{
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
-                    padding: '2px 8px',
+                    padding: '3px 9px',
                     borderRadius: 20,
                     fontSize: 10,
                     fontWeight: 700,
                     background: '#EDF7F1',
                     color: '#1E8A3C',
                     border: '1px solid #B4DDBD',
+                    boxShadow: '0 1px 2px rgba(30,138,60,0.06)',
                   }}>
-                    <Sparkles size={10} />
+                    <Sparkles size={11} />
                     Auto-Approved by System
+                  </span>
+                )}
+                {currentOrder.isLocalFulfilled && (
+                  <span style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '3px 9px',
+                    borderRadius: 20,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    background: '#FAF5FF',
+                    color: '#6B21A8',
+                    border: '1px solid #E9D5FF',
+                  }}>
+                    <Boxes size={11} />
+                    Local Inventory Fulfilled
                   </span>
                 )}
                 <QueueStatusBadge status={currentOrder.status} />
               </div>
             </div>
 
-            <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
-              {currentOrder.fgMaterialDescription} · {currentOrder.brand} ({currentOrder.brandType})
+            {/* Main Order ID Title & Brand Meta */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                <span style={{
+                  fontSize: 24,
+                  fontWeight: 800,
+                  color: '#1F171B',
+                  letterSpacing: '-0.4px',
+                }}>
+                  {currentOrder.id}
+                </span>
+                <span style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  color: C.plum,
+                  background: '#F5EDF3',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  border: '1px solid #EADBEC',
+                  letterSpacing: '0.4px',
+                }}>
+                  PLANO BUYER PO
+                </span>
+              </div>
+
+              {/* Finished Goods Specs Subtitle */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: C.muted }}>
+                <span style={{ fontWeight: 600, color: C.text }}>{currentOrder.fgMaterialDescription}</span>
+                <span style={{ color: C.subtle }}>·</span>
+                <span style={{
+                  background: '#FFFFFF',
+                  border: `1px solid ${C.border}`,
+                  padding: '1px 7px',
+                  borderRadius: 4,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: C.plum,
+                }}>
+                  {currentOrder.brand} ({currentOrder.brandType})
+                </span>
+              </div>
             </div>
 
-            {/* 5 Metadata Columns */}
+            {/* 5-Column Clean Spec Deck */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: 12,
-              padding: '12px 14px',
-              background: '#FAF8F9',
-              borderRadius: 8,
-              border: `1px solid ${C.divider}`,
+              gap: 10,
+              marginTop: 16,
             }}>
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
-                  GREEN MATERIAL
+              {/* Card 1: Green Material */}
+              <div style={{
+                background: '#FAF8F9',
+                border: '1px solid #EFE8EC',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
+                    Green Material
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1F171B' }}>
+                    {currentOrder.greenId}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1 }}>
+                    {currentOrder.greenName}
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {currentOrder.greenId}
-                </div>
-                <div style={{ fontSize: 10, color: C.muted }}>{currentOrder.greenName}</div>
-                {currentOrder.allocatedGreenId && currentOrder.allocatedGreenId !== currentOrder.greenId && (
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: '#1E8A3C', marginTop: 2 }}>
-                    Fulfilled via Alt: {currentOrder.allocatedGreenId}
+                {currentOrder.allocatedGreenId && currentOrder.allocatedGreenId !== currentOrder.greenId ? (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    marginTop: 6,
+                    padding: '2px 5px',
+                    borderRadius: 4,
+                    background: '#EDF7F1',
+                    color: '#1E8A3C',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    border: '1px solid #B4DDBD',
+                  }}>
+                    <Check size={9} />
+                    Alt: {currentOrder.allocatedGreenId}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
+                    Primary SKU
                   </div>
                 )}
               </div>
 
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
-                  ORDER QUANTITY
+              {/* Card 2: Order Quantity */}
+              <div style={{
+                background: '#FAF8F9',
+                border: '1px solid #EFE8EC',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
+                    Order Quantity
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1F171B' }}>
+                    {currentOrder.quantityStr || `${currentOrder.orderQuantity?.toLocaleString()} kg`}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
+                    ~{Math.round((currentOrder.orderQuantity || 1000) / 60)} bags (60kg std)
+                  </div>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {currentOrder.quantityStr || `${currentOrder.orderQuantity} kg`}
-                </div>
-                <div style={{ fontSize: 10, color: C.muted }}>Unit: kg</div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
-                  NEED-BY DATE
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {currentOrder.needByFull || currentOrder.needBy}
-                </div>
-                <div style={{ fontSize: 10, color: C.muted }}>Roasting schedule</div>
-              </div>
-
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
-                  ASSIGNED HUB / ROUTE
-                </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                  {currentOrder.isLocalFulfilled ? 'Site 1054 (Local)' : (currentOrder.warehouse || 'Warehouse 1055')}
-                </div>
-                <div style={{ fontSize: 10, color: '#1E8A3C', fontWeight: 600 }}>
-                  {currentOrder.isLocalFulfilled ? '$0 freight (Local inventory)' : `$${currentOrder.shippingCost || 589} freight (Lowest cost)`}
+                <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
+                  Batch Lot Sized
                 </div>
               </div>
 
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
-                  SHIPMENT ID
+              {/* Card 3: Need-By Date */}
+              <div style={{
+                background: '#FAF8F9',
+                border: '1px solid #EFE8EC',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
+                    <Calendar size={10} style={{ color: C.muted }} />
+                    Need-By Date
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: '#1F171B' }}>
+                    {currentOrder.needByFull || currentOrder.needBy}
+                  </div>
+                  <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
+                    Roasting Schedule
+                  </div>
                 </div>
-                {currentOrder.isLocalFulfilled ? (
-                  <>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.muted }}>
-                      — (No Shipment)
-                    </div>
-                    <div style={{ fontSize: 10, color: '#1E8A3C', fontWeight: 600 }}>Local stock allocation</div>
-                  </>
-                ) : currentOrder.shipmentId ? (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
-                      style={{
-                        padding: 0,
-                        border: 'none',
-                        background: 'none',
-                        fontSize: 13,
-                        fontWeight: 800,
-                        fontFamily: 'monospace',
-                        color: C.rose,
-                        cursor: 'pointer',
-                      }}
-                      title="Inspect shipment in Incoming Shipments"
-                    >
-                      {currentOrder.shipmentId} ↗
-                    </button>
-                    <div style={{ fontSize: 10, color: C.muted }}>
-                      {currentOrder.carrierName || currentOrder.stagingBay || 'Hub transfer'}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: C.subtle }}>
-                      Pending Dispatch
-                    </div>
-                    <div style={{ fontSize: 10, color: C.subtle }}>Assigned when dispatched</div>
-                  </>
-                )}
+                <div style={{ fontSize: 9, color: '#1E8A3C', fontWeight: 600, marginTop: 4 }}>
+                  On-Time Target
+                </div>
+              </div>
+
+              {/* Card 4: Assigned Hub / Route */}
+              <div style={{
+                background: '#FAF8F9',
+                border: '1px solid #EFE8EC',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
+                    Assigned Route
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#1F171B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {currentOrder.isLocalFulfilled ? 'Site 1054 (Local)' : (currentOrder.warehouse || 'Central Hub 1055')}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: currentOrder.isLocalFulfilled ? '#1E8A3C' : C.plum, marginTop: 1 }}>
+                    {currentOrder.isLocalFulfilled ? '$0 Freight' : `$${currentOrder.shippingCost || 589} Fixed Freight`}
+                  </div>
+                </div>
+                <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
+                  {currentOrder.isLocalFulfilled ? 'Internal Bay Pull' : 'Dedicated Shuttle'}
+                </div>
+              </div>
+
+              {/* Card 5: Shipment / Tracking Ref */}
+              <div style={{
+                background: '#FAF8F9',
+                border: '1px solid #EFE8EC',
+                borderRadius: 8,
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}>
+                <div>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 3 }}>
+                    Shipment Ref
+                  </div>
+                  {currentOrder.isLocalFulfilled ? (
+                    <>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.muted }}>
+                        Internal Bay
+                      </div>
+                      <div style={{ fontSize: 10, color: '#1E8A3C', fontWeight: 600, marginTop: 1 }}>
+                        No Transit Needed
+                      </div>
+                    </>
+                  ) : currentOrder.shipmentId ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/inventory?tab=incoming&shipment=${currentOrder.shipmentId}`)}
+                        style={{
+                          padding: 0,
+                          border: 'none',
+                          background: 'none',
+                          fontSize: 13,
+                          fontWeight: 800,
+                          fontFamily: 'monospace',
+                          color: C.rose,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                        }}
+                        title="Inspect shipment in Incoming Shipments tab"
+                      >
+                        {currentOrder.shipmentId}
+                        <ArrowRight size={10} />
+                      </button>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 1 }}>
+                        {currentOrder.carrierName || currentOrder.stagingBay || 'Hub Transfer'}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.subtle }}>
+                        Pending Dispatch
+                      </div>
+                      <div style={{ fontSize: 10, color: C.subtle, marginTop: 1 }}>
+                        Assigned on Dispatch
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div style={{ fontSize: 9, color: C.subtle, marginTop: 4 }}>
+                  {currentOrder.shipmentId ? 'Click to inspect ↗' : 'Site 1054 Dock 2'}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Section 2: Cascade or Current Sourcing Status */}
-          {currentOrder.cascade && currentOrder.cascade.length > 0 && (
-            <div>
-              <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: 8 }}>
-                HOW THE SOURCING CASCADE RAN
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 6 }}>
-                {currentOrder.cascade.map((step, sIdx) => {
-                  const isSuccess = step.status === 'pass';
-                  const isFail = step.status === 'fail';
-                  return (
-                    <div
-                      key={sIdx}
-                      style={{
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        border: isSuccess ? '1px solid #B4DDBD' : `1px solid ${C.border}`,
-                        background: isSuccess ? '#F4FBF0' : '#FFFFFF',
-                      }}
-                    >
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.text, marginBottom: 3 }}>
-                        {step.step}
-                      </div>
-                      <div style={{
-                        fontSize: 10,
-                        color: isSuccess ? '#1E8A3C' : (isFail ? '#D83040' : C.subtle),
-                        fontWeight: isSuccess ? 600 : 400,
-                      }}>
-                        {step.note}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {currentOrder.cascadeNote && (
-                <div style={{ fontSize: 10, color: C.subtle, fontStyle: 'italic', lineHeight: 1.4 }}>
-                  {currentOrder.cascadeNote}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Section 3: Sourcing Options OR Active Lifecycle Progress Status */}
-          {currentOrder.options && currentOrder.options.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 270px', gap: 14, alignItems: 'start' }}>
-
-              {/* Left Inner: Sourcing options list */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                      Available sourcing options
-                    </div>
-                    <div style={{ fontSize: 10, color: C.subtle }}>
-                      {currentOrder.options.length} feasible option{currentOrder.options.length > 1 ? 's' : ''} · full quantity covered
-                    </div>
-                  </div>
-
-                  <ThemedSelect
-                    value={sourcingSort}
-                    onChange={val => {
-                      setSourcingSort(val);
-                      setSelectedOptionIndex(0);
-                    }}
-                    options={[
-                      { value: 'cost', label: 'Lowest total cost' },
-                      { value: 'eta', label: 'Earliest arrival' },
-                    ]}
-                    prefix="Sort: "
-                    size="sm"
-                    align="right"
-                  />
-                </div>
-
-                {sortedOptions.map((opt, oIdx) => {
-                  const isOptSelected = selectedOptionIndex === oIdx;
-                  return (
-                    <div
-                      key={opt.id}
-                      onClick={() => setSelectedOptionIndex(oIdx)}
-                      style={{
-                        padding: '12px 14px',
-                        borderRadius: 8,
-                        border: isOptSelected ? '1.5px solid #27A348' : `1px solid ${C.border}`,
-                        borderLeft: isOptSelected ? '4px solid #27A348' : `1px solid ${C.border}`,
-                        background: isOptSelected ? '#FBFCFA' : '#FFFFFF',
-                        cursor: 'pointer',
-                        transition: 'all 0.12s ease',
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: '#27A348', letterSpacing: '0.4px', textTransform: 'uppercase' }}>
-                          {opt.tag}
-                        </span>
-                        {opt.bestValue && (
-                          <span style={{
-                            fontSize: 9,
-                            fontWeight: 700,
-                            padding: '1px 6px',
-                            borderRadius: 10,
-                            background: '#EDF7F1',
-                            color: '#1E8A3C',
-                            border: '1px solid #B4DDBD',
-                          }}>
-                            BEST VALUE
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 1 }}>
-                        {opt.title}
-                      </div>
-                      <div style={{ fontSize: 10, color: C.subtle, marginBottom: 8 }}>
-                        {opt.subtitle}
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{opt.totalPrice}</span>
-                          <span style={{ fontSize: 10, color: C.subtle, marginLeft: 4 }}>({opt.perKg})</span>
-                        </div>
-                        <span style={{ fontSize: 10, fontWeight: 600, color: '#1E8A3C' }}>{opt.eta}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Right Inner: Selected Option Summary Card */}
-              {currentOption && (
-                <div style={{
-                  background: '#FFFFFF',
-                  border: `1px solid ${C.border}`,
-                  borderRadius: 8,
-                  padding: '14px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 10,
-                  boxShadow: '0 1px 2px rgba(59,45,52,0.04)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
-                      Selected Option
-                    </span>
-                    <span style={{
-                      fontSize: 8,
-                      fontWeight: 700,
-                      padding: '2px 6px',
-                      borderRadius: 10,
-                      background: '#EDF7F1',
-                      color: '#1E8A3C',
-                    }}>
-                      RECOMMENDED
-                    </span>
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
-                      {currentOption.optionName}
-                    </div>
-                    <div style={{ fontSize: 10, color: C.subtle }}>
-                      {currentOption.optionSub}
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '4px 0', borderTop: `1px solid ${C.divider}`, borderBottom: `1px solid ${C.divider}` }}>
-                    {currentOption.breakdown?.map((row, rIdx) => (
-                      <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10 }}>
-                        <span style={{ color: C.muted }}>{row.label}</span>
-                        <span style={{ fontWeight: 600, color: C.text }}>{row.val}</span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div>
-                    <div style={{ fontSize: 9, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                      TOTAL DELIVERED COST
-                    </div>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: C.text, lineHeight: 1.1, marginTop: 2 }}>
-                      {currentOption.totalDelivered}
-                    </div>
-                    <div style={{ fontSize: 10, color: C.subtle, marginTop: 1 }}>
-                      {currentOption.totalPerKg}
-                    </div>
-                  </div>
-
-                  <div style={{
-                    padding: '5px',
-                    borderRadius: 4,
-                    background: '#EDF7F1',
-                    color: '#1E8A3C',
-                    fontSize: 10,
-                    fontWeight: 700,
-                    textAlign: 'center',
-                  }}>
-                    {currentOption.savingsTag}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Active Lifecycle Status / Tracking Info for In-Flight Orders */
-            <div style={{
-              background: '#FAF8F9',
-              border: `1px solid ${C.divider}`,
-              borderRadius: 8,
-              padding: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Truck size={18} style={{ color: currentMeta.color }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                      Fulfillment & Execution Status
-                    </div>
-                    <div style={{ fontSize: 11, color: C.muted }}>
-                      Current State: <strong>{currentMeta.label}</strong> (Actor: {currentMeta.actor})
-                    </div>
-                  </div>
-                </div>
-                <QueueStatusBadge status={currentOrder.status} />
-              </div>
-
-              <div style={{ fontSize: 11, color: C.text, lineHeight: 1.5, background: '#FFFFFF', padding: '10px 12px', borderRadius: 6, border: `1px solid ${C.border}` }}>
-                {currentOrder.notes || currentMeta.desc}
-              </div>
-
-              {currentOrder.carrierName && (
-                <div style={{ display: 'flex', gap: 16, fontSize: 11 }}>
-                  <div>
-                    <span style={{ color: C.subtle }}>Carrier: </span>
-                    <strong style={{ color: C.text }}>{currentOrder.carrierName}</strong>
-                  </div>
-                  {currentOrder.trackingNumber && (
-                    <div>
-                      <span style={{ color: C.subtle }}>Tracking: </span>
-                      <strong style={{ color: C.rose, fontFamily: 'monospace' }}>{currentOrder.trackingNumber}</strong>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Section 4: Contextual Local Buyer Action Bar */}
+          {/* ── BODY AREA: Padding 20px ── */}
           <div style={{
-            borderTop: `1px solid ${C.divider}`,
-            paddingTop: 14,
+            padding: '20px 24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 10,
+            gap: 18,
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button
-                onClick={() => setShowHistoryModal(true)}
-                style={{
-                  padding: '7px 14px',
-                  borderRadius: 6,
-                  border: `1px solid ${C.border}`,
-                  background: '#FFFFFF',
+
+            {/* ── SECTION 2: SOURCING CASCADE DECISION PIPELINE ── */}
+            {currentOrder.cascade && currentOrder.cascade.length > 0 && (
+              <div style={{
+                background: '#FAF9FA',
+                border: `1px solid ${C.divider}`,
+                borderRadius: 10,
+                padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={14} style={{ color: C.plum }} />
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.text, letterSpacing: '0.3px', textTransform: 'uppercase' }}>
+                      Automated Sourcing Cascade Engine
+                    </span>
+                  </div>
+                  <span style={{ fontSize: 9.5, color: C.muted, fontWeight: 500 }}>
+                    Deterministic Hierarchy: Local Same Green → Local Approved Alt → Central Hub
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 10 }}>
+                  {currentOrder.cascade.map((step, sIdx) => {
+                    const isPass = step.status === 'pass';
+                    const isFail = step.status === 'fail';
+                    return (
+                      <div
+                        key={sIdx}
+                        style={{
+                          padding: '10px 12px',
+                          borderRadius: 8,
+                          border: isPass ? '1.5px solid #86EFAC' : isFail ? '1px solid #FECACA' : `1px solid ${C.border}`,
+                          background: isPass ? '#F0FDF4' : isFail ? '#FEF2F2' : '#FFFFFF',
+                          boxShadow: isPass ? '0 1px 3px rgba(34,197,94,0.1)' : 'none',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: isPass ? '#14532D' : isFail ? '#7F1D1D' : C.text }}>
+                            {step.step}
+                          </span>
+                          {isPass ? (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontSize: 9,
+                              fontWeight: 800,
+                              color: '#15803D',
+                              background: '#DCFCE7',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                            }}>
+                              <CheckCircle2 size={10} />
+                              SELECTED
+                            </span>
+                          ) : isFail ? (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontSize: 9,
+                              fontWeight: 700,
+                              color: '#B91C1C',
+                              background: '#FEE2E2',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                            }}>
+                              <XCircle size={10} />
+                              INSUFFICIENT
+                            </span>
+                          ) : (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontSize: 9,
+                              fontWeight: 600,
+                              color: C.subtle,
+                              background: '#F0EAEE',
+                              padding: '1px 6px',
+                              borderRadius: 4,
+                            }}>
+                              BYPASSED
+                            </span>
+                          )}
+                        </div>
+                        <div style={{
+                          fontSize: 10.5,
+                          color: isPass ? '#166534' : isFail ? '#991B1B' : C.muted,
+                          fontWeight: isPass ? 600 : 400,
+                          lineHeight: 1.35,
+                        }}>
+                          {step.note}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {currentOrder.cascadeNote && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 8,
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    background: '#FFFFFF',
+                    border: '1px solid #EFE8EC',
+                    borderLeft: `3px solid ${C.plum}`,
+                  }}>
+                    <Sparkles size={12} style={{ color: C.rose, flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ fontSize: 10.5, color: C.text, lineHeight: 1.45 }}>
+                      <strong>System Decision: </strong>{currentOrder.cascadeNote}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── SECTION 3: SOURCING OPTIONS (EVALUATION) vs ACTIVE TRACKING (EXECUTION) ── */}
+            {currentOrder.options && currentOrder.options.length > 0 ? (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 290px', gap: 16, alignItems: 'start' }}>
+
+                {/* Left Inner: Sourcing options list */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                        Feasible Sourcing Options
+                      </div>
+                      <div style={{ fontSize: 10, color: C.subtle, marginTop: 1 }}>
+                        {currentOrder.options.length} options evaluated · 100% demand quantity covered
+                      </div>
+                    </div>
+
+                    <ThemedSelect
+                      value={sourcingSort}
+                      onChange={val => {
+                        setSourcingSort(val);
+                        setSelectedOptionIndex(0);
+                      }}
+                      options={[
+                        { value: 'cost', label: 'Lowest total cost' },
+                        { value: 'eta', label: 'Earliest arrival' },
+                      ]}
+                      prefix="Sort: "
+                      size="sm"
+                      align="right"
+                    />
+                  </div>
+
+                  {sortedOptions.map((opt, oIdx) => {
+                    const isOptSelected = selectedOptionIndex === oIdx;
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => setSelectedOptionIndex(oIdx)}
+                        style={{
+                          padding: '13px 15px',
+                          borderRadius: 8,
+                          border: isOptSelected ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
+                          borderLeft: isOptSelected ? '4px solid #16A34A' : `1px solid ${C.border}`,
+                          background: isOptSelected ? '#FBFDFB' : '#FFFFFF',
+                          cursor: 'pointer',
+                          transition: 'all 0.12s ease',
+                          boxShadow: isOptSelected ? '0 2px 6px rgba(22,163,74,0.08)' : 'none',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 9.5, fontWeight: 700, color: isOptSelected ? '#15803D' : C.plum, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                            {opt.tag}
+                          </span>
+                          {opt.bestValue && (
+                            <span style={{
+                              fontSize: 9,
+                              fontWeight: 700,
+                              padding: '2px 7px',
+                              borderRadius: 10,
+                              background: '#EDF7F1',
+                              color: '#1E8A3C',
+                              border: '1px solid #B4DDBD',
+                            }}>
+                              BEST VALUE
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+                          {opt.title}
+                        </div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
+                          {opt.subtitle}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: `1px solid ${C.divider}` }}>
+                          <div>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{opt.totalPrice}</span>
+                            <span style={{ fontSize: 10.5, color: C.subtle, marginLeft: 4 }}>({opt.perKg})</span>
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3C', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <Clock size={11} />
+                            {opt.eta}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Right Inner: Selected Option Breakdown Card */}
+                {currentOption && (
+                  <div style={{
+                    background: '#FFFFFF',
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    padding: '16px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                    boxShadow: '0 2px 6px rgba(48,39,43,0.04)',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                        Selected Sourcing Model
+                      </span>
+                      <span style={{
+                        fontSize: 8.5,
+                        fontWeight: 700,
+                        padding: '2px 7px',
+                        borderRadius: 10,
+                        background: '#EDF7F1',
+                        color: '#1E8A3C',
+                        border: '1px solid #B4DDBD',
+                      }}>
+                        RECOMMENDED
+                      </span>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
+                        {currentOption.optionName}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                        {currentOption.optionSub}
+                      </div>
+                    </div>
+
+                    {/* Breakdown Rows */}
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                      padding: '8px 0',
+                      borderTop: `1px solid ${C.divider}`,
+                      borderBottom: `1px solid ${C.divider}`,
+                    }}>
+                      {currentOption.breakdown?.map((row, rIdx) => (
+                        <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5 }}>
+                          <span style={{ color: C.muted }}>{row.label}</span>
+                          <span style={{ fontWeight: 600, color: C.text }}>{row.val}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Total Cost Highlight */}
+                    <div>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Total Delivered Cost
+                      </div>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', lineHeight: 1.1, marginTop: 3 }}>
+                        {currentOption.totalDelivered}
+                      </div>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>
+                        {currentOption.totalPerKg} · Landed at Roasting Bay
+                      </div>
+                    </div>
+
+                    <div style={{
+                      padding: '6px 8px',
+                      borderRadius: 6,
+                      background: '#EDF7F1',
+                      color: '#1E8A3C',
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      border: '1px solid #B4DDBD',
+                    }}>
+                      {currentOption.savingsTag}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Active Lifecycle Status / Tracking Info for In-Flight Orders */
+              <div style={{
+                background: '#FAF9FA',
+                border: `1px solid ${C.divider}`,
+                borderRadius: 10,
+                padding: '18px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: currentMeta.bg,
+                      border: `1px solid ${currentMeta.border}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: currentMeta.color,
+                    }}>
+                      <Truck size={20} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                        Fulfillment & Execution Tracking
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
+                        Stage: <strong style={{ color: currentMeta.color }}>{currentMeta.label}</strong> · Assigned Actor: <strong>{currentMeta.actor}</strong>
+                      </div>
+                    </div>
+                  </div>
+                  <QueueStatusBadge status={currentOrder.status} />
+                </div>
+
+                <div style={{
+                  fontSize: 11.5,
                   color: C.text,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                View Audit Trail
-              </button>
+                  lineHeight: 1.5,
+                  background: '#FFFFFF',
+                  padding: '12px 14px',
+                  borderRadius: 8,
+                  border: `1px solid ${C.border}`,
+                }}>
+                  {currentOrder.notes || currentMeta.desc}
+                </div>
 
-              <div style={{ display: 'flex', gap: 8 }}>
-                {/* 1. If Status is 'new' */}
-                {currentOrder.status === 'new' && (
-                  <>
-                    <button
-                      onClick={handleBuyerApprove}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: 6,
-                        border: `1px solid ${C.border}`,
-                        background: '#FFFFFF',
-                        color: C.text,
-                        fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Approve Sourcing Option
-                    </button>
-                    <button
-                      disabled={!currentOption}
-                      onClick={handleProceedToConfirm}
-                      style={{
-                        padding: '8px 18px',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: C.rose,
-                        color: '#FFFFFF',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: currentOption ? 'pointer' : 'not-allowed',
-                      }}
-                    >
-                      Proceed to Confirm
-                    </button>
-                  </>
+                {currentOrder.carrierName && (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(3, 1fr)',
+                    gap: 12,
+                    background: '#FFFFFF',
+                    padding: '12px 14px',
+                    borderRadius: 8,
+                    border: `1px solid ${C.border}`,
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>
+                        Designated Carrier
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                        {currentOrder.carrierName}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>
+                        Waybill / Tracking No.
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: C.rose, fontFamily: 'monospace' }}>
+                        {currentOrder.trackingNumber || 'DIRECT-SHUTTLE'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>
+                        Destination Bay
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                        Site 1054 · Roasting Dock 2
+                      </div>
+                    </div>
+                  </div>
                 )}
+              </div>
+            )}
+          </div>
 
-                {/* 2. If Status is 'approved' */}
-                {currentOrder.status === 'approved' && (
-                  currentOrder.isLocalFulfilled ? (
-                    <button
-                      onClick={handleBuyerReceive}
-                      style={{
-                        padding: '8px 20px',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: '#15803D',
-                        color: '#FFFFFF',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Verify & Receive Local Stock at Roasting Bay
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleBuyerRequest}
-                      style={{
-                        padding: '8px 20px',
-                        borderRadius: 6,
-                        border: 'none',
-                        background: '#D97706',
-                        color: '#FFFFFF',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      Submit Transfer Request to Central Hub
-                    </button>
-                  )
-                )}
+          {/* ── SECTION 4: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR) ── */}
+          <div style={{
+            borderTop: `1px solid ${C.divider}`,
+            padding: '14px 24px',
+            background: '#FAF8F9',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <button
+              onClick={() => setShowHistoryModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 14px',
+                borderRadius: 6,
+                border: `1px solid ${C.border}`,
+                background: '#FFFFFF',
+                color: C.text,
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'all 0.12s ease',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = C.hover}
+              onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+            >
+              <Clock size={12} style={{ color: C.plum }} />
+              View Audit Trail
+            </button>
 
-                {/* 3. If Status is 'requested' */}
-                {currentOrder.status === 'requested' && (
-                  <span style={{ fontSize: 11, color: '#B86A00', fontWeight: 600, padding: '6px 12px', background: '#FFF7E6', borderRadius: 6, border: '1px solid #F5D68A' }}>
-                    ⏳ Awaiting Central Warehouse Manager Allocation
-                  </span>
-                )}
-
-                {/* 4. If Status is 'accepted' */}
-                {currentOrder.status === 'accepted' && (
-                  <span style={{ fontSize: 11, color: '#1E8A3C', fontWeight: 600, padding: '6px 12px', background: '#EDF7F1', borderRadius: 6, border: '1px solid #B4DDBD' }}>
-                    ✓ Accepted by Hub · Warehouse Staging & Dispatch in Progress
-                  </span>
-                )}
-
-                {/* 5. If Status is 'dispatched' */}
-                {currentOrder.status === 'dispatched' && (
-                  <span style={{ fontSize: 11, color: '#4F46E5', fontWeight: 600, padding: '6px 12px', background: '#EEF2FF', borderRadius: 6, border: '1px solid #C7D2FE' }}>
-                    📦 Dispatched from Warehouse · Ready for Carrier Handoff
-                  </span>
-                )}
-
-                {/* 6. If Status is 'in transit' */}
-                {currentOrder.status === 'in transit' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* 1. If Status is 'new' */}
+              {currentOrder.status === 'new' && (
+                <>
                   <button
-                    onClick={handleSimulateDelivery}
+                    onClick={handleBuyerApprove}
                     style={{
+                      padding: '8px 16px',
+                      borderRadius: 6,
+                      border: `1px solid ${C.border}`,
+                      background: '#FFFFFF',
+                      color: C.text,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.12s ease',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = C.hover}
+                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
+                  >
+                    Approve Sourcing Option
+                  </button>
+                  <button
+                    disabled={!currentOption}
+                    onClick={handleProceedToConfirm}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
                       padding: '8px 18px',
                       borderRadius: 6,
-                      border: '1px solid #0D9488',
-                      background: '#F0FDFA',
-                      color: '#0D9488',
+                      border: 'none',
+                      background: C.rose,
+                      color: '#FFFFFF',
                       fontSize: 11,
                       fontWeight: 700,
-                      cursor: 'pointer',
+                      cursor: currentOption ? 'pointer' : 'not-allowed',
+                      boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
+                      transition: 'all 0.12s ease',
+                    }}
+                    onMouseEnter={e => {
+                      if (currentOption) e.currentTarget.style.background = C.roseHover;
+                    }}
+                    onMouseLeave={e => {
+                      if (currentOption) e.currentTarget.style.background = C.rose;
                     }}
                   >
-                    Simulate Carrier Arrival at Dock
+                    Proceed to Confirm
+                    <ArrowRight size={12} />
                   </button>
-                )}
+                </>
+              )}
 
-                {/* 7. If Status is 'delivered' - Local Buyer Receives */}
-                {currentOrder.status === 'delivered' && (
+              {/* 2. If Status is 'approved' */}
+              {currentOrder.status === 'approved' && (
+                currentOrder.isLocalFulfilled ? (
                   <button
                     onClick={handleBuyerReceive}
                     style={{
-                      padding: '8px 22px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 20px',
                       borderRadius: 6,
                       border: 'none',
                       background: '#15803D',
                       color: '#FFFFFF',
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: 700,
                       cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(21,128,61,0.3)',
+                      boxShadow: '0 2px 6px rgba(21,128,61,0.25)',
                     }}
                   >
-                    Inspect & Mark Received at Dock
+                    <PackageCheck size={13} />
+                    Verify & Receive Local Stock at Roasting Bay
                   </button>
-                )}
-
-                {/* 8. If Status is 'received' - Local Buyer Closes */}
-                {currentOrder.status === 'received' && (
+                ) : (
                   <button
-                    onClick={handleBuyerClose}
+                    onClick={handleBuyerRequest}
                     style={{
-                      padding: '8px 22px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 20px',
                       borderRadius: 6,
                       border: 'none',
-                      background: C.plum,
+                      background: '#D97706',
                       color: '#FFFFFF',
-                      fontSize: 12,
+                      fontSize: 11,
                       fontWeight: 700,
                       cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(92,58,87,0.3)',
+                      boxShadow: '0 2px 6px rgba(217,119,6,0.25)',
                     }}
                   >
-                    Close Order & Book into Stock
+                    <Send size={12} />
+                    Submit Transfer Request to Central Hub
                   </button>
-                )}
+                )
+              )}
 
-                {/* 9. If Status is 'closed' */}
-                {currentOrder.status === 'closed' && (
-                  <span style={{ fontSize: 11, color: '#15803D', fontWeight: 700, padding: '6px 12px', background: '#F0FDF4', borderRadius: 6, border: '1px solid #BBF7D0' }}>
-                    ✓ Order Reconciled & Booked to Inventory
-                  </span>
-                )}
-              </div>
+              {/* 3. If Status is 'requested' */}
+              {currentOrder.status === 'requested' && (
+                <span style={{ fontSize: 11, color: '#B86A00', fontWeight: 600, padding: '6px 12px', background: '#FFF7E6', borderRadius: 6, border: '1px solid #F5D68A' }}>
+                  ⏳ Awaiting Central Warehouse Manager Allocation
+                </span>
+              )}
+
+              {/* 4. If Status is 'accepted' */}
+              {currentOrder.status === 'accepted' && (
+                <span style={{ fontSize: 11, color: '#1E8A3C', fontWeight: 600, padding: '6px 12px', background: '#EDF7F1', borderRadius: 6, border: '1px solid #B4DDBD' }}>
+                  ✓ Accepted by Hub · Warehouse Staging & Dispatch in Progress
+                </span>
+              )}
+
+              {/* 5. If Status is 'dispatched' */}
+              {currentOrder.status === 'dispatched' && (
+                <span style={{ fontSize: 11, color: '#4F46E5', fontWeight: 600, padding: '6px 12px', background: '#EEF2FF', borderRadius: 6, border: '1px solid #C7D2FE' }}>
+                  📦 Dispatched from Warehouse · Ready for Carrier Handoff
+                </span>
+              )}
+
+              {/* 6. If Status is 'in transit' */}
+              {currentOrder.status === 'in transit' && (
+                <button
+                  onClick={handleSimulateDelivery}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 18px',
+                    borderRadius: 6,
+                    border: '1px solid #0D9488',
+                    background: '#F0FDFA',
+                    color: '#0D9488',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Truck size={13} />
+                  Simulate Carrier Arrival at Dock
+                </button>
+              )}
+
+              {/* 7. If Status is 'delivered' - Local Buyer Receives */}
+              {currentOrder.status === 'delivered' && (
+                <button
+                  onClick={handleBuyerReceive}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 22px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: '#15803D',
+                    color: '#FFFFFF',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(21,128,61,0.3)',
+                  }}
+                >
+                  <CheckCircle2 size={13} />
+                  Inspect & Mark Received at Dock
+                </button>
+              )}
+
+              {/* 8. If Status is 'received' - Local Buyer Closes */}
+              {currentOrder.status === 'received' && (
+                <button
+                  onClick={handleBuyerClose}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 22px',
+                    borderRadius: 6,
+                    border: 'none',
+                    background: C.plum,
+                    color: '#FFFFFF',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 6px rgba(92,58,87,0.3)',
+                  }}
+                >
+                  <ShieldCheck size={13} />
+                  Close Order & Book into Stock
+                </button>
+              )}
+
+              {/* 9. If Status is 'closed' */}
+              {currentOrder.status === 'closed' && (
+                <span style={{ fontSize: 11, color: '#15803D', fontWeight: 700, padding: '6px 12px', background: '#F0FDF4', borderRadius: 6, border: '1px solid #BBF7D0' }}>
+                  ✓ Order Reconciled & Booked to Inventory
+                </span>
+              )}
             </div>
           </div>
 
