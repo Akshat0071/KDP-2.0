@@ -76,7 +76,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'In Transit',
     delayed: false,
-    linkedOrder: 'PO-2831',
+    linkedOrder: '2831',
     statusUpdated: 'Oct 25, 2026, 09:40 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 23, 2026, 02:15 PM', state: 'done' },
@@ -337,7 +337,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'Delivered',
     delayed: false,
-    linkedOrder: 'PO-2852',
+    linkedOrder: '2852',
     statusUpdated: 'Today 08:15 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 20, 2026, 09:15 AM', state: 'done' },
@@ -417,7 +417,7 @@ const INCOMING_SHIPMENTS = [
     etaBucket: 'this-week',
     status: 'Dispatched',
     delayed: false,
-    linkedOrder: 'PO-2838',
+    linkedOrder: '2838',
     statusUpdated: 'Today 07:45 AM',
     timeline: [
       { title: 'Shipment Created', time: 'Oct 25, 2026, 10:10 AM', state: 'done' },
@@ -800,7 +800,7 @@ export default function Inventory() {
     const bestWh = getLowestCostWarehouse(item, qtyToOrder);
     const nextIdx = orderCounter + 1;
     const shipmentId = `SH-${7827 + nextIdx}`;
-    const poId = `PO-${2899 + nextIdx}`;
+    const orderId = String(2899 + nextIdx);
     setOrderCounter(nextIdx);
 
     // 1. Update Stock item (incoming increases so open orders + min threshold are covered)
@@ -826,7 +826,7 @@ export default function Inventory() {
     const newShipment = {
       id: shipmentId,
       orderNumber: null,
-      replenishmentId: poId,
+      replenishmentId: orderId,
       greenId: item.id,
       greenName: item.name,
       qty: qtyToOrder,
@@ -839,10 +839,10 @@ export default function Inventory() {
       etaBucket: 'this-week',
       status: 'Scheduled',
       delayed: false,
-      linkedOrder: poId,
+      linkedOrder: orderId,
       statusUpdated: 'Oct 25, 2026, Just now',
       timeline: [
-        { title: 'Auto-Replenish PO Placed', time: 'Oct 25, 2026, Just now', state: 'done' },
+        { title: 'Auto-Replenish Order Placed', time: 'Oct 25, 2026, Just now', state: 'done' },
         { title: 'Scheduled for Dispatch', time: `${bestWh.warehouse} · Lowest cost ($${bestWh.landedPerKg.toFixed(2)}/kg)`, state: 'active' },
         { title: 'In Transit', time: 'Pending carrier pickup', state: 'pending' },
         { title: 'Expected Delivery', time: bestWh.etaFull, state: 'pending' },
@@ -858,7 +858,7 @@ export default function Inventory() {
     // 3. Register replenishment order in OrdersContext so it appears in Orders & Order History
     if (typeof createReplenishmentOrder === 'function') {
       createReplenishmentOrder({
-        orderNumber: poId,
+        orderNumber: orderId,
         greenId: item.id,
         greenName: item.name,
         orderQuantity: qtyToOrder,
@@ -878,7 +878,7 @@ export default function Inventory() {
       ...prev,
       [item.id]: {
         shipmentId,
-        poId,
+        poId: orderId,
         qty: qtyToOrder,
         warehouse: bestWh.warehouse,
         totalCost: bestWh.totalCost,
@@ -906,14 +906,14 @@ export default function Inventory() {
       const bestWh = match.bestWarehouse || getLowestCostWarehouse(match, qtyToOrder);
       curCounter += 1;
       const shipmentId = `SH-${7827 + curCounter}`;
-      const poId = `PO-${2899 + curCounter}`;
+      const orderId = String(2899 + curCounter);
 
       totalVolume += qtyToOrder;
       totalCost += bestWh.totalCost;
 
       newConfirmations[inv.id] = {
         shipmentId,
-        poId,
+        poId: orderId,
         qty: qtyToOrder,
         warehouse: bestWh.warehouse,
         totalCost: bestWh.totalCost,
@@ -924,7 +924,7 @@ export default function Inventory() {
       newShipments.push({
         id: shipmentId,
         orderNumber: null,
-        replenishmentId: poId,
+        replenishmentId: orderId,
         greenId: inv.id,
         greenName: inv.name,
         qty: qtyToOrder,
@@ -937,10 +937,10 @@ export default function Inventory() {
         etaBucket: 'this-week',
         status: 'Scheduled',
         delayed: false,
-        linkedOrder: poId,
+        linkedOrder: orderId,
         statusUpdated: 'Oct 25, 2026, Just now',
         timeline: [
-          { title: 'Batch Replenish PO Placed', time: 'Oct 25, 2026, Just now', state: 'done' },
+          { title: 'Batch Replenish Order Placed', time: 'Oct 25, 2026, Just now', state: 'done' },
           { title: 'Scheduled for Dispatch', time: `${bestWh.warehouse} · Lowest cost ($${bestWh.landedPerKg.toFixed(2)}/kg)`, state: 'active' },
           { title: 'In Transit', time: 'Pending carrier pickup', state: 'pending' },
           { title: 'Expected Delivery', time: bestWh.etaFull, state: 'pending' },
@@ -954,7 +954,7 @@ export default function Inventory() {
 
       if (typeof createReplenishmentOrder === 'function') {
         createReplenishmentOrder({
-          orderNumber: poId,
+          orderNumber: orderId,
           greenId: inv.id,
           greenName: inv.name,
           orderQuantity: qtyToOrder,
@@ -1239,7 +1239,7 @@ export default function Inventory() {
           <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
             <InfoTooltip
               title="Open Order Shortage Risk"
-              content="Greens where unreserved stock is less than open production demand. Transfer PO or alternate bean required."
+              content="Greens where unreserved stock is less than open production demand. Transfer order or alternate bean required."
               align="right"
               position="top"
               size={11}
@@ -1907,7 +1907,7 @@ export default function Inventory() {
                                       navigate(`/orders/${ship.linkedOrder}`);
                                     }}
                                     style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                                    title="View linked PO in Orders"
+                                    title="View linked order in Orders"
                                   >
                                     {ship.linkedOrder} ↗
                                   </span>
@@ -2418,7 +2418,7 @@ export default function Inventory() {
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Linked Order PO</div>
+                  <div style={{ fontSize: 9.5, color: C.subtle, marginBottom: 2 }}>Linked Order</div>
                   {selectedShipment.linkedOrder && selectedShipment.linkedOrder !== '—' ? (
                     <div
                       onClick={() => navigate(`/orders/${selectedShipment.linkedOrder}`)}

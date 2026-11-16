@@ -158,6 +158,11 @@ export function getOrderStatusMeta(status) {
   );
 }
 
+export function cleanOrderId(id) {
+  if (!id) return '';
+  return String(id).replace(/^PO-?/i, '');
+}
+
 // ── Master Seed Data for All 9 Order States ──────────────────────────────────
 // Conforms strictly to ER diagram & whiteboard lowest freight mapping:
 // Site 1054 -> Warehouse 1055 ($589 fixed freight)
@@ -168,7 +173,7 @@ export function getOrderStatusMeta(status) {
 const INITIAL_SYNCED_ORDERS = [
   // 1. NEW DEMAND: Sumatra Mandheling (Site 1054) - Needs sourcing evaluation
   {
-    id: 'PO-2846',
+    id: '2846',
     orderType: 'PRODUCTION',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
@@ -244,7 +249,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 1b. AUTO-APPROVED BY SYSTEM (LOCAL ALTERNATE): Ethiopia Yirgacheffe Natural (Site 1054) -> Gc-11 (Cheapest local option)
   {
-    id: 'PO-2848',
+    id: '2848',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -324,7 +329,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 2. APPROVED: Costa Rica Tarrazu (Site 1054) - Local Buyer approved sourcing option
   {
-    id: 'PO-2847',
+    id: '2847',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -396,7 +401,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 3. REQUESTED: Colombia Supremo Washed (Site 1054 -> Warehouse 1055) - On Warehouse Manager's Desk!
   {
-    id: 'PO-2843',
+    id: '2843',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -420,7 +425,7 @@ const INITIAL_SYNCED_ORDERS = [
     status: 'requested',
     buyerName: 'Maya Torres',
     buyerTitle: 'Local Buyer · Site 1054 Plano Roasting',
-    notes: 'Urgent roasting requirement. Local inventory depleted below safety threshold. Transfer PO requested.',
+    notes: 'Urgent roasting requirement. Local inventory depleted below safety threshold. Transfer order requested.',
     warehouseStockAvailable: 5200,
     warehouseStockReserved: 1000,
     category: 'decision',
@@ -465,14 +470,14 @@ const INITIAL_SYNCED_ORDERS = [
     timeline: [
       { title: 'Demand batch submitted by Roasting Production Team', time: 'Oct 25, 2026, 08:00 AM', actor: 'Production Scheduler', state: 'done' },
       { title: 'Local Buyer selected Warehouse 1055 option', time: 'Oct 25, 2026, 09:15 AM', actor: 'Maya Torres (Local Buyer)', state: 'done' },
-      { title: 'Transfer PO Requested & Submitted to Central Hub', time: 'Oct 25, 2026, 09:30 AM', actor: 'Maya Torres (Local Buyer)', state: 'active' },
+      { title: 'Transfer Order Requested & Submitted to Central Hub', time: 'Oct 25, 2026, 09:30 AM', actor: 'Maya Torres (Local Buyer)', state: 'active' },
       { title: 'Awaiting Central Warehouse Manager Allocation', time: 'Pending Manager Action', actor: 'Warehouse Manager', state: 'pending' },
     ],
   },
 
   // 4. ACCEPTED: Guatemala Antigua (Site 1054 -> Warehouse 1055) - Warehouse Manager accepted!
   {
-    id: 'PO-2844',
+    id: '2844',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -537,7 +542,7 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested by Local Buyer', time: 'Oct 25, 2026, 08:15 AM', actor: 'Maya Torres', state: 'done' },
+      { title: 'Transfer Order Requested by Local Buyer', time: 'Oct 25, 2026, 08:15 AM', actor: 'Maya Torres', state: 'done' },
       { title: 'Order Accepted in Full (600 kg allocated)', time: 'Oct 25, 2026, 10:45 AM', actor: 'Central Warehouse Manager', state: 'done' },
       { title: 'Material Pulling & QA Palletizing in progress', time: 'Warehouse 1055 Bay 1', actor: 'Warehouse Manager', state: 'active' },
     ],
@@ -545,7 +550,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 5. DISPATCHED: Brazil Cerrado Natural (Site 1054 -> Warehouse 1055) - Staged at loading dock!
   {
-    id: 'PO-2838',
+    id: '2838',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -582,7 +587,7 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested', time: 'Oct 23, 2026, 11:20 AM', actor: 'Maya Torres', state: 'done' },
+      { title: 'Transfer Order Requested', time: 'Oct 23, 2026, 11:20 AM', actor: 'Maya Torres', state: 'done' },
       { title: 'Approved in Full by Central Manager', time: 'Oct 24, 2026, 08:30 AM', actor: 'Central Warehouse Manager', state: 'done' },
       { title: 'Palletized & Moisture Verified (10.8%)', time: 'Oct 24, 2026, 03:15 PM', actor: 'Warehouse QA Staff', state: 'done' },
       { title: 'Dispatched to Outbound Loading Dock Bay 2', time: 'Today 07:45 AM', actor: 'Warehouse Manager', state: 'active' },
@@ -591,7 +596,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 6. IN TRANSIT: Colombia Supremo Washed (Site 1054) - On the road!
   {
-    id: 'PO-2831',
+    id: '2831',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -626,7 +631,7 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested', time: 'Oct 21, 2026, 10:00 AM', actor: 'Maya Torres', state: 'done' },
+      { title: 'Transfer Order Requested', time: 'Oct 21, 2026, 10:00 AM', actor: 'Maya Torres', state: 'done' },
       { title: 'Approved & QA Staged in Bay 4', time: 'Oct 22, 2026, 01:45 PM', actor: 'Warehouse Manager', state: 'done' },
       { title: 'Dispatched from Warehouse 1055', time: 'Oct 24, 2026, 06:20 PM', actor: 'Warehouse Manager', state: 'done' },
       { title: 'Carrier In Transit (GreenFreight Express TR-501)', time: 'Oct 25, 2026, 06:00 AM', actor: 'Warehouse Manager', state: 'active' },
@@ -635,7 +640,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 7. DELIVERED: Huila Washed Regional (Site 1054) - Arrived at dock! Needs Local Buyer inspection.
   {
-    id: 'PO-2852',
+    id: '2852',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -670,7 +675,7 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested', time: 'Oct 19, 2026, 02:00 PM', actor: 'Maya Torres', state: 'done' },
+      { title: 'Transfer Order Requested', time: 'Oct 19, 2026, 02:00 PM', actor: 'Maya Torres', state: 'done' },
       { title: 'Accepted by Central Warehouse Manager', time: 'Oct 20, 2026, 09:15 AM', actor: 'Warehouse Manager', state: 'done' },
       { title: 'Dispatched from Warehouse 1055', time: 'Oct 21, 2026, 05:00 PM', actor: 'Warehouse Manager', state: 'done' },
       { title: 'Carrier Delivered at Site 1054 Receiving Dock 3', time: 'Today 08:15 AM', actor: 'Carrier Logistics / System', state: 'active' },
@@ -679,7 +684,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 8. RECEIVED: Guatemala Antigua SHB (Site 1054) - Buyer marked received, ready to close into inventory (local alternate Gc-14, no warehouse shipment)
   {
-    id: 'PO-2842',
+    id: '2842',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -730,7 +735,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 9. CLOSED: Ethiopia Yirgacheffe Natural (Site 1054) - Completed and booked into inventory (local inventory, no warehouse shipment)
   {
-    id: 'PO-2841',
+    id: '2841',
     siteId: '1054',
     destinationSite: 'Site 1054 — Plano Roasting',
     destinationCity: 'Plano, TX',
@@ -775,7 +780,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 10. OTHER SITES: Site 1102 Windsor -> Warehouse 1055 ($3,000 freight) - REQUESTED
   {
-    id: 'PO-2850',
+    id: '2850',
     siteId: '1102',
     destinationSite: 'Site 1102 — Windsor Facility',
     destinationCity: 'Windsor, VA',
@@ -809,14 +814,14 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested by Liam Davies', time: 'Oct 24, 2026, 04:50 PM', actor: 'Liam Davies', state: 'done' },
+      { title: 'Transfer Order Requested by Liam Davies', time: 'Oct 24, 2026, 04:50 PM', actor: 'Liam Davies', state: 'done' },
       { title: 'Awaiting Central Warehouse Manager Allocation', time: 'Pending Action', actor: 'Warehouse Manager', state: 'active' },
     ],
   },
 
   // 11. OTHER SITES: Site 1003 Sumner -> Warehouse 1020 ($1,000 freight) - ACCEPTED (Partial)
   {
-    id: 'PO-2835',
+    id: '2835',
     siteId: '1003',
     destinationSite: 'Site 1003 — Sumner Plant',
     destinationCity: 'Sumner, WA',
@@ -851,7 +856,7 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested by Sarah Chen', time: 'Oct 22, 2026, 02:15 PM', actor: 'Sarah Chen', state: 'done' },
+      { title: 'Transfer Order Requested by Sarah Chen', time: 'Oct 22, 2026, 02:15 PM', actor: 'Sarah Chen', state: 'done' },
       { title: 'Partial Accepted (600 kg allocated)', time: 'Oct 23, 2026, 09:10 AM', actor: 'Warehouse Manager', state: 'done' },
       { title: 'Palletizing 600 kg in Warehouse 1020 Bay 5', time: 'Bay 5 Staged', actor: 'Warehouse Staff', state: 'active' },
     ],
@@ -859,7 +864,7 @@ const INITIAL_SYNCED_ORDERS = [
 
   // 12. REJECTED: Site 1006 Essex -> Warehouse 1021 ($1,000 freight) - REJECTED BY HUB
   {
-    id: 'PO-2828',
+    id: '2828',
     siteId: '1006',
     destinationSite: 'Site 1006 — Essex Plant',
     destinationCity: 'Essex, VT',
@@ -894,7 +899,7 @@ const INITIAL_SYNCED_ORDERS = [
     ineligible: [],
     selectedOption: 0,
     timeline: [
-      { title: 'Transfer PO Requested by Carlos Rivera', time: 'Oct 20, 2026, 01:10 PM', actor: 'Carlos Rivera', state: 'done' },
+      { title: 'Transfer Order Requested by Carlos Rivera', time: 'Oct 20, 2026, 01:10 PM', actor: 'Carlos Rivera', state: 'done' },
       { title: 'Order Rejected: Material under QA quarantine hold for moisture non-conformance', time: 'Oct 21, 2026, 11:40 AM', actor: 'Central Warehouse Manager', state: 'active' },
     ],
   },
@@ -934,40 +939,51 @@ export function OrdersProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Reconcile missing seed orders & shipmentId / isLocalFulfilled / autoApproved schema additions
+          // Reconcile missing seed orders & normalize IDs to remove any legacy "PO-" prefix
           const seedMap = new Map(INITIAL_SYNCED_ORDERS.map(o => [o.id, o]));
-          const existingIds = new Set(parsed.map(o => o.id));
+          const existingIds = new Set(parsed.map(o => cleanOrderId(o.id)));
           const missingSeeds = INITIAL_SYNCED_ORDERS.filter(o => !existingIds.has(o.id));
           const hydrated = parsed.map(ord => {
-            const seed = seedMap.get(ord.id);
-            if (!seed) return ord;
-            const patch = {};
-            if (ord.shipmentId === undefined && seed.shipmentId !== undefined) {
-              patch.shipmentId = seed.shipmentId;
-            }
-            if (ord.isLocalFulfilled === undefined && seed.isLocalFulfilled !== undefined) {
-              patch.isLocalFulfilled = seed.isLocalFulfilled;
-            }
-            // Upgrade untouched PO-2848 seed to reflect system auto-approval rule
-            if (ord.id === 'PO-2848' && ord.autoApproved === undefined) {
-              return seed;
-            }
-            // Ensure PO-2842 carries its local alternate Gc-14 allocation metadata
-            if (ord.id === 'PO-2842' && ord.allocatedGreenId === undefined) {
-              patch.allocatedGreenId = seed.allocatedGreenId;
-              patch.allocatedGreenName = seed.allocatedGreenName;
-              patch.fulfillmentMode = seed.fulfillmentMode;
-              patch.inventoryAdjusted = Boolean(ord.status === 'closed');
-            }
-            if (ord.id === 'PO-2831' && ord.shipmentId === 'SH-7813') {
-              patch.shipmentId = 'SH-7810';
+            const rawId = cleanOrderId(ord.id);
+            const seed = seedMap.get(rawId);
+            const patch = { id: rawId };
+            if (seed) {
+              if (ord.shipmentId === undefined && seed.shipmentId !== undefined) {
+                patch.shipmentId = seed.shipmentId;
+              }
+              if (ord.isLocalFulfilled === undefined && seed.isLocalFulfilled !== undefined) {
+                patch.isLocalFulfilled = seed.isLocalFulfilled;
+              }
+              // Upgrade untouched 2848 seed to reflect system auto-approval rule
+              if (rawId === '2848' && ord.autoApproved === undefined) {
+                return seed;
+              }
+              // Ensure 2842 carries its local alternate Gc-14 allocation metadata
+              if (rawId === '2842' && ord.allocatedGreenId === undefined) {
+                patch.allocatedGreenId = seed.allocatedGreenId;
+                patch.allocatedGreenName = seed.allocatedGreenName;
+                patch.fulfillmentMode = seed.fulfillmentMode;
+                patch.inventoryAdjusted = Boolean(ord.status === 'closed');
+              }
+              if (rawId === '2831' && ord.shipmentId === 'SH-7813') {
+                patch.shipmentId = 'SH-7810';
+              }
             }
             const postDispatch = ['dispatched', 'in transit', 'delivered', 'received', 'closed'];
-            if (!ord.isLocalFulfilled && !seed.isLocalFulfilled && postDispatch.includes((ord.status || '').toLowerCase()) && !ord.shipmentId && !patch.shipmentId) {
-              const numSuffix = ord.id.replace(/\D/g, '') || '7899';
+            if (!ord.isLocalFulfilled && !(seed && seed.isLocalFulfilled) && postDispatch.includes((ord.status || '').toLowerCase()) && !ord.shipmentId && !patch.shipmentId) {
+              const numSuffix = rawId.replace(/\D/g, '') || '7899';
               patch.shipmentId = `SH-${7800 + (parseInt(numSuffix.slice(-2), 10) || 28)}`;
             }
-            return Object.keys(patch).length > 0 ? { ...ord, ...patch } : ord;
+            if (ord.notes && ord.notes.includes('PO')) {
+              patch.notes = ord.notes.replace(/Transfer PO/g, 'Transfer order').replace(/PO-/g, '');
+            }
+            if (Array.isArray(ord.timeline)) {
+              patch.timeline = ord.timeline.map(t => ({
+                ...t,
+                title: (t.title || '').replace(/Transfer PO/g, 'Transfer Order').replace(/PO-/g, ''),
+              }));
+            }
+            return { ...ord, ...patch };
           });
           if (missingSeeds.length > 0) {
             return [...missingSeeds, ...hydrated];
@@ -1062,7 +1078,7 @@ export function OrdersProvider({ children }) {
         const opt = chosenOption || (o.options && o.options[0]);
         const updatedTimeline = appendTimeline(
           o,
-          `Transfer PO requested from ${o.warehouse || 'Central Warehouse'} (${o.quantityStr || `${o.orderQuantity} kg`})`,
+          `Transfer Order requested from ${o.warehouse || 'Central Warehouse'} (${o.quantityStr || `${o.orderQuantity} kg`})`,
           'Maya Torres (Local Buyer)',
           'active'
         );
@@ -1287,7 +1303,7 @@ export function OrdersProvider({ children }) {
         if (o.id !== orderId) return o;
         const updatedTimeline = appendTimeline(
           o,
-          `Transfer PO Rejected by Central Hub: ${reason}`,
+          `Transfer Order Rejected by Central Hub: ${reason}`,
           'Central Warehouse Manager',
           'active'
         );
@@ -1309,7 +1325,7 @@ export function OrdersProvider({ children }) {
     const greenId = orderData.greenId || 'Gc-14';
     const needBy = orderData.needBy || 'Nov 15';
     const needByFull = orderData.needByFull || `${needBy}, 2026`;
-    const newId = orderData.id || `PO-${Math.floor(2880 + Math.random() * 110)}`;
+    const newId = orderData.id ? cleanOrderId(orderData.id) : String(Math.floor(2880 + Math.random() * 110));
 
     const { winner, candidates, requestedItem } = findCheapestLocalOption(greenId, qty, localInventory);
     const reqName = orderData.greenName || requestedItem?.name || greenId;
@@ -1559,7 +1575,7 @@ export function OrdersProvider({ children }) {
     const price = Number(unitPrice) || 4.10;
     const freight = Number(shippingCost) || 589;
     const total = totalCost || (qty * price + freight);
-    const newId = orderNumber || `RO-${Math.floor(3000 + Math.random() * 900)}`;
+    const newId = orderNumber ? cleanOrderId(orderNumber) : String(Math.floor(3000 + Math.random() * 900));
 
     const newReplenishment = {
       id: newId,

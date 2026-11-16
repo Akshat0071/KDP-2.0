@@ -61,7 +61,7 @@ export default function CentralOrders() {
     return orders.filter(o => o.warehouse && !o.isLocalFulfilled && o.status !== 'new');
   }, [orders]);
 
-  const [selectedOrderId, setSelectedOrderId] = useState('PO-2843');
+  const [selectedOrderId, setSelectedOrderId] = useState('2843');
   const [tabFilter, setTabFilter] = useState('all');
   const [warehouseFilter, setWarehouseFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');

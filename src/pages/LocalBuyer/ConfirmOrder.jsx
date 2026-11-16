@@ -28,7 +28,7 @@ export default function ConfirmOrder() {
 
   // Fallback defaults if accessed directly
   const safeOrder = order || {
-    id: 'PO-2843',
+    id: '2843',
     greenId: 'Gc-04',
     greenName: 'Colombia Supremo Washed',
     quantity: '1,200 kg',

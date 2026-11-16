@@ -221,7 +221,7 @@ export default function Dashboard() {
             sub: 'Site 1054 demand orders',
             variant: 'neutral',
             infoTitle: 'Total Active Sourcing Orders',
-            infoDesc: 'All current open purchase orders originating from Site 1054 across the active canonical lifecycle stages (excluding closed & rejected orders).',
+            infoDesc: 'All current open sourcing orders originating from Site 1054 across the active canonical lifecycle stages (excluding closed & rejected orders).',
             infoStages: ['new', 'approved', 'requested', 'accepted', 'dispatched', 'in transit', 'delivered'],
           },
           {

@@ -95,7 +95,8 @@ export default function Orders() {
   const queueStatuses = useMemo(() => ORDER_LIFECYCLE.filter(s => s !== 'closed'), []);
 
   // Selected order state
-  const initialOrderId = paramId || (siteOrders[0]?.id || 'PO-2846');
+  const cleanParamId = paramId ? paramId.replace(/^PO-?/i, '') : null;
+  const initialOrderId = cleanParamId || (siteOrders[0]?.id || '2846');
   const [selectedOrderId, setSelectedOrderId] = useState(initialOrderId);
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
 
@@ -133,8 +134,10 @@ export default function Orders() {
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
+        const qClean = q.replace(/^po-?/i, '');
         return (
           order.id.toLowerCase().includes(q) ||
+          order.id.toLowerCase().includes(qClean) ||
           order.greenId.toLowerCase().includes(q) ||
           order.greenName.toLowerCase().includes(q) ||
           order.fgMaterialDescription?.toLowerCase().includes(q)
@@ -150,7 +153,8 @@ export default function Orders() {
 
   // Current selected order
   const currentOrder = useMemo(() => {
-    return siteOrders.find(o => o.id === selectedOrderId) || siteOrders[0] || {};
+    const cleanSelected = String(selectedOrderId).replace(/^PO-?/i, '');
+    return siteOrders.find(o => o.id === selectedOrderId || o.id === cleanSelected) || siteOrders[0] || {};
   }, [siteOrders, selectedOrderId]);
 
   // Sourcing options

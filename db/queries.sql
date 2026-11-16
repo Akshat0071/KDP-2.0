@@ -91,7 +91,7 @@ LIMIT 1;
 
 -- ------------------------------------------------------------------------------
 -- 3. SOURCING WATERFALL CASCADE SCENARIO EVALUATION
--- Evaluates feasible sourcing options for an order (e.g. PO-2842 Brazil Cerrado 800 kg):
+-- Evaluates feasible sourcing options for an order (e.g. Order 2842 Brazil Cerrado 800 kg):
 -- Option 1: Local same green in Site 1054 ($0 shipping)
 -- Option 2: Local approved alternate in Site 1054 ($0 shipping)
 -- Option 3: Assigned lowest-freight warehouse (Warehouse 1055, $589 shipping)

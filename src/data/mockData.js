@@ -126,7 +126,7 @@ export function computeSafetyStatus(available, incoming = 0, minThreshold = 0, o
 // ── 5. Fact_Table_Orders & Fact_Table_Optimization_Table ────────────────────
 export const ORDERS = [
   {
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     siteId: '1054',
     orderType: 'PRODUCTION',
     fgMaterialId: 'FG-4401',
@@ -186,7 +186,7 @@ export const ORDERS = [
     ],
   },
   {
-    orderNumber: 'PO-2842',
+    orderNumber: '2842',
     siteId: '1054',
     orderType: 'PRODUCTION',
     fgMaterialId: 'FG-3108',
@@ -247,7 +247,7 @@ export const ORDERS = [
     ],
   },
   {
-    orderNumber: 'PO-2844',
+    orderNumber: '2844',
     siteId: '1054',
     orderType: 'PRODUCTION',
     fgMaterialId: 'FG-2204',
@@ -289,7 +289,7 @@ export const ORDERS = [
     ],
   },
   {
-    orderNumber: 'PO-2846',
+    orderNumber: '2846',
     siteId: '1054',
     orderType: 'PRODUCTION',
     fgMaterialId: 'FG-5510',
@@ -364,7 +364,7 @@ export const ORDERS = [
 export const INCOMING_SHIPMENTS = [
   {
     shipmentId: 'SH-7810',
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     replenishmentId: null,
     siteId: '1054',
     fromWarehouseId: '1055',
@@ -380,11 +380,11 @@ export const INCOMING_SHIPMENTS = [
     shipmentStatus: 'Delayed',
     isDelayed: true,
     updatedDate: '2026-10-25',
-    linkedOrder: 'PO-2843',
+    linkedOrder: '2843',
   },
   {
     shipmentId: 'SH-7811',
-    orderNumber: 'PO-2844',
+    orderNumber: '2844',
     replenishmentId: null,
     siteId: '1054',
     fromWarehouseId: '1055',
@@ -400,7 +400,7 @@ export const INCOMING_SHIPMENTS = [
     shipmentStatus: 'In Transit',
     isDelayed: false,
     updatedDate: '2026-10-25',
-    linkedOrder: 'PO-2844',
+    linkedOrder: '2844',
   },
   {
     shipmentId: 'SH-7812',
@@ -429,7 +429,7 @@ export const INCOMING_SHIPMENTS = [
 export const ORDER_STATUS_HISTORY = [
   {
     historyId: 1,
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     orderType: 'PRODUCTION',
     replenishmentId: null,
     fromStatus: null,
@@ -441,7 +441,7 @@ export const ORDER_STATUS_HISTORY = [
   },
   {
     historyId: 2,
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     orderType: 'PRODUCTION',
     replenishmentId: null,
     fromStatus: 'new',
@@ -453,7 +453,7 @@ export const ORDER_STATUS_HISTORY = [
   },
   {
     historyId: 3,
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     orderType: 'PRODUCTION',
     replenishmentId: null,
     fromStatus: 'approved',
@@ -465,7 +465,7 @@ export const ORDER_STATUS_HISTORY = [
   },
   {
     historyId: 4,
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     orderType: 'PRODUCTION',
     replenishmentId: null,
     fromStatus: 'requested',
@@ -477,7 +477,7 @@ export const ORDER_STATUS_HISTORY = [
   },
   {
     historyId: 5,
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     orderType: 'PRODUCTION',
     replenishmentId: null,
     fromStatus: 'accepted',
@@ -489,7 +489,7 @@ export const ORDER_STATUS_HISTORY = [
   },
   {
     historyId: 6,
-    orderNumber: 'PO-2843',
+    orderNumber: '2843',
     orderType: 'PRODUCTION',
     replenishmentId: null,
     fromStatus: 'dispatched',
@@ -561,9 +561,9 @@ export const NOTIFICATIONS = [
     severity: 'critical',
     type: 'no_feasible',
     title: 'Sourcing Infeasible',
-    message: 'PO-2846 no feasible option — all scenarios exhausted',
+    message: 'Order 2846 no feasible option — all scenarios exhausted',
     actionLabel: 'Review',
-    actionUrl: '/orders?id=PO-2846',
+    actionUrl: '/orders?id=2846',
     isRead: false,
     createdAt: '2026-11-01T11:45:00Z',
   },
@@ -599,7 +599,7 @@ export const AUDIT_LOGS = [
     userId: 'USR-1054-01',
     actionType: 'ORDER_APPROVED',
     targetEntity: 'Fact_Table_Orders',
-    targetId: 'PO-2842',
+    targetId: '2842',
     details: { option: 1, selectedGreen: 'Gc-14', price: 4.10, source: 'Local Alternate' },
     createdAt: '2026-10-21T11:30:00Z',
   },
