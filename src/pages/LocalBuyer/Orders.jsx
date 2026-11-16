@@ -603,28 +603,28 @@ export default function Orders() {
         <div style={{
           background: '#FFFFFF',
           border: `1px solid ${C.border}`,
-          borderRadius: 12,
-          boxShadow: '0 2px 8px rgba(48,39,43,0.04), 0 1px 3px rgba(48,39,43,0.02)',
+          borderRadius: 10,
+          boxShadow: '0 1px 3px rgba(59,45,52,0.05)',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
         }}>
 
-          {/* ── SECTION 1: MINIMALIST HEADER & SPECIFICATION STRIP ── */}
+          {/* ── SECTION 1: HEADER & SPECIFICATION STRIP (Aligned with Dashboard & Inventory) ── */}
           <div style={{
-            padding: '18px 24px 16px',
+            padding: '16px 20px 14px',
             borderBottom: `1px solid ${C.divider}`,
             background: '#FFFFFF',
           }}>
             {/* Top Row: Location & Status Badges */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{
-                  fontSize: 11,
-                  fontWeight: 700,
+                  fontSize: 10,
+                  fontWeight: 600,
                   color: C.muted,
                   textTransform: 'uppercase',
-                  letterSpacing: '0.6px',
+                  letterSpacing: '0.4px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 5,
@@ -642,9 +642,9 @@ export default function Orders() {
                     alignItems: 'center',
                     gap: 4,
                     padding: '2px 8px',
-                    borderRadius: 12,
+                    borderRadius: 20,
                     fontSize: 10,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     background: '#EDF7F1',
                     color: '#1E8A3C',
                     border: '1px solid #B4DDBD',
@@ -659,9 +659,9 @@ export default function Orders() {
                     alignItems: 'center',
                     gap: 4,
                     padding: '2px 8px',
-                    borderRadius: 12,
+                    borderRadius: 20,
                     fontSize: 10,
-                    fontWeight: 700,
+                    fontWeight: 600,
                     background: '#FAF5FF',
                     color: '#6B21A8',
                     border: '1px solid #E9D5FF',
@@ -674,14 +674,14 @@ export default function Orders() {
               </div>
             </div>
 
-            {/* Main Order ID Title & Clean Subtitle */}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+            {/* Main Order ID Title & Subtitle */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: C.text, letterSpacing: '-0.3px', lineHeight: 1.25 }}>
                 {currentOrder.id}
               </div>
               <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>
                 {currentOrder.orderType === 'REPLENISHMENT' ? (
-                  <span style={{ fontWeight: 700, color: '#16A34A' }}>
+                  <span style={{ fontWeight: 600, color: '#16A34A' }}>
                     Safety Threshold Replenishment · Raw Green Coffee Restock
                   </span>
                 ) : (
@@ -694,7 +694,7 @@ export default function Orders() {
               </div>
             </div>
 
-            {/* Minimalist Professional Specs Strip (Single clean surface, unboxed) */}
+            {/* Minimalist Professional Specs Strip */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(4, 1fr)',
@@ -705,40 +705,40 @@ export default function Orders() {
             }}>
               {/* Metric 1: Green Material */}
               <div style={{ paddingRight: 12, borderRight: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
                   Green Material
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {currentOrder.greenId} · {currentOrder.greenName}
                 </div>
               </div>
 
               {/* Metric 2: Quantity */}
               <div style={{ padding: '0 12px', borderRight: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
                   Order Quantity
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
                   {currentOrder.quantityStr || `${(currentOrder.orderQuantity || 0).toLocaleString()} kg`}
                 </div>
               </div>
 
               {/* Metric 3: Need-By Target */}
               <div style={{ padding: '0 12px', borderRight: `1px solid ${C.border}` }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
                   Need-By Date
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
                   {currentOrder.needByFull || currentOrder.needBy || 'On Schedule'}
                 </div>
               </div>
 
               {/* Metric 4: Shipment Ref */}
               <div style={{ paddingLeft: 12 }}>
-                <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 2 }}>
                   Shipment Tracking
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: currentOrder.shipmentId ? C.rose : C.subtle, marginTop: 2 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: currentOrder.shipmentId ? C.rose : C.subtle }}>
                   {currentOrder.isLocalFulfilled ? (
                     <span style={{ color: '#16A34A', fontSize: 12 }}>Internal Bay Pull</span>
                   ) : currentOrder.shipmentId ? (
@@ -749,7 +749,7 @@ export default function Orders() {
                         padding: 0,
                         border: 'none',
                         background: 'none',
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: 700,
                         color: C.rose,
                         cursor: 'pointer',
@@ -769,17 +769,17 @@ export default function Orders() {
             </div>
           </div>
 
-          {/* ── BODY AREA: Padding 20px ── */}
+          {/* ── BODY AREA: Padding 16px 20px, Gap 14 (Same as Dashboard & Inventory) ── */}
           <div style={{
-            padding: '20px 24px',
+            padding: '16px 20px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 18,
+            gap: 14,
           }}>
 
-            {/* ── SECTION 3: SOURCING OPTIONS (EVALUATION) vs ACTIVE TRACKING (EXECUTION) ── */}
+            {/* ── SECTION 2: SOURCING OPTIONS vs ACTIVE TRACKING ── */}
             {currentOrder.options && currentOrder.options.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 290px', gap: 16, alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, alignItems: 'start' }}>
 
                 {/* Left Inner: Sourcing options list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -788,7 +788,7 @@ export default function Orders() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                         Feasible Sourcing Options
                       </div>
-                      <div style={{ fontSize: 10, color: C.subtle, marginTop: 1 }}>
+                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
                         {currentOrder.options.length} options evaluated · 100% demand quantity covered
                       </div>
                     </div>
@@ -816,7 +816,7 @@ export default function Orders() {
                         key={opt.id}
                         onClick={() => setSelectedOptionIndex(oIdx)}
                         style={{
-                          padding: '13px 15px',
+                          padding: '12px 14px',
                           borderRadius: 8,
                           border: isOptSelected ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
                           borderLeft: isOptSelected ? '4px solid #16A34A' : `1px solid ${C.border}`,
@@ -827,7 +827,7 @@ export default function Orders() {
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <span style={{ fontSize: 9.5, fontWeight: 700, color: isOptSelected ? '#15803D' : C.plum, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+                          <span style={{ fontSize: 10, fontWeight: 600, color: isOptSelected ? '#15803D' : C.plum, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
                             {opt.tag}
                           </span>
                           {opt.bestValue && (
@@ -844,18 +844,18 @@ export default function Orders() {
                             </span>
                           )}
                         </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 2 }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 2 }}>
                           {opt.title}
                         </div>
-                        <div style={{ fontSize: 10.5, color: C.muted, marginBottom: 8 }}>
+                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
                           {opt.subtitle}
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: `1px solid ${C.divider}` }}>
                           <div>
-                            <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{opt.totalPrice}</span>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{opt.totalPrice}</span>
                             <span style={{ fontSize: 10.5, color: C.subtle, marginLeft: 4 }}>({opt.perKg})</span>
                           </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#1E8A3C', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: '#1E8A3C', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             <Clock size={11} />
                             {opt.eta}
                           </span>
@@ -870,15 +870,15 @@ export default function Orders() {
                   <div style={{
                     background: '#FFFFFF',
                     border: `1px solid ${C.border}`,
-                    borderRadius: 10,
-                    padding: '16px',
+                    borderRadius: 8,
+                    padding: '14px 16px',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 12,
-                    boxShadow: '0 2px 6px rgba(48,39,43,0.04)',
+                    gap: 10,
+                    boxShadow: '0 1px 3px rgba(59,45,52,0.05)',
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: C.plum, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                      <span style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                         Selected Sourcing Model
                       </span>
                       <span style={{
@@ -895,10 +895,10 @@ export default function Orders() {
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: C.text }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                         {currentOption.optionName}
                       </div>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
                         {currentOption.optionSub}
                       </div>
                     </div>
@@ -913,7 +913,7 @@ export default function Orders() {
                       borderBottom: `1px solid ${C.divider}`,
                     }}>
                       {currentOption.breakdown?.map((row, rIdx) => (
-                        <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5 }}>
+                        <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
                           <span style={{ color: C.muted }}>{row.label}</span>
                           <span style={{ fontWeight: 600, color: C.text }}>{row.val}</span>
                         </div>
@@ -922,24 +922,24 @@ export default function Orders() {
 
                     {/* Total Cost Highlight */}
                     <div>
-                      <div style={{ fontSize: 9.5, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
                         Total Delivered Cost
                       </div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#1F171B', lineHeight: 1.1, marginTop: 3 }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1.1, marginTop: 2 }}>
                         {currentOption.totalDelivered}
                       </div>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 2 }}>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
                         {currentOption.totalPerKg} · Landed at Roasting Bay
                       </div>
                     </div>
 
                     <div style={{
-                      padding: '6px 8px',
+                      padding: '6px 10px',
                       borderRadius: 6,
                       background: '#EDF7F1',
                       color: '#1E8A3C',
-                      fontSize: 10.5,
-                      fontWeight: 700,
+                      fontSize: 11,
+                      fontWeight: 600,
                       textAlign: 'center',
                       border: '1px solid #B4DDBD',
                     }}>
@@ -952,19 +952,19 @@ export default function Orders() {
               /* Active Lifecycle Status / Tracking Info for In-Flight Orders */
               <div style={{
                 background: '#FAF9FA',
-                border: `1px solid ${C.divider}`,
-                borderRadius: 10,
-                padding: '18px 20px',
+                border: `1px solid ${C.border}`,
+                borderRadius: 8,
+                padding: '14px 16px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 14,
+                gap: 12,
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 8,
+                      width: 32,
+                      height: 32,
+                      borderRadius: 6,
                       background: currentMeta.bg,
                       border: `1px solid ${currentMeta.border}`,
                       display: 'flex',
@@ -972,10 +972,10 @@ export default function Orders() {
                       justifyContent: 'center',
                       color: currentMeta.color,
                     }}>
-                      <Truck size={20} />
+                      <Truck size={17} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
                         Fulfillment & Execution Tracking
                       </div>
                       <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
@@ -991,8 +991,8 @@ export default function Orders() {
                   color: C.text,
                   lineHeight: 1.5,
                   background: '#FFFFFF',
-                  padding: '12px 14px',
-                  borderRadius: 8,
+                  padding: '10px 14px',
+                  borderRadius: 6,
                   border: `1px solid ${C.border}`,
                 }}>
                   {currentOrder.notes || currentMeta.desc}
@@ -1002,35 +1002,35 @@ export default function Orders() {
                   <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(3, 1fr)',
-                    gap: 12,
+                    gap: 10,
                     background: '#FFFFFF',
-                    padding: '12px 14px',
-                    borderRadius: 8,
+                    padding: '10px 14px',
+                    borderRadius: 6,
                     border: `1px solid ${C.border}`,
                   }}>
                     <div>
-                      <div style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.4px' }}>
                         Designated Carrier
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
                         {currentOrder.carrierName}
                       </div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.4px' }}>
                         Waybill / Tracking No.
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: C.rose, fontFamily: 'monospace' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.rose, fontFamily: 'monospace' }}>
                         {currentOrder.trackingNumber || 'DIRECT-SHUTTLE'}
                       </div>
                     </div>
 
                     <div>
-                      <div style={{ fontSize: 9.5, fontWeight: 600, color: C.subtle, textTransform: 'uppercase', marginBottom: 2 }}>
+                      <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', marginBottom: 2, letterSpacing: '0.4px' }}>
                         Destination Bay
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
                         Site 1054 · Roasting Dock 2
                       </div>
                     </div>
@@ -1040,10 +1040,10 @@ export default function Orders() {
             )}
           </div>
 
-          {/* ── SECTION 4: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR) ── */}
+          {/* ── SECTION 3: CONTEXTUAL LOCAL BUYER ACTION DOCK (BOTTOM BAR) ── */}
           <div style={{
             borderTop: `1px solid ${C.divider}`,
-            padding: '14px 24px',
+            padding: '12px 20px',
             background: '#FAF8F9',
             display: 'flex',
             justifyContent: 'space-between',
@@ -1055,7 +1055,7 @@ export default function Orders() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                padding: '8px 14px',
+                padding: '6px 12px',
                 borderRadius: 6,
                 border: `1px solid ${C.border}`,
                 background: '#FFFFFF',

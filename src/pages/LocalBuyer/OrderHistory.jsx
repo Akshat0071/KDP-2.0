@@ -3,6 +3,8 @@ import {
   History,
   Search,
   Clock,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
 import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
@@ -13,8 +15,8 @@ const C = {
   text: '#1F171B',
   muted: '#71656B',
   subtle: '#A0949B',
-  border: '#EDE5EA',
-  divider: '#F5EFF3',
+  border: '#E6DCE2',
+  divider: '#F0EAEE',
   plum: '#30272B',
   rose: '#D83F79',
   hover: '#FAF5F8',
@@ -28,6 +30,10 @@ export default function OrderHistory() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrderForModal, setSelectedOrderForModal] = useState(null);
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const pageSize = 12;
 
   // Filter orders for active site (Site 1054)
   const siteOrders = useMemo(() => {
@@ -75,42 +81,65 @@ export default function OrderHistory() {
     });
   }, [siteOrders, orderTypeFilter, statusFilter, searchQuery]);
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 1440, margin: '0 auto' }}>
+  const totalPages = Math.ceil(filteredOrders.length / pageSize) || 1;
+  const safePage = Math.min(page, totalPages);
+  const paginatedOrders = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredOrders.slice(start, start + pageSize);
+  }, [filteredOrders, safePage, pageSize]);
 
-      {/* ── Page Header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+  const handleTypeChange = (type) => {
+    setOrderTypeFilter(type);
+    setPage(1);
+  };
+
+  const handleStatusChange = (status) => {
+    setStatusFilter(status);
+    setPage(1);
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchQuery(val);
+    setPage(1);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, width: '100%' }}>
+
+      {/* ── Page Header (aligned with Dashboard & Inventory) ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 10, color: C.muted, marginBottom: 3, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
+            Site 1054 Plano Roasting · Enterprise Audit Records
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: 8,
+              width: 28,
+              height: 28,
+              borderRadius: 6,
               background: '#30272B',
               color: '#FFFFFF',
             }}>
-              <History size={16} />
+              <History size={15} />
             </span>
-            <div>
-              <h1 style={{ fontSize: 24, fontWeight: 700, color: C.text, margin: 0, letterSpacing: '-0.3px' }}>
-                Order History & Audit Trail
-              </h1>
-              <p style={{ fontSize: 12, color: C.muted, margin: '2px 0 0' }}>
-                Chronological record of production fulfillment transfers and site safety threshold replenishment orders.
-              </p>
-            </div>
+            <h1 style={{ fontSize: 22, fontWeight: 700, color: C.text, margin: 0, letterSpacing: '-0.3px', lineHeight: 1.25 }}>
+              Order History & Audit Trail
+            </h1>
           </div>
+          <p style={{ fontSize: 11.5, color: C.muted, margin: '4px 0 0' }}>
+            Comprehensive chronological record of production fulfillment and site safety threshold replenishment orders.
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{
-            fontSize: 11,
-            fontWeight: 600,
-            padding: '4px 10px',
-            borderRadius: 6,
+            fontSize: 10,
+            fontWeight: 700,
+            padding: '3px 8px',
+            borderRadius: 20,
             background: '#FAF0F5',
             color: C.rose,
             border: '1px solid #F3D2E2',
@@ -120,13 +149,13 @@ export default function OrderHistory() {
         </div>
       </div>
 
-      {/* ── Key Metrics Overview Deck ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
-        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+      {/* ── Key Metrics Overview Deck (Same card tokens as Dashboard) ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', boxShadow: '0 1px 3px rgba(59,45,52,0.05)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
             Total Orders Logged
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: C.text, marginTop: 3 }}>
             {stats.total}
           </div>
           <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
@@ -134,11 +163,11 @@ export default function OrderHistory() {
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', boxShadow: '0 1px 3px rgba(59,45,52,0.05)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#0284C7', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
             Production Roasting
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#0284C7', marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#0284C7', marginTop: 3 }}>
             {stats.production}
           </div>
           <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
@@ -146,11 +175,11 @@ export default function OrderHistory() {
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', boxShadow: '0 1px 3px rgba(59,45,52,0.05)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#16A34A', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
             Safety Replenishments
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A', marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#16A34A', marginTop: 3 }}>
             {stats.replenishment}
           </div>
           <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
@@ -158,11 +187,11 @@ export default function OrderHistory() {
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', boxShadow: '0 1px 3px rgba(59,45,52,0.05)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
             Active In Transit
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#D97706', marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#D97706', marginTop: 3 }}>
             {stats.inTransit}
           </div>
           <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
@@ -170,11 +199,11 @@ export default function OrderHistory() {
           </div>
         </div>
 
-        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 16px' }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: '#6B46C1', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <div style={{ background: '#FFFFFF', border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', boxShadow: '0 1px 3px rgba(59,45,52,0.05)' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, color: '#6B46C1', textTransform: 'uppercase', letterSpacing: '0.4px' }}>
             Received & Closed
           </div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#6B46C1', marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#6B46C1', marginTop: 3 }}>
             {stats.closed}
           </div>
           <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
@@ -183,7 +212,7 @@ export default function OrderHistory() {
         </div>
       </div>
 
-      {/* ── Filters Bar ── */}
+      {/* ── Filters Bar (Same card tokens as Dashboard) ── */}
       <div style={{
         background: '#FFFFFF',
         border: `1px solid ${C.border}`,
@@ -191,14 +220,15 @@ export default function OrderHistory() {
         padding: '12px 16px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 12,
+        gap: 10,
+        boxShadow: '0 1px 3px rgba(59,45,52,0.05)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
 
           {/* Primary Order Type Switcher */}
           <div style={{ display: 'flex', gap: 6, background: '#F8F4F6', padding: 3, borderRadius: 8 }}>
             <button
-              onClick={() => setOrderTypeFilter('all')}
+              onClick={() => handleTypeChange('all')}
               style={{
                 border: 'none',
                 padding: '6px 14px',
@@ -214,7 +244,7 @@ export default function OrderHistory() {
               All Types ({stats.total})
             </button>
             <button
-              onClick={() => setOrderTypeFilter('PRODUCTION')}
+              onClick={() => handleTypeChange('PRODUCTION')}
               style={{
                 border: 'none',
                 padding: '6px 14px',
@@ -230,7 +260,7 @@ export default function OrderHistory() {
               Production Demand ({stats.production})
             </button>
             <button
-              onClick={() => setOrderTypeFilter('REPLENISHMENT')}
+              onClick={() => handleTypeChange('REPLENISHMENT')}
               style={{
                 border: 'none',
                 padding: '6px 14px',
@@ -253,7 +283,7 @@ export default function OrderHistory() {
             <input
               type="text"
               value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              onChange={e => handleSearchChange(e.target.value)}
               placeholder="Search by order #, green bean, or shipment..."
               style={{
                 width: '100%',
@@ -275,7 +305,7 @@ export default function OrderHistory() {
             Status:
           </span>
           <button
-            onClick={() => setStatusFilter('all')}
+            onClick={() => handleStatusChange('all')}
             style={{
               padding: '3px 10px',
               borderRadius: 6,
@@ -296,7 +326,7 @@ export default function OrderHistory() {
             return (
               <button
                 key={statusKey}
-                onClick={() => setStatusFilter(statusKey)}
+                onClick={() => handleStatusChange(statusKey)}
                 style={{
                   padding: '3px 10px',
                   borderRadius: 6,
@@ -326,55 +356,56 @@ export default function OrderHistory() {
         </div>
       </div>
 
-      {/* ── Master Orders History Table ── */}
+      {/* ── Master Orders History Table (Full page width) ── */}
       <div style={{
         background: '#FFFFFF',
         border: `1px solid ${C.border}`,
         borderRadius: 10,
         overflow: 'hidden',
-        boxShadow: '0 1px 3px rgba(48,39,43,0.04)',
+        boxShadow: '0 1px 3px rgba(59,45,52,0.05)',
+        width: '100%',
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
           <thead>
-            <tr style={{ background: '#FAF8F9', borderBottom: `1px solid ${C.border}` }}>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
+            <tr style={{ background: '#FDFBFC', borderBottom: `1px solid ${C.border}` }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
                 Order #
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
                 Order Type
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
                 Green Material
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', textAlign: 'right' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase', textAlign: 'right' }}>
                 Quantity
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
                 Optimal Sourcing Mode
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
                 Linked Shipment
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', textAlign: 'right' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase', textAlign: 'right' }}>
                 Landed Cost
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', textAlign: 'center' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase', textAlign: 'center' }}>
                 Lifecycle Status
               </th>
-              <th style={{ padding: '10px 14px', fontSize: 10, fontWeight: 700, color: C.muted, textTransform: 'uppercase', textAlign: 'center' }}>
+              <th style={{ padding: '8px 14px', fontSize: 10, fontWeight: 600, color: C.subtle, letterSpacing: '0.4px', textTransform: 'uppercase', textAlign: 'center' }}>
                 Audit Stepper
               </th>
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.length === 0 ? (
+            {paginatedOrders.length === 0 ? (
               <tr>
                 <td colSpan={9} style={{ padding: 36, textAlign: 'center', color: C.muted, fontSize: 12 }}>
                   No orders match the selected filters or search query.
                 </td>
               </tr>
             ) : (
-              filteredOrders.map((ord, idx) => {
+              paginatedOrders.map((ord, idx) => {
                 const meta = getOrderStatusMeta(ord.status);
                 const isReplenish = ord.orderType === 'REPLENISHMENT';
 
@@ -382,74 +413,75 @@ export default function OrderHistory() {
                   <tr
                     key={ord.id}
                     style={{
-                      borderBottom: idx < filteredOrders.length - 1 ? `1px solid ${C.divider}` : 'none',
+                      borderBottom: idx < paginatedOrders.length - 1 ? `1px solid ${C.divider}` : 'none',
                       transition: 'background 0.12s ease',
                     }}
                     onMouseEnter={e => { e.currentTarget.style.background = C.hover; }}
                     onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; }}
                   >
                     {/* Column 1: Order Number */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: C.plum }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: C.plum }}>
                         {ord.id}
                       </span>
                     </td>
 
                     {/* Column 2: Order Type */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
                       {isReplenish ? (
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4,
+                          padding: '2px 8px',
+                          borderRadius: 20,
                           fontSize: 10,
-                          fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: 4,
+                          fontWeight: 600,
                           background: '#EDF7F1',
                           color: '#16A34A',
                           border: '1px solid #B4DDBD',
                         }}>
-                          SAFETY REPLENISHMENT
+                          Replenishment
                         </span>
                       ) : (
                         <span style={{
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 4,
+                          padding: '2px 8px',
+                          borderRadius: 20,
                           fontSize: 10,
-                          fontWeight: 700,
-                          padding: '3px 8px',
-                          borderRadius: 4,
+                          fontWeight: 600,
                           background: '#F0F9FF',
                           color: '#0284C7',
                           border: '1px solid #BAE6FD',
                         }}>
-                          PRODUCTION DEMAND
+                          Production
                         </span>
                       )}
                     </td>
 
-                    {/* Green Material */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.plum }}>
-                        {ord.greenId}
+                    {/* Column 3: Green Material */}
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
+                        {ord.greenName || '—'}
                       </div>
-                      <div style={{ fontSize: 10, color: C.muted }}>
-                        {ord.greenName}
+                      <div style={{ fontSize: 10.5, color: C.muted }}>
+                        {ord.greenId || '—'}
+                        {ord.fgMaterialDescription && ` · ${ord.fgMaterialDescription}`}
                       </div>
                     </td>
 
                     {/* Quantity */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
                       <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
-                        {(ord.orderQuantity || 0).toLocaleString()} kg
+                        {ord.quantityStr || `${(ord.orderQuantity || 0).toLocaleString()} kg`}
                       </span>
                     </td>
 
                     {/* Sourcing Source */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.text }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: C.text }}>
                         {ord.isLocalFulfilled
                           ? 'Local Inventory (Site 1054)'
                           : (ord.selectedOption?.sourceName || (ord.options && ord.options[0]?.sourceName) || ord.warehouse || 'Warehouse 1055')}
@@ -460,7 +492,7 @@ export default function OrderHistory() {
                     </td>
 
                     {/* Linked Shipment */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle' }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
                       {ord.shipmentId ? (
                         <div>
                           <span style={{ fontSize: 11, fontWeight: 700, color: C.rose }}>
@@ -478,8 +510,8 @@ export default function OrderHistory() {
                     </td>
 
                     {/* Landed Cost */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: C.plum }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'right' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: C.plum }}>
                         ${(ord.totalDelivered || (ord.orderQuantity * (ord.unitPrice || 4.10))).toLocaleString()}
                       </div>
                       <div style={{ fontSize: 9.5, color: C.muted }}>
@@ -488,15 +520,15 @@ export default function OrderHistory() {
                     </td>
 
                     {/* Status Badge */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'center' }}>
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
-                        padding: '3px 8px',
-                        borderRadius: 6,
+                        padding: '2px 8px',
+                        borderRadius: 20,
                         fontSize: 10,
-                        fontWeight: 700,
+                        fontWeight: 600,
                         background: meta.bg,
                         color: meta.color,
                         border: `1px solid ${meta.border}`,
@@ -508,7 +540,7 @@ export default function OrderHistory() {
                     </td>
 
                     {/* Audit Stepper Button */}
-                    <td style={{ padding: '12px 14px', verticalAlign: 'middle', textAlign: 'center' }}>
+                    <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'center' }}>
                       <button
                         onClick={() => setSelectedOrderForModal(ord)}
                         style={{
@@ -517,7 +549,7 @@ export default function OrderHistory() {
                           gap: 4,
                           padding: '4px 10px',
                           borderRadius: 6,
-                          fontSize: 10,
+                          fontSize: 10.5,
                           fontWeight: 600,
                           background: '#F8F4F6',
                           color: C.plum,
@@ -536,9 +568,93 @@ export default function OrderHistory() {
             )}
           </tbody>
         </table>
+
+        {/* Pagination Bar matching Inventory */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 16px',
+          borderTop: `1px solid ${C.divider}`,
+          background: '#FAF8F9',
+        }}>
+          <span style={{ fontSize: 10.5, color: C.muted }}>
+            Showing <strong>{filteredOrders.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredOrders.length)}</strong> of <strong>{filteredOrders.length}</strong> orders
+          </span>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'transparent',
+                color: page <= 1 ? C.subtle : C.text,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: page <= 1 ? 'default' : 'pointer',
+              }}
+            >
+              <ChevronLeft size={13} />
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+              const isActive = pageNum === page;
+              return (
+                <button
+                  key={pageNum}
+                  type="button"
+                  onClick={() => setPage(pageNum)}
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    border: 'none',
+                    background: isActive ? C.plum : 'transparent',
+                    color: isActive ? '#FFFFFF' : C.text,
+                    fontSize: 10.5,
+                    fontWeight: isActive ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.12s ease',
+                  }}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                border: 'none',
+                background: 'transparent',
+                color: page >= totalPages ? C.subtle : C.text,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: page >= totalPages ? 'default' : 'pointer',
+              }}
+            >
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* ── Order Status History Modal ── */}
+      {/* ── Order Status History Modal (Spacious Full Page Modal) ── */}
       {selectedOrderForModal && (
         <div style={{
           position: 'fixed',
@@ -555,10 +671,10 @@ export default function OrderHistory() {
           <div
             style={{
               background: '#FFFFFF',
-              borderRadius: 12,
+              borderRadius: 10,
               padding: 24,
-              maxWidth: 620,
-              width: '100%',
+              maxWidth: 960,
+              width: '95vw',
               maxHeight: '90vh',
               overflowY: 'auto',
               boxShadow: '0 8px 30px rgba(0,0,0,0.2)',
@@ -568,20 +684,20 @@ export default function OrderHistory() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 16, fontWeight: 800, color: C.text }}>
+                  <span style={{ fontSize: 18, fontWeight: 800, color: C.text }}>
                     {selectedOrderForModal.id}
                   </span>
                   {selectedOrderForModal.orderType === 'REPLENISHMENT' ? (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#EDF7F1', color: '#16A34A', border: '1px solid #B4DDBD' }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#EDF7F1', color: '#16A34A', border: '1px solid #B4DDBD' }}>
                       THRESHOLD REPLENISHMENT
                     </span>
                   ) : (
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD' }}>
+                    <span style={{ fontSize: 9.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#F0F9FF', color: '#0284C7', border: '1px solid #BAE6FD' }}>
                       PRODUCTION FULFILLMENT
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                <div style={{ fontSize: 11.5, color: C.muted, marginTop: 3 }}>
                   {selectedOrderForModal.greenName} ({selectedOrderForModal.greenId}) · {(selectedOrderForModal.orderQuantity || 0).toLocaleString()} kg
                 </div>
               </div>
@@ -594,9 +710,9 @@ export default function OrderHistory() {
               </button>
             </div>
 
-            {/* Stepper Component */}
+            {/* Stepper Component (Spacious horizontal lifecycle) */}
             <div style={{ borderTop: `1px solid ${C.divider}`, paddingTop: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 12 }}>
                 Full Canonical 9-Stage Lifecycle Stepper
               </div>
               <OrderLifecycleStepper
@@ -608,7 +724,7 @@ export default function OrderHistory() {
 
             {/* Historical Audit Trail List */}
             <div style={{ marginTop: 20, borderTop: `1px solid ${C.divider}`, paddingTop: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: C.subtle, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 12 }}>
                 Status Transition Audit Trail (Fact_Table_Order_Status_History)
               </div>
               <OrderLifecycleStepper
