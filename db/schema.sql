@@ -1,25 +1,28 @@
 -- ==============================================================================
 -- KDP GreenSource Enterprise Relational Database Schema (PostgreSQL)
--- Integrated Production Sourcing, Inventory Visibility & Automated Replenishment
--- All Primary Keys, Foreign Keys, and Order Numbers strictly typed as INTEGER
+-- Categorized strictly into Dimension Tables and Fact Tables
+-- All Primary Keys, Foreign Keys, and Order Numbers typed as INTEGER
 -- ==============================================================================
 
--- Drop tables in reverse dependency order to avoid foreign key conflicts
-DROP TABLE IF EXISTS "Platform_Table_Audit_Logs" CASCADE;
-DROP TABLE IF EXISTS "Application_Table_Notifications" CASCADE;
-DROP TABLE IF EXISTS "Fact_Table_Order_Status_History" CASCADE;
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS "Fact_Table_Audit_Logs" CASCADE;
+DROP TABLE IF EXISTS "Fact_Table_Notifications" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Shipment_Details" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Optimization_Table" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Orders" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Inventory" CASCADE;
-DROP TABLE IF EXISTS "Application_Table_Shipping_Cost" CASCADE;
-DROP TABLE IF EXISTS "Application_Table_Green_Material_Alternate" CASCADE;
+DROP TABLE IF EXISTS "Dimension_Table_Shipping_Cost" CASCADE;
+DROP TABLE IF EXISTS "Dimension_Table_Green_Material_Alternate" CASCADE;
 DROP TABLE IF EXISTS "Dimension_Table_Green_Materials" CASCADE;
-DROP TABLE IF EXISTS "Platform_Table_User_Info" CASCADE;
+DROP TABLE IF EXISTS "Dimension_Table_User_Info" CASCADE;
 DROP TABLE IF EXISTS "Dimension_Table_Site" CASCADE;
 
+-- ==============================================================================
+-- PART 1: DIMENSION TABLES (Contextual Master / Reference Data)
+-- ==============================================================================
+
 -- ------------------------------------------------------------------------------
--- 1. Dimension_Table_Site (Merged Sites & Warehouses)
+-- 1. Dimension_Table_Site (Facilities: Roasting Plants & Central Warehouses)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Dimension_Table_Site" (
   "Site_ID" INT PRIMARY KEY,
@@ -29,9 +32,9 @@ CREATE TABLE "Dimension_Table_Site" (
 );
 
 -- ------------------------------------------------------------------------------
--- 2. Platform_Table_User_Info (User Authentication & Profiles)
+-- 2. Dimension_Table_User_Info (User Authentication & Profiles)
 -- ------------------------------------------------------------------------------
-CREATE TABLE "Platform_Table_User_Info" (
+CREATE TABLE "Dimension_Table_User_Info" (
   "User_ID" INT PRIMARY KEY,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
   "Email" VARCHAR(128) NOT NULL UNIQUE,
@@ -43,8 +46,7 @@ CREATE TABLE "Platform_Table_User_Info" (
 );
 
 -- ------------------------------------------------------------------------------
--- 3. Dimension_Table_Green_Materials (Catalog & Baseline Cost)
--- (Thresholds are maintained in Fact_Table_Inventory per site)
+-- 3. Dimension_Table_Green_Materials (Master Green Coffee Catalog)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Dimension_Table_Green_Materials" (
   "Green_Material_ID" INT PRIMARY KEY,
@@ -53,27 +55,30 @@ CREATE TABLE "Dimension_Table_Green_Materials" (
 );
 
 -- ------------------------------------------------------------------------------
--- 4. Application_Table_Green_Material_Alternate (Approved Sourcing Alternates)
+-- 4. Dimension_Table_Green_Material_Alternate (Approved Sourcing Alternates)
 -- ------------------------------------------------------------------------------
-CREATE TABLE "Application_Table_Green_Material_Alternate" (
+CREATE TABLE "Dimension_Table_Green_Material_Alternate" (
   "Green_Material_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE CASCADE,
   "Alternate_Green_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE CASCADE,
   PRIMARY KEY ("Green_Material_ID", "Alternate_Green_ID")
 );
 
 -- ------------------------------------------------------------------------------
--- 5. Application_Table_Shipping_Cost (Whiteboard Fixed Freight Matrix)
+-- 5. Dimension_Table_Shipping_Cost (Freight Lookup Rate Matrix)
 -- ------------------------------------------------------------------------------
-CREATE TABLE "Application_Table_Shipping_Cost" (
+CREATE TABLE "Dimension_Table_Shipping_Cost" (
   "Warehouse_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
   "Cost" NUMERIC(10, 2) NOT NULL CHECK ("Cost" >= 0),
   PRIMARY KEY ("Warehouse_ID", "Site_ID")
 );
 
+-- ==============================================================================
+-- PART 2: FACT TABLES (Transactions, Inventory Snapshots & Operational Events)
+-- ==============================================================================
+
 -- ------------------------------------------------------------------------------
--- 6. Fact_Table_Inventory (Local Facility Stock & Minimum Safety Thresholds)
--- (Quantity_Incoming and Safety_Status are dynamically computed by the system)
+-- 6. Fact_Table_Inventory (Periodic Stock Level & Safety Threshold Snapshot)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Fact_Table_Inventory" (
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
@@ -93,10 +98,10 @@ CREATE TABLE "Fact_Table_Orders" (
   "Order_Number" INT PRIMARY KEY,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
   "Order_Type" VARCHAR(32) NOT NULL DEFAULT 'PRODUCTION' CHECK ("Order_Type" IN ('PRODUCTION', 'REPLENISHMENT')),
-  "FG_Material_ID" INT NULL,            -- NULL for safety replenishment orders
-  "FG_Material_Description" VARCHAR(255) NULL,  -- NULL for safety replenishment orders
-  "Brand" VARCHAR(128) NULL,                    -- NULL for safety replenishment orders
-  "Brand_Type" VARCHAR(64) NULL,                -- NULL for safety replenishment orders
+  "FG_Material_ID" INT NULL,
+  "FG_Material_Description" VARCHAR(255) NULL,
+  "Brand" VARCHAR(128) NULL,
+  "Brand_Type" VARCHAR(64) NULL,
   "Green_Material_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Order_Quantity" NUMERIC(12, 2) NOT NULL CHECK ("Order_Quantity" > 0),
   "Unit_of_Measurement" VARCHAR(16) NOT NULL DEFAULT 'kg',
@@ -122,7 +127,7 @@ CREATE TABLE "Fact_Table_Optimization_Table" (
   "Order_Number" INT NOT NULL REFERENCES "Fact_Table_Orders"("Order_Number") ON DELETE CASCADE,
   "Green_Material_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
-  "Source_Type" VARCHAR(64) NOT NULL, -- 'Local Inventory' | 'Local Alternate' | 'Warehouse Fulfillment'
+  "Source_Type" VARCHAR(64) NOT NULL,
   "Source_Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE RESTRICT,
   "Selected_Green_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Selected_Green_Price" NUMERIC(10, 2) NOT NULL,
@@ -161,14 +166,14 @@ CREATE TABLE "Fact_Table_Shipment_Details" (
 );
 
 -- ------------------------------------------------------------------------------
--- 10. Application_Table_Notifications (Alerts & Action Triggers)
+-- 10. Fact_Table_Notifications (System Alert Events & Threshold Triggers)
 -- ------------------------------------------------------------------------------
-CREATE TABLE "Application_Table_Notifications" (
+CREATE TABLE "Fact_Table_Notifications" (
   "Notification_ID" INT PRIMARY KEY,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
-  "User_ID" INT NULL REFERENCES "Platform_Table_User_Info"("User_ID") ON DELETE SET NULL,
+  "User_ID" INT NULL REFERENCES "Dimension_Table_User_Info"("User_ID") ON DELETE SET NULL,
   "Severity" VARCHAR(32) NOT NULL CHECK ("Severity" IN ('critical', 'warning', 'info')),
-  "Type" VARCHAR(64) NOT NULL, -- 'below_threshold', 'no_feasible', 'transfer_delay', 'order_status_update'
+  "Type" VARCHAR(64) NOT NULL,
   "Title" VARCHAR(128) NOT NULL,
   "Message" TEXT NOT NULL,
   "Action_Label" VARCHAR(64) NULL,
@@ -178,11 +183,11 @@ CREATE TABLE "Application_Table_Notifications" (
 );
 
 -- ------------------------------------------------------------------------------
--- 11. Platform_Table_Audit_Logs (System Compliance & Operations Log)
+-- 11. Fact_Table_Audit_Logs (System Compliance & Operations Event Log)
 -- ------------------------------------------------------------------------------
-CREATE TABLE "Platform_Table_Audit_Logs" (
+CREATE TABLE "Fact_Table_Audit_Logs" (
   "Log_ID" INT PRIMARY KEY,
-  "User_ID" INT NULL REFERENCES "Platform_Table_User_Info"("User_ID") ON DELETE SET NULL,
+  "User_ID" INT NULL REFERENCES "Dimension_Table_User_Info"("User_ID") ON DELETE SET NULL,
   "Action_Type" VARCHAR(64) NOT NULL,
   "Target_Entity" VARCHAR(64) NOT NULL,
   "Target_ID" INT NOT NULL,
@@ -201,5 +206,5 @@ CREATE INDEX idx_orders_timeline ON "Fact_Table_Orders" USING GIN ("Timeline_His
 CREATE INDEX idx_shipments_order ON "Fact_Table_Shipment_Details"("Order_Number");
 CREATE INDEX idx_shipments_replenish ON "Fact_Table_Shipment_Details"("Replenishment_ID");
 CREATE INDEX idx_shipments_status ON "Fact_Table_Shipment_Details"("Shipment_Status");
-CREATE INDEX idx_notifications_site_read ON "Application_Table_Notifications"("Site_ID", "Is_Read");
-CREATE INDEX idx_audit_logs_user ON "Platform_Table_Audit_Logs"("User_ID", "Created_At");
+CREATE INDEX idx_notifications_site_read ON "Fact_Table_Notifications"("Site_ID", "Is_Read");
+CREATE INDEX idx_audit_logs_user ON "Fact_Table_Audit_Logs"("User_ID", "Created_At");
