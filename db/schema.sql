@@ -110,6 +110,8 @@ CREATE TABLE "Fact_Table_Orders" (
     'new', 'approved', 'requested', 'accepted', 'dispatched', 'in transit', 'delivered', 'received', 'closed', 'rejected'
   )),
   "Rejection_Reason" TEXT NULL,
+  "Is_Closed" BOOLEAN NOT NULL DEFAULT false,
+  "Timeline_History" JSONB NOT NULL DEFAULT '[]'::jsonb,
   "Created_At" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "Updated_Date" DATE NOT NULL DEFAULT CURRENT_DATE
 );
@@ -161,23 +163,7 @@ CREATE TABLE "Fact_Table_Shipment_Details" (
 );
 
 -- ------------------------------------------------------------------------------
--- 10. Fact_Table_Order_Status_History (Lifecycle Audit & Historical Stepper)
--- ------------------------------------------------------------------------------
-CREATE TABLE "Fact_Table_Order_Status_History" (
-  "History_ID" BIGSERIAL PRIMARY KEY,
-  "Order_Number" VARCHAR(64) NOT NULL REFERENCES "Fact_Table_Orders"("Order_Number") ON DELETE CASCADE,
-  "Order_Type" VARCHAR(32) NOT NULL DEFAULT 'PRODUCTION' CHECK ("Order_Type" IN ('PRODUCTION', 'REPLENISHMENT')),
-  "Replenishment_ID" VARCHAR(64) NULL,
-  "From_Status" VARCHAR(64) NULL,
-  "To_Status" VARCHAR(64) NOT NULL,
-  "Changed_By_User_ID" VARCHAR(64) REFERENCES "Platform_Table_User_Info"("User_ID") ON DELETE SET NULL,
-  "Actor_Role" VARCHAR(64) NOT NULL,
-  "Notes" TEXT NULL,
-  "Created_At" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- ------------------------------------------------------------------------------
--- 11. Application_Table_Notifications (Alerts & Action Triggers)
+-- 10. Application_Table_Notifications (Alerts & Action Triggers)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Application_Table_Notifications" (
   "Notification_ID" BIGSERIAL PRIMARY KEY,
@@ -194,7 +180,7 @@ CREATE TABLE "Application_Table_Notifications" (
 );
 
 -- ------------------------------------------------------------------------------
--- 12. Platform_Table_Audit_Logs (System Compliance & Operations Log)
+-- 11. Platform_Table_Audit_Logs (System Compliance & Operations Log)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Platform_Table_Audit_Logs" (
   "Log_ID" BIGSERIAL PRIMARY KEY,
@@ -207,14 +193,15 @@ CREATE TABLE "Platform_Table_Audit_Logs" (
 );
 
 -- ------------------------------------------------------------------------------
--- 13. PERFORMANCE INDEXES
+-- 12. PERFORMANCE INDEXES
 -- ------------------------------------------------------------------------------
 CREATE INDEX idx_inventory_site ON "Fact_Table_Inventory"("Site_ID");
 CREATE INDEX idx_orders_site_status ON "Fact_Table_Orders"("Site_ID", "Status");
 CREATE INDEX idx_orders_type ON "Fact_Table_Orders"("Order_Type");
+CREATE INDEX idx_orders_is_closed ON "Fact_Table_Orders"("Is_Closed");
+CREATE INDEX idx_orders_timeline ON "Fact_Table_Orders" USING GIN ("Timeline_History");
 CREATE INDEX idx_shipments_order ON "Fact_Table_Shipment_Details"("Order_Number");
 CREATE INDEX idx_shipments_replenish ON "Fact_Table_Shipment_Details"("Replenishment_ID");
 CREATE INDEX idx_shipments_status ON "Fact_Table_Shipment_Details"("Shipment_Status");
-CREATE INDEX idx_order_history_order ON "Fact_Table_Order_Status_History"("Order_Number");
 CREATE INDEX idx_notifications_site_read ON "Application_Table_Notifications"("Site_ID", "Is_Read");
 CREATE INDEX idx_audit_logs_user ON "Platform_Table_Audit_Logs"("User_ID", "Created_At");

@@ -109,41 +109,78 @@ ON CONFLICT ("Site_ID", "Green_Material_ID") DO UPDATE SET
   "Updated_Date" = CURRENT_DATE;
 
 -- 7. Fact_Table_Orders (Production Demand Orders and Threshold Replenishment Orders)
+-- Combines active queue, order history, and lifecycle audit trail (Timeline_History JSONB)
 INSERT INTO "Fact_Table_Orders" (
   "Order_Number", "Site_ID", "Order_Type", "FG_Material_ID", "FG_Material_Description",
   "Brand", "Brand_Type", "Green_Material_ID", "Order_Quantity", "Unit_of_Measurement",
-  "Final_Green_ID", "Selected_Option_ID", "Schedule_Start_Date", "Delivery_Target_Date", "Status", "Rejection_Reason", "Created_At"
+  "Final_Green_ID", "Selected_Option_ID", "Schedule_Start_Date", "Delivery_Target_Date",
+  "Status", "Rejection_Reason", "Is_Closed", "Timeline_History", "Created_At"
 ) VALUES
   (
     '2843', '1054', 'PRODUCTION', 'FG-4401', 'Dark Magic Blend Whole Bean 12oz',
     'Green Mountain Coffee Roasters', 'Signature Blend', 'Gc-04', 1200.00, 'kg',
-    'Gc-04', 1, '2026-11-10', '2026-11-09', 'in transit', NULL, '2026-10-20 09:00:00+00'
+    'Gc-04', 1, '2026-11-10', '2026-11-09', 'in transit', NULL, false,
+    '[
+      {"stage": "new", "actor": "Production System", "role": "System", "notes": "Roasting demand scheduled for Dark Magic Blend", "timestamp": "2026-10-20T09:00:00Z"},
+      {"stage": "approved", "actor": "Maya Torres", "role": "Local Buyer", "notes": "Approved lowest-cost Warehouse 1055 fulfillment option", "timestamp": "2026-10-21T10:15:00Z"},
+      {"stage": "requested", "actor": "Maya Torres", "role": "Local Buyer", "notes": "Transfer request sent to Warehouse 1055 Manager", "timestamp": "2026-10-21T10:30:00Z"},
+      {"stage": "accepted", "actor": "Marcus Vance", "role": "Warehouse Manager", "notes": "Accepted 1,200 kg Gc-04 transfer request", "timestamp": "2026-10-22T08:30:00Z"},
+      {"stage": "dispatched", "actor": "Marcus Vance", "role": "Warehouse Manager", "notes": "Staged and dispatched at Outbound Bay 3", "timestamp": "2026-10-23T14:00:00Z"},
+      {"stage": "in transit", "actor": "Freight Logistics", "role": "Carrier", "notes": "En route to Plano Roasting Site 1054", "timestamp": "2026-10-24T07:45:00Z"}
+    ]'::jsonb,
+    '2026-10-20 09:00:00+00'
   ),
   (
     '2842', '1054', 'PRODUCTION', 'FG-3108', 'Barista Reserve Medium Roast K-Cup',
     'The Original Donut Shop', 'Signature Roast', 'Gc-11', 800.00, 'kg',
-    'Gc-14', 1, '2026-11-09', '2026-11-08', 'approved', NULL, '2026-10-21 11:30:00+00'
+    'Gc-14', 1, '2026-11-09', '2026-11-08', 'approved', NULL, false,
+    '[
+      {"stage": "new", "actor": "Production System", "role": "System", "notes": "Roasting demand scheduled for Barista Reserve", "timestamp": "2026-10-21T08:00:00Z"},
+      {"stage": "approved", "actor": "Maya Torres", "role": "Local Buyer", "notes": "Approved local alternate green bean Gc-14 ($0 freight)", "timestamp": "2026-10-21T11:30:00Z"}
+    ]'::jsonb,
+    '2026-10-21 11:30:00+00'
   ),
   (
     '2844', '1054', 'PRODUCTION', 'FG-2204', 'Nantucket Blend Ground 12oz',
     'Green Mountain Coffee Roasters', 'Heritage Blend', 'Gc-14', 600.00, 'kg',
-    'Gc-14', 1, '2026-11-07', '2026-11-06', 'requested', NULL, '2026-10-22 14:15:00+00'
+    'Gc-14', 1, '2026-11-07', '2026-11-06', 'requested', NULL, false,
+    '[
+      {"stage": "new", "actor": "Production System", "role": "System", "notes": "Roasting demand scheduled for Nantucket Blend", "timestamp": "2026-10-22T08:30:00Z"},
+      {"stage": "requested", "actor": "Maya Torres", "role": "Local Buyer", "notes": "Transfer requested from Warehouse 1055", "timestamp": "2026-10-22T14:15:00Z"}
+    ]'::jsonb,
+    '2026-10-22 14:15:00+00'
   ),
   (
     '2841', '1054', 'PRODUCTION', 'FG-1102', 'Single Origin Ethiopia Yirgacheffe 10oz',
     'Green Mountain Specialty', 'Single Origin', 'Gd-09', 1260.00, 'kg',
-    'Gd-09', 1, '2026-11-08', '2026-11-07', 'delivered', NULL, '2026-10-18 10:00:00+00'
+    'Gd-09', 1, '2026-11-08', '2026-11-07', 'closed', NULL, true,
+    '[
+      {"stage": "new", "actor": "Production System", "role": "System", "notes": "Demand created", "timestamp": "2026-10-18T10:00:00Z"},
+      {"stage": "approved", "actor": "Maya Torres", "role": "Local Buyer", "notes": "Approved warehouse transfer", "timestamp": "2026-10-18T11:30:00Z"},
+      {"stage": "delivered", "actor": "Receiving Dock", "role": "Dock Staff", "notes": "Received at Site 1054 Dock", "timestamp": "2026-10-22T15:00:00Z"},
+      {"stage": "closed", "actor": "System", "role": "System", "notes": "Fulfillment verified; order closed and archived to history", "timestamp": "2026-10-22T16:00:00Z"}
+    ]'::jsonb,
+    '2026-10-18 10:00:00+00'
   ),
   (
     '2846', '1054', 'PRODUCTION', 'FG-5510', 'Sumatra Reserve Single Origin Whole Bean 12oz',
     'Green Mountain Coffee Roasters', 'Single Origin', 'Ge-31', 1500.00, 'kg',
-    'Ge-31', 1, '2026-11-12', '2026-11-11', 'new', NULL, '2026-10-25 08:30:00+00'
+    'Ge-31', 1, '2026-11-12', '2026-11-11', 'new', NULL, false,
+    '[
+      {"stage": "new", "actor": "Production System", "role": "System", "notes": "Roasting demand scheduled; pending sourcing evaluation", "timestamp": "2026-10-25T08:30:00Z"}
+    ]'::jsonb,
+    '2026-10-25 08:30:00+00'
   ),
   -- Safety Threshold Replenishment Order (Null FG details)
   (
-    'RO-3001', '1054', 'REPLENISHMENT', NULL, NULL,
+    '3001', '1054', 'REPLENISHMENT', NULL, NULL,
     NULL, NULL, 'Gd-09', 450.00, 'kg',
-    'Gd-09', 1, '2026-11-05', '2026-11-04', 'accepted', NULL, '2026-10-25 15:40:00+00'
+    'Gd-09', 1, '2026-11-05', '2026-11-04', 'accepted', NULL, false,
+    '[
+      {"stage": "new", "actor": "Maya Torres", "role": "Local Buyer", "notes": "Auto-replenish order created to restore Gd-09 minimum safety threshold", "timestamp": "2026-10-25T15:40:00Z"},
+      {"stage": "accepted", "actor": "Marcus Vance", "role": "Warehouse Manager", "notes": "Warehouse 1055 accepted restock replenishment request", "timestamp": "2026-10-25T16:10:00Z"}
+    ]'::jsonb,
+    '2026-10-25 15:40:00+00'
   )
 ON CONFLICT ("Order_Number") DO NOTHING;
 
@@ -167,24 +204,10 @@ INSERT INTO "Fact_Table_Shipment_Details" (
 ) VALUES
   ('SH-7810', '2843', NULL, '1054', '1055', 'Gc-04', 1200.00, 'kg', '2026-10-24', '2026-10-27', NULL, 589.00, 'Delayed', true),
   ('SH-7811', '2844', NULL, '1054', '1055', 'Gc-14', 400.00, 'kg', '2026-10-25', '2026-10-28', NULL, 589.00, 'In Transit', false),
-  ('SH-7812', NULL, 'RO-3001', '1054', '1055', 'Gd-09', 450.00, 'kg', '2026-10-26', '2026-10-29', NULL, 589.00, 'Scheduled', false)
+  ('SH-7812', NULL, '3001', '1054', '1055', 'Gd-09', 450.00, 'kg', '2026-10-26', '2026-10-29', NULL, 589.00, 'Scheduled', false)
 ON CONFLICT ("Shipment_ID") DO NOTHING;
 
--- 10. Fact_Table_Order_Status_History
-INSERT INTO "Fact_Table_Order_Status_History" (
-  "Order_Number", "Order_Type", "Replenishment_ID", "From_Status", "To_Status",
-  "Changed_By_User_ID", "Actor_Role", "Notes", "Created_At"
-) VALUES
-  ('2843', 'PRODUCTION', NULL, NULL, 'new', 'USR-1054-01', 'Production System', 'Roasting demand scheduled for Dark Magic Blend', '2026-10-20 09:00:00+00'),
-  ('2843', 'PRODUCTION', NULL, 'new', 'approved', 'USR-1054-01', 'Local Buyer', 'Maya Torres approved lowest-cost Warehouse 1055 fulfillment option', '2026-10-21 10:15:00+00'),
-  ('2843', 'PRODUCTION', NULL, 'approved', 'requested', 'USR-1054-01', 'Local Buyer', 'Transfer request sent to Warehouse 1055 Manager', '2026-10-21 10:30:00+00'),
-  ('2843', 'PRODUCTION', NULL, 'requested', 'accepted', 'USR-1055-01', 'Warehouse Manager', 'Marcus Vance accepted 1,200 kg Gc-04 transfer request', '2026-10-22 08:30:00+00'),
-  ('2843', 'PRODUCTION', NULL, 'accepted', 'dispatched', 'USR-1055-01', 'Warehouse Manager', 'Palletized and staged at Outbound Bay 3', '2026-10-23 14:00:00+00'),
-  ('2843', 'PRODUCTION', NULL, 'dispatched', 'in transit', 'USR-1055-01', 'Warehouse Manager', 'Dispatched en route to Plano Roasting Site 1054', '2026-10-24 07:45:00+00'),
-  ('RO-3001', 'REPLENISHMENT', 'RO-3001', NULL, 'new', 'USR-1054-01', 'Local Buyer', 'Auto-replenish order created to restore Gd-09 minimum safety threshold', '2026-10-25 15:40:00+00'),
-  ('RO-3001', 'REPLENISHMENT', 'RO-3001', 'new', 'accepted', 'USR-1055-01', 'Warehouse Manager', 'Warehouse 1055 accepted restock replenishment request', '2026-10-25 16:10:00+00');
-
--- 11. Application_Table_Notifications
+-- 10. Application_Table_Notifications
 INSERT INTO "Application_Table_Notifications" (
   "Site_ID", "User_ID", "Severity", "Type", "Title", "Message", "Action_Label", "Action_URL"
 ) VALUES
@@ -193,8 +216,8 @@ INSERT INTO "Application_Table_Notifications" (
   ('1054', 'USR-1054-01', 'critical', 'no_feasible', 'Sourcing Infeasible', 'Order 2846 no feasible option — all scenarios exhausted', 'Review', '/orders?id=2846'),
   ('1054', 'USR-1054-01', 'info', 'alternate_approved', 'Alternate Approved', 'Gc-14 approved as alternate to Gc-04 in Local Inventory', 'View', '/inventory?tab=stock');
 
--- 12. Platform_Table_Audit_Logs
+-- 11. Platform_Table_Audit_Logs (System Compliance & Operations Log)
 INSERT INTO "Platform_Table_Audit_Logs" ("User_ID", "Action_Type", "Target_Entity", "Target_ID", "Details") VALUES
   ('USR-1054-01', 'ORDER_APPROVED', 'Fact_Table_Orders', '2842', '{"option": 1, "selected_green": "Gc-14", "price": 4.10, "source": "Local Alternate"}'::jsonb),
-  ('USR-1054-01', 'REPLENISHMENT_PLACED', 'Fact_Table_Orders', 'RO-3001', '{"green": "Gd-09", "quantity": 450, "warehouse": "1055", "cost": 589.00}'::jsonb),
+  ('USR-1054-01', 'REPLENISHMENT_PLACED', 'Fact_Table_Orders', '3001', '{"green": "Gd-09", "quantity": 450, "warehouse": "1055", "cost": 589.00}'::jsonb),
   ('USR-1055-01', 'SHIPMENT_DISPATCHED', 'Fact_Table_Shipment_Details', 'SH-7810', '{"shipped_date": "2026-10-24", "origin": "1055", "destination": "1054"}'::jsonb);

@@ -191,3 +191,65 @@ LEFT JOIN "Application_Table_Shipping_Cost" sc ON sc."Site_ID" = o."Site_ID"
 LEFT JOIN "Fact_Table_Inventory" wi ON wi."Site_ID" = sc."Warehouse_ID" AND wi."Green_Material_ID" = o."Green_Material_ID"
 WHERE sc."Warehouse_ID" = '1055' -- Central Warehouse 1055 Manager View
 ORDER BY o."Schedule_Start_date" ASC;
+
+-- ------------------------------------------------------------------------------
+-- 7. Active Orders Queue Query (Orders Page: Orders pending fulfillment/action)
+-- ------------------------------------------------------------------------------
+SELECT 
+  o."Order_Number",
+  o."Order_Type",
+  o."Site_ID",
+  o."Green_Material_ID",
+  g."Green_Material_Description",
+  o."Order_Quantity",
+  o."Unit_of_Measurement",
+  o."Schedule_Start_Date",
+  o."Delivery_Target_Date",
+  o."Status",
+  jsonb_array_length(o."Timeline_History") AS "Completed_Lifecycle_Steps",
+  o."Timeline_History"->-1->>'stage' AS "Current_Lifecycle_Stage"
+FROM "Fact_Table_Orders" o
+JOIN "Dimension_Table_Green_Materials" g ON g."Green_Material_ID" = o."Green_Material_ID"
+WHERE o."Is_Closed" = false 
+  AND o."Status" NOT IN ('closed', 'rejected')
+ORDER BY o."Delivery_Target_Date" ASC NULLS LAST;
+
+-- ------------------------------------------------------------------------------
+-- 8. Order History Page Query (Full Audit Log of Closed/Past Fulfillment & Replenishments)
+-- ------------------------------------------------------------------------------
+SELECT 
+  o."Order_Number",
+  o."Order_Type",
+  o."Site_ID",
+  COALESCE(o."FG_Material_Description", 'Safety Threshold Restock') AS "Order_Description",
+  g."Green_Material_Description" AS "Requested_Green",
+  fg."Green_Material_Description" AS "Fulfilled_Green",
+  o."Order_Quantity",
+  o."Status",
+  o."Is_Closed",
+  o."Created_At",
+  o."Updated_Date",
+  -- Extract all stages from Timeline_History JSONB for the modal audit stepper
+  o."Timeline_History"
+FROM "Fact_Table_Orders" o
+JOIN "Dimension_Table_Green_Materials" g ON g."Green_Material_ID" = o."Green_Material_ID"
+LEFT JOIN "Dimension_Table_Green_Materials" fg ON fg."Green_Material_ID" = o."Final_Green_ID"
+WHERE o."Is_Closed" = true 
+   OR o."Status" IN ('closed', 'delivered', 'rejected')
+ORDER BY o."Updated_Date" DESC;
+
+-- ------------------------------------------------------------------------------
+-- 9. Unpack Order Lifecycle Timeline Stages (Audit Trail Event Analysis)
+-- ------------------------------------------------------------------------------
+SELECT 
+  o."Order_Number",
+  o."Order_Type",
+  t.stage_elem->>'stage' AS "Lifecycle_Stage",
+  t.stage_elem->>'actor' AS "Actor_Name",
+  t.stage_elem->>'role'  AS "Actor_Role",
+  t.stage_elem->>'notes' AS "Stage_Notes",
+  (t.stage_elem->>'timestamp')::timestamptz AS "Stage_Timestamp"
+FROM "Fact_Table_Orders" o,
+LATERAL jsonb_array_elements(o."Timeline_History") AS t(stage_elem)
+WHERE o."Order_Number" = '2843'
+ORDER BY (t.stage_elem->>'timestamp')::timestamptz ASC;
