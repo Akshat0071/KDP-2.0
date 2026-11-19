@@ -1,28 +1,55 @@
-# KDP GreenSource — Dimension & Fact Categorized ER Diagram
+# KDP GreenSource — Multi-Warehouse Quoting & Replenishment ER Diagram
 
-All tables are strictly categorized into **Dimension Tables** (contextual master reference data) and **Fact Tables** (transactional events and operational measurements), with all identifiers typed as `int`.
+## 1. Architectural Changes & Business Flow
+
+### A. Competitive 3-Warehouse Quoting & Awarding Engine
+In the enhanced workflow, whenever an order requires external warehouse supply (either an inter-site transfer recommended by the optimizer or an inventory safety stock replenishment):
+1. **RFQ Broadcast:** The Green Buyer initiates an RFQ from Site 1003/1054. The transfer request is broadcast to all **3 Central Warehouses** (e.g., Warehouse 1020, 1030, 1040 / 1055, 1021, 1006).
+2. **Warehouse Quotes (`Fact_Table_Warehouse_Quotes`):**
+   * Each warehouse manager inspects the request in their inbox.
+   * Each warehouse responds with their capability:
+     * `Supply_Capability`: `'FULL'` (100% of demand), `'PARTIAL'` (committed kg < demand), or `'CANNOT_SUPPLY'` (declined due to zero uncommitted stock or quarantine).
+     * `Quoted_Quantity`, `Quoted_Unit_Price`, `Quoted_Shipping_Cost`, and calculated `Total_Quoted_Cost`.
+     * `Estimated_Delivery_Date`: By what exact date they commit to deliver to the roasting plant.
+     * `Decline_Reason`: If unable to supply.
+3. **Buyer Review & Awarding:**
+   * The Green Buyer compares all 3 quotes side-by-side.
+   * The buyer approves/awards the most optimal quote (`Quote_Status = 'AWARDED'`).
+   * The winning `Quote_ID` is recorded on the order (`Awarded_Quote_ID`).
+   * An inbound shipment in `Fact_Table_Shipment_Details` is automatically generated for the awarded quote.
+   * Competing non-awarded quotes transition to `'REJECTED'`.
 
 ---
 
-## 1. Classification & Rationale
+### B. Removal of `Projected_Balance` in Inventory
+* `Projected_Balance` (and its simulated dynamic forecasting calculations) has been **completely removed** from `Fact_Table_Inventory`.
+* `Fact_Table_Inventory` strictly records **physical ground truth on-hand**:
+  * `Quantity_Available`: Current uncommitted physical kilograms sitting in the plant bins.
+  * `Minimum_Threshold`: Static safety baseline threshold (kg).
+* **Threshold Logic:** Replenishment is triggered whenever `Quantity_Available <= Minimum_Threshold`, without relying on volatile multi-period projected balances.
 
-| Table Name | Category | Primary Key | Description & Rationale |
+---
+
+## 2. Table Classification (Dimension vs. Fact)
+
+| Table Name | Category | Primary Key | Role in Sourcing & Replenishment Flow |
 | :--- | :--- | :--- | :--- |
-| **`Dimension_Table_Site`** | **Dimension** | `Site_ID` (int) | **Where**: Roasting facilities, warehouses, locations, and facility types. |
-| **`Dimension_Table_User_Info`** | **Dimension** | `User_ID` (int) | **Who**: System actors, local buyers, warehouse managers, roles, and profiles. |
-| **`Dimension_Table_Green_Materials`** | **Dimension** | `Green_Material_ID` (int) | **What**: Master catalog of green coffee bean types, descriptions, and baseline unit prices. |
-| **`Dimension_Table_Green_Material_Alternate`** | **Dimension** | `(Green_Material_ID, Alternate_Green_ID)` | **What Alternate**: Reference matrix of pre-approved botanical bean substitutions. |
-| **`Dimension_Table_Shipping_Cost`** | **Dimension** | `(Warehouse_ID, Site_ID)` | **Rate Matrix**: Static/standard freight rate lookup between supply warehouses and roasting plants. |
-| **`Fact_Table_Orders`** | **Fact** | `Order_Number` (int) | **Transaction Event**: Core fulfillment requisitions & safety replenishment orders, containing volumes, need-by dates, status transitions, and full JSONB audit timeline. |
-| **`Fact_Table_Inventory`** | **Fact** | `(Site_ID, Green_Material_ID)` | **Periodic Snapshot Fact**: Current on-hand balances, safety stock thresholds, and stock update dates. |
-| **`Fact_Table_Optimization_Table`** | **Fact** | `(Order_Number, Option_ID)` | **Evaluation Fact**: Multi-scenario cost engine results (direct stock, transfer, alternate), landed prices, feasibility flags, and selection logic. |
-| **`Fact_Table_Shipment_Details`** | **Fact** | `Shipment_ID` (int) | **Logistics Movement Fact**: Physical transfer shipments, quantities dispatched, delivery dates, freight costs, and delay tracking. |
-| **`Fact_Table_Notifications`** | **Fact** | `Notification_ID` (int) | **Alert Event Fact**: Time-stamped alerts triggered by safety stock breaches, delays, and critical status updates. |
-| **`Fact_Table_Audit_Logs`** | **Fact** | `Log_ID` (int) | **Compliance Event Fact**: Immutable audit trail recording user actions, target entities, and operation JSON payloads. |
+| **`Dimension_Table_Site`** | **Dimension** | `Site_ID` (int) | Roasting facilities and central distribution warehouses. |
+| **`Dimension_Table_User_Info`** | **Dimension** | `User_ID` (int) | Buyers, warehouse managers, plant planners, and system roles. |
+| **`Dimension_Table_Green_Materials`** | **Dimension** | `Green_Material_ID` (int) | Green coffee bean catalog and standard base prices. |
+| **`Dimension_Table_Green_Material_Alternate`** | **Dimension** | `(Green_Material_ID, Alternate_Green_ID)` | Approved bean substitution bridge table. |
+| **`Dimension_Table_Shipping_Cost`** | **Dimension** | `(Warehouse_ID, Site_ID)` | Baseline freight rate lookup matrix between facilities. |
+| **`Fact_Table_Inventory`** | **Fact** | `(Site_ID, Green_Material_ID)` | **Pure on-hand physical stock snapshot** & safety threshold baseline. *(Zero projected balance)* |
+| **`Fact_Table_Orders`** | **Fact** | `Order_Number` (int) | Requisition transactions (production demands & replenishment orders) with JSONB audit trail and link to `Awarded_Quote_ID`. |
+| **`Fact_Table_Optimization_Table`** | **Fact** | `(Order_Number, Option_ID)` | Initial system sourcing recommendation scenarios (Direct Local Stock vs Local Alternate vs Warehouse Transfer). |
+| **`Fact_Table_Warehouse_Quotes`** | **Fact** | `Quote_ID` (int) | **Multi-warehouse RFQ responses**: Quotes from the 3 central warehouses (full, partial, decline, prices, delivery dates, and awarding). |
+| **`Fact_Table_Shipment_Details`** | **Fact** | `Shipment_ID` (int) | Inbound logistics tracking generated from the winning awarded warehouse quote. |
+| **`Fact_Table_Notifications`** | **Fact** | `Notification_ID` (int) | System alerts (threshold breaches, quotes received, transit delays). |
+| **`Fact_Table_Audit_Logs`** | **Fact** | `Log_ID` (int) | Compliance audit trail recording user and warehouse actions. |
 
 ---
 
-## 2. Mermaid ER Diagram Code
+## 3. Mermaid ER Diagram Code
 
 ```text
 erDiagram
@@ -33,6 +60,7 @@ erDiagram
     Dimension_Table_Site ||--o{ Dimension_Table_Shipping_Cost : "destination_site"
     Dimension_Table_Site ||--o{ Fact_Table_Shipment_Details : "ships_to_site"
     Dimension_Table_Site ||--o{ Fact_Table_Shipment_Details : "ships_from_warehouse"
+    Dimension_Table_Site ||--o{ Fact_Table_Warehouse_Quotes : "quoted_by_warehouse"
     Dimension_Table_Site ||--o{ Fact_Table_Notifications : "site_notifications"
 
     Dimension_Table_Green_Materials ||--o{ Fact_Table_Inventory : "stocked_in_inventory"
@@ -42,10 +70,15 @@ erDiagram
     Dimension_Table_Green_Materials ||--o{ Dimension_Table_Green_Material_Alternate : "alternate_green"
     Dimension_Table_Green_Materials ||--o{ Fact_Table_Shipment_Details : "shipped_material"
     Dimension_Table_Green_Materials ||--o{ Fact_Table_Optimization_Table : "optimized_green"
+    Dimension_Table_Green_Materials ||--o{ Fact_Table_Warehouse_Quotes : "quoted_material"
 
     Fact_Table_Orders ||--o{ Fact_Table_Optimization_Table : "evaluates_sourcing_options"
+    Fact_Table_Orders ||--o{ Fact_Table_Warehouse_Quotes : "requests_quotes_from_3_warehouses"
     Fact_Table_Orders ||--o{ Fact_Table_Shipment_Details : "generates_shipment"
 
+    Fact_Table_Warehouse_Quotes ||--o| Fact_Table_Shipment_Details : "awarded_quote_creates_shipment"
+
+    Dimension_Table_User_Info ||--o{ Fact_Table_Warehouse_Quotes : "submitted_by_manager"
     Dimension_Table_User_Info ||--o{ Fact_Table_Notifications : "receives_alert"
     Dimension_Table_User_Info ||--o{ Fact_Table_Audit_Logs : "performed_action"
 
@@ -106,6 +139,7 @@ erDiagram
         varchar Unit_of_Measurement
         int Final_Green_ID FK
         int Selected_Option_ID
+        int Awarded_Quote_ID FK
         date Schedule_Start_Date
         date Delivery_Target_Date
         varchar Status
@@ -135,9 +169,27 @@ erDiagram
         text Exclusion_Reason
     }
 
+    Fact_Table_Warehouse_Quotes {
+        int Quote_ID PK
+        int Order_Number FK
+        int Warehouse_ID FK
+        int Green_Material_ID FK
+        varchar Supply_Capability
+        decimal Quoted_Quantity
+        decimal Quoted_Unit_Price
+        decimal Quoted_Shipping_Cost
+        decimal Total_Quoted_Cost
+        date Estimated_Delivery_Date
+        varchar Quote_Status
+        text Decline_Reason
+        int Responded_By_User_ID FK
+        timestamptz Created_At
+    }
+
     Fact_Table_Shipment_Details {
         int Shipment_ID PK
         int Order_Number FK
+        int Quote_ID FK
         int Replenishment_ID
         int Site_ID FK
         int From_Warehouse_ID FK

@@ -1,6 +1,6 @@
 -- ==============================================================================
 -- KDP GreenSource Enterprise Relational Database Schema (PostgreSQL)
--- Categorized strictly into Dimension Tables and Fact Tables
+-- Multi-Warehouse Quoting (3 Warehouses), Sourcing Optimization & Replenishment
 -- All Primary Keys, Foreign Keys, and Order Numbers typed as INTEGER
 -- ==============================================================================
 
@@ -8,6 +8,7 @@
 DROP TABLE IF EXISTS "Fact_Table_Audit_Logs" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Notifications" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Shipment_Details" CASCADE;
+DROP TABLE IF EXISTS "Fact_Table_Warehouse_Quotes" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Optimization_Table" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Orders" CASCADE;
 DROP TABLE IF EXISTS "Fact_Table_Inventory" CASCADE;
@@ -79,6 +80,7 @@ CREATE TABLE "Dimension_Table_Shipping_Cost" (
 
 -- ------------------------------------------------------------------------------
 -- 6. Fact_Table_Inventory (Periodic Stock Level & Safety Threshold Snapshot)
+-- NOTE: Projected balance and simulation attributes have been completely removed.
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Fact_Table_Inventory" (
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
@@ -107,6 +109,7 @@ CREATE TABLE "Fact_Table_Orders" (
   "Unit_of_Measurement" VARCHAR(16) NOT NULL DEFAULT 'kg',
   "Final_Green_ID" INT REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Selected_Option_ID" INT NULL,
+  "Awarded_Quote_ID" INT NULL,
   "Schedule_Start_Date" DATE NOT NULL,
   "Delivery_Target_Date" DATE NULL,
   "Status" VARCHAR(64) NOT NULL DEFAULT 'new' CHECK ("Status" IN (
@@ -120,14 +123,14 @@ CREATE TABLE "Fact_Table_Orders" (
 );
 
 -- ------------------------------------------------------------------------------
--- 8. Fact_Table_Optimization_Table (Evaluated Sourcing Options & Cost Scenarios)
+-- 8. Fact_Table_Optimization_Table (Evaluated Initial Sourcing Options)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Fact_Table_Optimization_Table" (
   "Option_ID" INT NOT NULL,
   "Order_Number" INT NOT NULL REFERENCES "Fact_Table_Orders"("Order_Number") ON DELETE CASCADE,
   "Green_Material_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
-  "Source_Type" VARCHAR(64) NOT NULL,
+  "Source_Type" VARCHAR(64) NOT NULL, -- 'Local Inventory' | 'Local Alternate' | 'Warehouse Fulfillment'
   "Source_Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE RESTRICT,
   "Selected_Green_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
   "Selected_Green_Price" NUMERIC(10, 2) NOT NULL,
@@ -143,11 +146,40 @@ CREATE TABLE "Fact_Table_Optimization_Table" (
 );
 
 -- ------------------------------------------------------------------------------
--- 9. Fact_Table_Shipment_Details (Inbound Logistics & Transfer Shipments)
+-- 9. Fact_Table_Warehouse_Quotes (Multi-Warehouse RFQ Responses & Awarding)
+-- Stores quotes from the 3 central warehouses (full, partial, decline, prices, dates)
+-- ------------------------------------------------------------------------------
+CREATE TABLE "Fact_Table_Warehouse_Quotes" (
+  "Quote_ID" INT PRIMARY KEY,
+  "Order_Number" INT NOT NULL REFERENCES "Fact_Table_Orders"("Order_Number") ON DELETE CASCADE,
+  "Warehouse_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE RESTRICT,
+  "Green_Material_ID" INT NOT NULL REFERENCES "Dimension_Table_Green_Materials"("Green_Material_ID") ON DELETE RESTRICT,
+  "Supply_Capability" VARCHAR(32) NOT NULL CHECK ("Supply_Capability" IN ('FULL', 'PARTIAL', 'CANNOT_SUPPLY')),
+  "Quoted_Quantity" NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK ("Quoted_Quantity" >= 0),
+  "Quoted_Unit_Price" NUMERIC(10, 2) NOT NULL DEFAULT 0.00 CHECK ("Quoted_Unit_Price" >= 0),
+  "Quoted_Shipping_Cost" NUMERIC(10, 2) NOT NULL DEFAULT 0.00 CHECK ("Quoted_Shipping_Cost" >= 0),
+  "Total_Quoted_Cost" NUMERIC(12, 2) NOT NULL DEFAULT 0.00 CHECK ("Total_Quoted_Cost" >= 0),
+  "Estimated_Delivery_Date" DATE NULL,
+  "Quote_Status" VARCHAR(32) NOT NULL DEFAULT 'PENDING' CHECK ("Quote_Status" IN (
+    'PENDING', 'SUBMITTED', 'AWARDED', 'REJECTED', 'DECLINED', 'EXPIRED'
+  )),
+  "Decline_Reason" TEXT NULL,
+  "Responded_By_User_ID" INT NULL REFERENCES "Dimension_Table_User_Info"("User_ID") ON DELETE SET NULL,
+  "Created_At" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Add foreign key constraint back to Fact_Table_Orders for Awarded_Quote_ID
+ALTER TABLE "Fact_Table_Orders"
+  ADD CONSTRAINT fk_orders_awarded_quote
+  FOREIGN KEY ("Awarded_Quote_ID") REFERENCES "Fact_Table_Warehouse_Quotes"("Quote_ID") ON DELETE SET NULL;
+
+-- ------------------------------------------------------------------------------
+-- 10. Fact_Table_Shipment_Details (Inbound Logistics & Transfer Shipments)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Fact_Table_Shipment_Details" (
   "Shipment_ID" INT PRIMARY KEY,
   "Order_Number" INT NULL REFERENCES "Fact_Table_Orders"("Order_Number") ON DELETE SET NULL,
+  "Quote_ID" INT NULL REFERENCES "Fact_Table_Warehouse_Quotes"("Quote_ID") ON DELETE SET NULL,
   "Replenishment_ID" INT NULL,
   "Site_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE CASCADE,
   "From_Warehouse_ID" INT NOT NULL REFERENCES "Dimension_Table_Site"("Site_ID") ON DELETE RESTRICT,
@@ -166,7 +198,7 @@ CREATE TABLE "Fact_Table_Shipment_Details" (
 );
 
 -- ------------------------------------------------------------------------------
--- 10. Fact_Table_Notifications (System Alert Events & Threshold Triggers)
+-- 11. Fact_Table_Notifications (System Alert Events & Threshold Triggers)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Fact_Table_Notifications" (
   "Notification_ID" INT PRIMARY KEY,
@@ -183,7 +215,7 @@ CREATE TABLE "Fact_Table_Notifications" (
 );
 
 -- ------------------------------------------------------------------------------
--- 11. Fact_Table_Audit_Logs (System Compliance & Operations Event Log)
+-- 12. Fact_Table_Audit_Logs (System Compliance & Operations Event Log)
 -- ------------------------------------------------------------------------------
 CREATE TABLE "Fact_Table_Audit_Logs" (
   "Log_ID" INT PRIMARY KEY,
@@ -196,15 +228,18 @@ CREATE TABLE "Fact_Table_Audit_Logs" (
 );
 
 -- ------------------------------------------------------------------------------
--- 12. PERFORMANCE INDEXES
+-- 13. PERFORMANCE INDEXES
 -- ------------------------------------------------------------------------------
 CREATE INDEX idx_inventory_site ON "Fact_Table_Inventory"("Site_ID");
 CREATE INDEX idx_orders_site_status ON "Fact_Table_Orders"("Site_ID", "Status");
 CREATE INDEX idx_orders_type ON "Fact_Table_Orders"("Order_Type");
 CREATE INDEX idx_orders_is_closed ON "Fact_Table_Orders"("Is_Closed");
 CREATE INDEX idx_orders_timeline ON "Fact_Table_Orders" USING GIN ("Timeline_History");
+CREATE INDEX idx_quotes_order ON "Fact_Table_Warehouse_Quotes"("Order_Number");
+CREATE INDEX idx_quotes_warehouse ON "Fact_Table_Warehouse_Quotes"("Warehouse_ID");
+CREATE INDEX idx_quotes_status ON "Fact_Table_Warehouse_Quotes"("Quote_Status");
 CREATE INDEX idx_shipments_order ON "Fact_Table_Shipment_Details"("Order_Number");
-CREATE INDEX idx_shipments_replenish ON "Fact_Table_Shipment_Details"("Replenishment_ID");
+CREATE INDEX idx_shipments_quote ON "Fact_Table_Shipment_Details"("Quote_ID");
 CREATE INDEX idx_shipments_status ON "Fact_Table_Shipment_Details"("Shipment_Status");
 CREATE INDEX idx_notifications_site_read ON "Fact_Table_Notifications"("Site_ID", "Is_Read");
 CREATE INDEX idx_audit_logs_user ON "Fact_Table_Audit_Logs"("User_ID", "Created_At");

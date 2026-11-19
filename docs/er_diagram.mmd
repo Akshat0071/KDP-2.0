@@ -6,6 +6,7 @@ erDiagram
     Dimension_Table_Site ||--o{ Dimension_Table_Shipping_Cost : "destination_site"
     Dimension_Table_Site ||--o{ Fact_Table_Shipment_Details : "ships_to_site"
     Dimension_Table_Site ||--o{ Fact_Table_Shipment_Details : "ships_from_warehouse"
+    Dimension_Table_Site ||--o{ Fact_Table_Warehouse_Quotes : "quoted_by_warehouse"
     Dimension_Table_Site ||--o{ Fact_Table_Notifications : "site_notifications"
 
     Dimension_Table_Green_Materials ||--o{ Fact_Table_Inventory : "stocked_in_inventory"
@@ -15,10 +16,15 @@ erDiagram
     Dimension_Table_Green_Materials ||--o{ Dimension_Table_Green_Material_Alternate : "alternate_green"
     Dimension_Table_Green_Materials ||--o{ Fact_Table_Shipment_Details : "shipped_material"
     Dimension_Table_Green_Materials ||--o{ Fact_Table_Optimization_Table : "optimized_green"
+    Dimension_Table_Green_Materials ||--o{ Fact_Table_Warehouse_Quotes : "quoted_material"
 
     Fact_Table_Orders ||--o{ Fact_Table_Optimization_Table : "evaluates_sourcing_options"
+    Fact_Table_Orders ||--o{ Fact_Table_Warehouse_Quotes : "requests_quotes_from_3_warehouses"
     Fact_Table_Orders ||--o{ Fact_Table_Shipment_Details : "generates_shipment"
 
+    Fact_Table_Warehouse_Quotes ||--o| Fact_Table_Shipment_Details : "awarded_quote_creates_shipment"
+
+    Dimension_Table_User_Info ||--o{ Fact_Table_Warehouse_Quotes : "submitted_by_manager"
     Dimension_Table_User_Info ||--o{ Fact_Table_Notifications : "receives_alert"
     Dimension_Table_User_Info ||--o{ Fact_Table_Audit_Logs : "performed_action"
 
@@ -79,6 +85,7 @@ erDiagram
         varchar Unit_of_Measurement
         int Final_Green_ID FK
         int Selected_Option_ID
+        int Awarded_Quote_ID FK
         date Schedule_Start_Date
         date Delivery_Target_Date
         varchar Status
@@ -108,9 +115,27 @@ erDiagram
         text Exclusion_Reason
     }
 
+    Fact_Table_Warehouse_Quotes {
+        int Quote_ID PK
+        int Order_Number FK
+        int Warehouse_ID FK
+        int Green_Material_ID FK
+        varchar Supply_Capability
+        decimal Quoted_Quantity
+        decimal Quoted_Unit_Price
+        decimal Quoted_Shipping_Cost
+        decimal Total_Quoted_Cost
+        date Estimated_Delivery_Date
+        varchar Quote_Status
+        text Decline_Reason
+        int Responded_By_User_ID FK
+        timestamptz Created_At
+    }
+
     Fact_Table_Shipment_Details {
         int Shipment_ID PK
         int Order_Number FK
+        int Quote_ID FK
         int Replenishment_ID
         int Site_ID FK
         int From_Warehouse_ID FK
