@@ -2,11 +2,12 @@ import { useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Search, Download, Clock, ChevronRight, ChevronLeft,
-  Leaf, AlertTriangle, Truck, Bell, FileText, X, Check, Package
+  Leaf, AlertTriangle, Truck, Bell, FileText, X, Check, Package,
+  Warehouse, Award
 } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { SITE_WAREHOUSE_MAPPING } from '../../data/mockData';
-import { evaluateItemStatus } from '../../data/localInventory';
+import { evaluateItemStatus, generateSourcingScenarios } from '../../data/localInventory';
 import { useOrders, getOrderStatusMeta } from '../../context/OrdersContext';
 import OrderLifecycleStepper from '../../components/ui/OrderLifecycleStepper';
 import InfoTooltip from '../../components/ui/InfoTooltip';
@@ -40,10 +41,14 @@ const C = {
 
 // ── Auto-Replenishment Calculation & Lowest-Cost Warehouse Selector ──────────
 function calculateReplenishmentQty(item) {
-  // Target supply needed = Open Orders (openDemand) + Safe Min Threshold
-  const targetSupply = item.openDemand + item.minThreshold;
-  const currentSupply = item.available + item.incoming;
-  return Math.max(0, targetSupply - currentSupply);
+  // Restores physical available stock to meet or exceed safety min threshold & open demand
+  if (item.available < item.minThreshold) {
+    return item.minThreshold - item.available;
+  }
+  if (item.available < item.openDemand) {
+    return item.openDemand - item.available;
+  }
+  return 0;
 }
 
 function getLowestCostWarehouse(item, qty, siteId = '1054') {
@@ -602,6 +607,7 @@ export default function Inventory() {
   const [orderCounter, setOrderCounter] = useState(0);
   const [replenishConfirmations, setReplenishConfirmations] = useState({});
   const [batchBanner, setBatchBanner] = useState(null);
+  const [rfqModalItem, setRfqModalItem] = useState(null);
 
   // Selected items for side panels
   const [selectedGreenId, setSelectedGreenId] = useState(greenParam || 'Gc-04');
@@ -634,7 +640,6 @@ export default function Inventory() {
         }
       }
 
-      const projectedBalance = item.available + item.incoming - item.openDemand;
       const statusMeta = evaluateItemStatus(item);
       const replenishQty = calculateReplenishmentQty(item);
       const bestWarehouse = replenishQty > 0 ? getLowestCostWarehouse(item, replenishQty) : null;
@@ -644,7 +649,6 @@ export default function Inventory() {
         ...item,
         alternate: liveAlternateLabel,
         approvedAlternates: liveApprovedAlternates,
-        projectedBalance,
         statusMeta,
         replenishQty,
         bestWarehouse,
@@ -792,18 +796,31 @@ export default function Inventory() {
   const arrivingCount = computedItems.filter(i => i.incoming > 0).length;
   const needsAttentionCount = computedItems.filter(i => i.statusMeta.key !== 'covered').length;
 
-  // Auto-replenish handler: places order to lowest-cost warehouse to cover open orders & maintain min threshold
+  // Auto-replenish: opens the 3-warehouse competitive RFQ modal for buyer review & award
   const handleAutoReplenish = (item) => {
+    setRfqModalItem(item);
+  };
+
+  // Award chosen warehouse quotation and generate replenishment order (Status = 'requested')
+  const handleAwardReplenishQuote = (item, quote) => {
     const qtyToOrder = calculateReplenishmentQty(item);
     if (qtyToOrder <= 0) return;
 
-    const bestWh = getLowestCostWarehouse(item, qtyToOrder);
     const nextIdx = orderCounter + 1;
     const shipmentId = `SH-${7827 + nextIdx}`;
-    const orderId = String(2899 + nextIdx);
+    const orderId = String(3000 + nextIdx);
     setOrderCounter(nextIdx);
 
-    // 1. Update Stock item (incoming increases so open orders + min threshold are covered)
+    const targetWarehouse = quote.warehouseName;
+    const targetWarehouseId = quote.warehouseId;
+    const freightCost = quote.freightCost;
+    const unitPrice = quote.unitPrice || item.price;
+    const totalCost = quote.totalCost || Math.round(qtyToOrder * unitPrice + freightCost);
+    const landedPerKg = quote.landedPerKg || Number((totalCost / qtyToOrder).toFixed(2));
+    const etaShort = quote.eta?.split('·')[0]?.trim() || 'Oct 28';
+    const etaFull = quote.deliveryDate || 'Oct 28, 2026';
+
+    // 1. Update Stock item incoming
     setInventoryItems(prev =>
       prev.map(inv => {
         if (inv.id !== item.id) return inv;
@@ -811,11 +828,11 @@ export default function Inventory() {
         return {
           ...inv,
           incoming: updatedIncoming,
-          incomingEta: bestWh.etaShort,
+          incomingEta: etaShort,
           updated: 'Just now',
           replenished: true,
           incomingShipments: [
-            { id: shipmentId, qty: `${qtyToOrder.toLocaleString()} kg`, from: bestWh.warehouse, eta: bestWh.etaShort },
+            { id: shipmentId, qty: `${qtyToOrder.toLocaleString()} kg`, from: targetWarehouse, eta: etaShort },
             ...(inv.incomingShipments || []),
           ],
         };
@@ -825,51 +842,51 @@ export default function Inventory() {
     // 2. Add to Incoming Shipments list
     const newShipment = {
       id: shipmentId,
-      orderNumber: null,
+      orderNumber: orderId,
       replenishmentId: orderId,
       greenId: item.id,
       greenName: item.name,
       qty: qtyToOrder,
-      warehouse: bestWh.warehouse,
-      eta: bestWh.etaFull,
-      estimatedArrivalDate: bestWh.etaFull,
+      warehouse: targetWarehouse,
+      eta: etaFull,
+      estimatedArrivalDate: etaFull,
       shippedDate: null,
-      shippingCost: bestWh.shippingCost || 589,
+      shippingCost: freightCost,
       isDelayed: false,
       etaBucket: 'this-week',
       status: 'Scheduled',
       delayed: false,
       linkedOrder: orderId,
-      statusUpdated: 'Oct 25, 2026, Just now',
+      statusUpdated: 'Just now',
       timeline: [
-        { title: 'Auto-Replenish Order Placed', time: 'Oct 25, 2026, Just now', state: 'done' },
-        { title: 'Scheduled for Dispatch', time: `${bestWh.warehouse} · Lowest cost ($${bestWh.landedPerKg.toFixed(2)}/kg)`, state: 'active' },
-        { title: 'In Transit', time: 'Pending carrier pickup', state: 'pending' },
-        { title: 'Expected Delivery', time: bestWh.etaFull, state: 'pending' },
+        { title: 'Replenishment Order Awarded & Placed', time: 'Just now', state: 'done' },
+        { title: `Transfer Requested from ${targetWarehouse}`, time: `Fixed freight $${freightCost}`, state: 'active' },
+        { title: 'In Transit', time: 'Pending carrier dispatch', state: 'pending' },
+        { title: 'Expected Delivery', time: etaFull, state: 'pending' },
       ],
       impact: {
         incomingQty: qtyToOrder,
         openDemand: item.openDemand,
-        projectedBalance: item.available + item.incoming + qtyToOrder - item.openDemand,
       },
     };
     setShipmentsList(prev => [newShipment, ...prev]);
 
-    // 3. Register replenishment order in OrdersContext so it appears in Orders & Order History
+    // 3. Register replenishment order in OrdersContext with status 'requested'
     if (typeof createReplenishmentOrder === 'function') {
       createReplenishmentOrder({
         orderNumber: orderId,
         greenId: item.id,
         greenName: item.name,
         orderQuantity: qtyToOrder,
-        warehouse: bestWh.warehouse,
-        shippingCost: bestWh.shippingCost || 589,
-        unitPrice: item.price,
-        totalCost: bestWh.totalCost,
+        warehouse: targetWarehouse,
+        warehouseId: targetWarehouseId,
+        shippingCost: freightCost,
+        unitPrice,
+        totalCost,
         shipmentId,
-        eta: bestWh.etaShort,
-        status: 'accepted',
-        notes: `Safety threshold replenishment order to restore ${item.name} (${item.id}) minimum safe stock level.`,
+        eta: etaFull,
+        status: 'requested',
+        notes: `Replenishment order for ${item.name} (${item.id}) awarded to ${targetWarehouse} ($${freightCost} fixed freight).`,
       });
     }
 
@@ -880,12 +897,14 @@ export default function Inventory() {
         shipmentId,
         poId: orderId,
         qty: qtyToOrder,
-        warehouse: bestWh.warehouse,
-        totalCost: bestWh.totalCost,
-        landedPerKg: bestWh.landedPerKg,
-        eta: bestWh.etaShort,
+        warehouse: targetWarehouse,
+        totalCost,
+        landedPerKg,
+        eta: etaShort,
       },
     }));
+
+    setRfqModalItem(null);
   };
 
   // Batch auto-replenish handler for all below-threshold items
@@ -1022,9 +1041,9 @@ export default function Inventory() {
     let filename = '';
 
     if (activeTab === 'stock') {
-      headers = ['Green ID', 'Green Name', 'Available (kg)', 'Open Demand (kg)', 'Min Threshold (kg)', 'Incoming (kg)', 'Projected Balance (kg)', 'Status', 'Alternate', 'Price ($/kg)', 'Updated'];
+      headers = ['Green ID', 'Green Name', 'Available (kg)', 'Open Demand (kg)', 'Min Threshold (kg)', 'Incoming (kg)', 'Status', 'Alternate', 'Price ($/kg)', 'Updated'];
       rows = filteredRows.map(r => [
-        r.id, r.name, r.available, r.openDemand, r.minThreshold, r.incoming, r.projectedBalance, r.statusMeta.label, r.alternate, r.price.toFixed(2), r.updated,
+        r.id, r.name, r.available, r.openDemand, r.minThreshold, r.incoming, r.statusMeta.label, r.alternate, r.price.toFixed(2), r.updated,
       ]);
       filename = 'local-stock-inventory.csv';
     } else {
@@ -1547,9 +1566,6 @@ export default function Inventory() {
                         <th style={{ padding: '7px 8px', textAlign: 'right', fontSize: 9, fontWeight: 700, color: C.subtle, letterSpacing: '0.2px', lineHeight: 1.2 }}>
                           Incoming<br />(kg)
                         </th>
-                        <th style={{ padding: '7px 8px', textAlign: 'right', fontSize: 9, fontWeight: 700, color: C.subtle, letterSpacing: '0.2px', lineHeight: 1.2 }}>
-                          Projected<br />Balance (kg)
-                        </th>
                         <th style={{ padding: '7px 8px', textAlign: 'center', fontSize: 9, fontWeight: 700, color: C.subtle, letterSpacing: '0.2px' }}>
                           Status
                         </th>
@@ -1568,7 +1584,7 @@ export default function Inventory() {
                     <tbody>
                       {paginatedRows.length === 0 ? (
                         <tr>
-                          <td colSpan={12} style={{ padding: 28, textAlign: 'center', fontSize: 11, color: C.muted }}>
+                          <td colSpan={11} style={{ padding: 28, textAlign: 'center', fontSize: 11, color: C.muted }}>
                             No greens match the selected filters.
                           </td>
                         </tr>
@@ -1637,11 +1653,6 @@ export default function Inventory() {
                                 ) : (
                                   <span style={{ fontSize: 10.5, color: C.subtle }}>—</span>
                                 )}
-                              </td>
-
-                              {/* Projected Balance (kg) */}
-                              <td style={{ padding: '9px 8px', fontSize: 10.5, fontWeight: 700, textAlign: 'right', whiteSpace: 'nowrap', color: row.projectedBalance <= 0 ? C.crit : C.text }}>
-                                {row.projectedBalance.toLocaleString()}
                               </td>
 
                               {/* Status Badge */}
@@ -2027,14 +2038,14 @@ export default function Inventory() {
                 )}
               </div>
               <div>
-                <div style={{ fontSize: 9, color: C.subtle, marginBottom: 2 }}>Projected Balance</div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: selectedItem.projectedBalance <= 0 ? C.crit : C.text }}>
-                  {selectedItem.projectedBalance.toLocaleString()} kg
+                <div style={{ fontSize: 9, color: C.subtle, marginBottom: 2 }}>Min Threshold</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
+                  {selectedItem.minThreshold.toLocaleString()} kg
                 </div>
               </div>
             </div>
 
-            {/* Additional Info Row: Min Threshold */}
+            {/* Additional Info Row: Stock Health */}
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -2043,8 +2054,15 @@ export default function Inventory() {
               padding: '4px 2px',
               borderBottom: `1px solid ${C.divider}`,
             }}>
-              <span style={{ color: C.muted }}>Safe Min Threshold</span>
-              <span style={{ fontWeight: 700, color: C.text }}>{selectedItem.minThreshold.toLocaleString()} kg</span>
+              <span style={{ color: C.muted }}>Physical Stock Health</span>
+              <span style={{
+                fontWeight: 700,
+                color: selectedItem.available < selectedItem.minThreshold ? C.crit : C.success,
+              }}>
+                {selectedItem.available >= selectedItem.minThreshold
+                  ? `+${(selectedItem.available - selectedItem.minThreshold).toLocaleString()} kg buffer`
+                  : `-${(selectedItem.minThreshold - selectedItem.available).toLocaleString()} kg below threshold`}
+              </span>
             </div>
 
             {/* Section 1: Open Orders */}
@@ -2493,13 +2511,13 @@ export default function Inventory() {
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Projected Balance</div>
+                      <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 2 }}>Stock on Arrival</div>
                       <div style={{
                         fontSize: 12,
                         fontWeight: 800,
-                        color: impact.projectedBalance >= 0 ? C.success : C.crit,
+                        color: C.success,
                       }}>
-                        {impact.projectedBalance >= 0 ? '+' : ''}{impact.projectedBalance?.toLocaleString()} kg
+                        {((impact.incomingQty || 0) + (selectedItem?.available || 0)).toLocaleString()} kg
                       </div>
                     </div>
                   </div>
@@ -2598,6 +2616,314 @@ export default function Inventory() {
         })()}
 
       </div>
+
+      {/* ── 3-Warehouse Competitive Quoting Replenishment Modal ── */}
+      {rfqModalItem && (() => {
+        const qtyToOrder = calculateReplenishmentQty(rfqModalItem);
+        const scenarios = generateSourcingScenarios(rfqModalItem.id, qtyToOrder, inventoryItems);
+        const quotes = scenarios.scenario3_WarehouseSame.quotes;
+
+        return (
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(30, 20, 24, 0.45)',
+              backdropFilter: 'blur(3px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 150,
+            }}
+            onClick={() => setRfqModalItem(null)}
+          >
+            <div
+              style={{
+                background: '#FFFFFF',
+                borderRadius: 12,
+                boxShadow: '0 12px 36px rgba(48,39,43,0.22)',
+                border: `1px solid ${C.border}`,
+                width: 780,
+                maxWidth: '94vw',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 16,
+              }}
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: C.plum,
+                      padding: '2px 8px',
+                      borderRadius: 12,
+                      background: '#FAF2F6',
+                      border: `1px solid ${C.border}`,
+                    }}>
+                      Multi-Warehouse Competitive RFQ
+                    </span>
+                    <span style={{ fontSize: 11, color: C.muted }}>Site 1054 · Plano Roasting</span>
+                  </div>
+                  <h3 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>
+                    Restock {rfqModalItem.name} ({rfqModalItem.id})
+                  </h3>
+                  <p style={{ fontSize: 11.5, color: C.muted, margin: '2px 0 0' }}>
+                    Comparing live quotations from 3 central warehouses to restore safe stock threshold.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setRfqModalItem(null)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: C.muted,
+                    padding: 4,
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Physical Inventory Stats Bar */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                background: '#FAF8F9',
+                borderRadius: 8,
+                border: `1px solid ${C.border}`,
+                padding: '10px 14px',
+              }}>
+                <div>
+                  <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', fontWeight: 600 }}>Physical On-Hand</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{rfqModalItem.available.toLocaleString()} kg</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', fontWeight: 600 }}>Safety Min Threshold</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{rfqModalItem.minThreshold.toLocaleString()} kg</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', fontWeight: 600 }}>Immediate Shortfall</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.crit }}>
+                    {Math.max(0, rfqModalItem.minThreshold - rfqModalItem.available).toLocaleString()} kg
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', fontWeight: 600 }}>Recommended Order</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#16A34A' }}>{qtyToOrder.toLocaleString()} kg</div>
+                </div>
+              </div>
+
+              {/* 3-Warehouse Competitive Quotations */}
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Warehouse size={14} style={{ color: C.rose }} />
+                  Central Warehouse Competitive Quotations (3 Hubs)
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                  {quotes.map(q => {
+                    const isOptimal = q.isDesignated && q.capability === 'FULL';
+                    const isDeclined = q.capability === 'CANNOT_SUPPLY';
+
+                    return (
+                      <div
+                        key={q.id}
+                        style={{
+                          border: isOptimal ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
+                          borderRadius: 8,
+                          padding: '12px',
+                          background: isOptimal ? '#FCFDFC' : isDeclined ? '#FAF9FA' : '#FFFFFF',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          boxShadow: isOptimal ? '0 2px 8px rgba(22,163,74,0.08)' : 'none',
+                        }}
+                      >
+                        <div>
+                          {/* Warehouse Title & Tag */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
+                              {q.warehouseName.split('(')[0].trim()}
+                            </span>
+                            <span style={{
+                              fontSize: 8.5,
+                              fontWeight: 700,
+                              padding: '2px 6px',
+                              borderRadius: 10,
+                              background: isOptimal ? '#EDF7F1' : isDeclined ? '#FEF0F2' : '#FFF7E6',
+                              color: isOptimal ? '#1E8A3C' : isDeclined ? '#D83040' : '#B86A00',
+                              border: `1px solid ${isOptimal ? '#B4DDBD' : isDeclined ? '#F5B8C0' : '#F5D68A'}`,
+                            }}>
+                              {q.badge}
+                            </span>
+                          </div>
+
+                          <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 8 }}>
+                            {q.location}
+                          </div>
+
+                          {/* Capability Badge */}
+                          <div style={{ marginBottom: 10 }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              color: q.capability === 'FULL' ? '#1E8A3C' : '#D83040',
+                            }}>
+                              {q.capability === 'FULL' ? '✓ ' : '✕ '}
+                              {q.capabilityLabel}
+                            </span>
+                          </div>
+
+                          {/* Pricing Details */}
+                          {!isDeclined ? (
+                            <div style={{
+                              padding: '8px 0',
+                              borderTop: `1px solid ${C.divider}`,
+                              borderBottom: `1px solid ${C.divider}`,
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 4,
+                              fontSize: 10.5,
+                              marginBottom: 8,
+                            }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: C.muted }}>Bean Cost:</span>
+                                <span style={{ fontWeight: 600, color: C.text }}>${(qtyToOrder * q.unitPrice).toLocaleString()}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span style={{ color: C.muted }}>Freight Cost:</span>
+                                <span style={{ fontWeight: 600, color: C.text }}>${q.freightCost}</span>
+                              </div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 2, borderTop: `1px dashed ${C.divider}` }}>
+                                <span style={{ fontWeight: 700, color: C.text }}>Total Delivered:</span>
+                                <strong style={{ color: isOptimal ? '#1E8A3C' : C.text, fontSize: 12 }}>
+                                  ${q.totalCost?.toLocaleString()}
+                                </strong>
+                              </div>
+                              <div style={{ fontSize: 9.5, color: C.muted, textAlign: 'right' }}>
+                                (${q.landedPerKg}/kg landed)
+                              </div>
+                            </div>
+                          ) : (
+                            <div style={{
+                              padding: '10px 8px',
+                              background: '#FEF0F2',
+                              borderRadius: 6,
+                              border: '1px solid #F5B8C0',
+                              fontSize: 10,
+                              color: '#D83040',
+                              marginBottom: 8,
+                              lineHeight: 1.4,
+                            }}>
+                              {q.reason}
+                            </div>
+                          )}
+
+                          {/* ETA */}
+                          {!isDeclined && (
+                            <div style={{ fontSize: 10, color: C.muted, marginBottom: 10 }}>
+                              <Clock size={10} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                              ETA: <strong style={{ color: C.text }}>{q.eta}</strong>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Button */}
+                        {!isDeclined ? (
+                          <button
+                            type="button"
+                            onClick={() => handleAwardReplenishQuote(rfqModalItem, q)}
+                            style={{
+                              width: '100%',
+                              padding: '7px 10px',
+                              borderRadius: 6,
+                              border: 'none',
+                              background: isOptimal ? '#15803D' : C.plum,
+                              color: '#FFFFFF',
+                              fontSize: 10.5,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 5,
+                              boxShadow: isOptimal ? '0 2px 6px rgba(21,128,61,0.25)' : 'none',
+                            }}
+                          >
+                            <Award size={11} />
+                            Award & Restock
+                          </button>
+                        ) : (
+                          <button
+                            disabled
+                            style={{
+                              width: '100%',
+                              padding: '7px 10px',
+                              borderRadius: 6,
+                              border: `1px solid ${C.border}`,
+                              background: '#F3F4F6',
+                              color: C.subtle,
+                              fontSize: 10.5,
+                              fontWeight: 600,
+                              cursor: 'not-allowed',
+                            }}
+                          >
+                            Cannot Supply
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Modal Footer Note */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingTop: 8,
+                borderTop: `1px solid ${C.divider}`,
+              }}>
+                <span style={{ fontSize: 10.5, color: C.muted }}>
+                  Awarding a quote generates an Order Number with status <strong>Requested</strong> in Orders Context.
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRfqModalItem(null)}
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 6,
+                    border: `1px solid ${C.border}`,
+                    background: '#FFFFFF',
+                    color: C.text,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

@@ -289,22 +289,22 @@ const STATUS_STYLE = {
 };
 
 export function evaluateItemStatus(item) {
-  const projectedBalance = item.available + item.incoming - item.openDemand;
-
-  if (item.replenished && projectedBalance >= item.minThreshold) {
+  // Healthy physical stock above both safety threshold and open demand
+  if (item.available >= item.minThreshold && item.available >= item.openDemand) {
     return STATUS_STYLE.covered;
   }
 
-  if (item.available < item.openDemand && projectedBalance < 0) {
-    return STATUS_STYLE.critical;
-  }
-
-  if (item.available < item.openDemand || projectedBalance === 0) {
+  // Stock is below open demand (immediate shortage risk)
+  if (item.available < item.openDemand) {
+    if (item.available <= item.minThreshold * 0.3) {
+      return STATUS_STYLE.critical;
+    }
     return STATUS_STYLE.short;
   }
 
-  if (item.available < item.minThreshold || projectedBalance < item.minThreshold) {
-    if (item.available < item.minThreshold * 0.5) {
+  // Stock is below safe minimum threshold
+  if (item.available < item.minThreshold) {
+    if (item.available <= item.minThreshold * 0.5) {
       return STATUS_STYLE.critical;
     }
     return STATUS_STYLE.tight;
@@ -366,4 +366,319 @@ export function findCheapestLocalOption(greenId, orderQuantity, inventory = INIT
     requestedItem,
   };
 }
+
+/**
+ * Generate all 5 sourcing scenarios and 3-warehouse competitive quotes
+ * for any green coffee bean demand at roasting facilities.
+ *
+ * Scenarios evaluated:
+ * 1. Same Site, Same Green (100% on-site stock, $0 freight)
+ * 2. Same Site, Alternate Green (Local approved alternate, $0 freight)
+ * 3. Warehouse Same Green (Competitive RFQ: Warehouse 1055, 1020, 1021)
+ * 4. Warehouse Alternate Green (RFQ on approved alternate bean)
+ * 5. Split Order Fulfillment (Local partial on-hand + balance from warehouse)
+ */
+export function generateSourcingScenarios(greenId, orderQuantity, inventory = INITIAL_LOCAL_INVENTORY, needByDate = 'Nov 12, 2026') {
+  const qty = Number(orderQuantity) || 0;
+  const requestedItem = inventory.find(i => i.id === greenId) || {
+    id: greenId,
+    name: greenId,
+    available: 0,
+    price: 4.10,
+    approvedAlternates: [],
+  };
+
+  const unitPrice = requestedItem.price || 4.10;
+  const localAvail = requestedItem.available || 0;
+
+  // ── Scenario 1: Same Site, Same Green ──
+  const isLocalSameFeasible = localAvail >= qty;
+  const scenario1 = {
+    id: 'scen-1-local-same',
+    type: 'LOCAL_SAME',
+    label: 'Scenario 1: Same Site, Same Green',
+    shortLabel: 'Local Same Green',
+    feasible: isLocalSameFeasible,
+    greenId: requestedItem.id,
+    greenName: requestedItem.name,
+    allocatedQty: isLocalSameFeasible ? qty : localAvail,
+    availableStock: localAvail,
+    unitPrice,
+    freightCost: 0,
+    totalCost: Math.round(qty * unitPrice),
+    landedPerKg: unitPrice,
+    eta: 'Immediate (On-Site Stock)',
+    facility: 'Site 1054 · Plano Roasting',
+    badge: isLocalSameFeasible ? 'OPTIMAL $0 FREIGHT' : 'INSUFFICIENT STOCK',
+    note: isLocalSameFeasible
+      ? `Full ${qty.toLocaleString()} kg allocated from on-site silos. $0 freight cost.`
+      : `Only ${localAvail.toLocaleString()} kg available on-site (${(qty - localAvail).toLocaleString()} kg short).`,
+  };
+
+  // ── Scenario 2: Same Site, Alternate Green ──
+  const altCandidates = [];
+  (requestedItem.approvedAlternates || []).forEach(alt => {
+    const altId = String(alt.name || '').split('·')[0].trim();
+    const altInv = inventory.find(i => i.id === altId);
+    if (altInv) {
+      altCandidates.push({
+        greenId: altInv.id,
+        greenName: altInv.name,
+        available: altInv.available,
+        unitPrice: altInv.price,
+        totalCost: Math.round(qty * altInv.price),
+        feasible: altInv.available >= qty,
+      });
+    }
+  });
+  // Sort alt candidates by cost
+  altCandidates.sort((a, b) => a.totalCost - b.totalCost);
+  const bestAlt = altCandidates.find(c => c.feasible) || altCandidates[0] || null;
+
+  const scenario2 = {
+    id: 'scen-2-local-alt',
+    type: 'LOCAL_ALT',
+    label: 'Scenario 2: Same Site, Alternate Green',
+    shortLabel: 'Local Alternate Green',
+    feasible: Boolean(bestAlt && bestAlt.feasible),
+    greenId: bestAlt ? bestAlt.greenId : null,
+    greenName: bestAlt ? bestAlt.greenName : 'No Approved Alternate',
+    allocatedQty: bestAlt && bestAlt.feasible ? qty : 0,
+    availableStock: bestAlt ? bestAlt.available : 0,
+    unitPrice: bestAlt ? bestAlt.unitPrice : 0,
+    freightCost: 0,
+    totalCost: bestAlt ? bestAlt.totalCost : 0,
+    landedPerKg: bestAlt ? bestAlt.unitPrice : 0,
+    eta: 'Immediate (On-Site Stock)',
+    facility: 'Site 1054 · Plano Roasting',
+    badge: (bestAlt && bestAlt.feasible) ? 'APPROVED ALTERNATE' : 'UNAVAILABLE',
+    note: bestAlt && bestAlt.feasible
+      ? `Approved substitution: ${bestAlt.greenId} (${bestAlt.greenName}) covers full demand with $0 freight.`
+      : 'No approved alternate has sufficient on-site stock.',
+    candidates: altCandidates,
+  };
+
+  // ── Scenario 3: Warehouse Transfer, Same Green (3-Warehouse Competitive Quotes) ──
+  const warehouseQuotesSame = [
+    {
+      id: 'quote-1055-same',
+      warehouseId: '1055',
+      warehouseName: 'Warehouse 1055 (Plano/Windsor Hub)',
+      location: 'Windsor, CT / Regional Hub',
+      capability: 'FULL',
+      capabilityLabel: 'Full Supply (100%)',
+      allocatedQty: qty,
+      availableStock: 5200,
+      unitPrice,
+      freightCost: 589,
+      totalCost: Math.round(qty * unitPrice + 589),
+      landedPerKg: Number(((qty * unitPrice + 589) / (qty || 1)).toFixed(2)),
+      eta: '2-3 Business Days',
+      deliveryDate: needByDate || 'Nov 11, 2026',
+      meetsNeedBy: true,
+      reason: 'Designated lowest-freight regional hub ($589 fixed contracted rate)',
+      badge: 'LOWEST FREIGHT',
+      isDesignated: true,
+      status: 'active',
+    },
+    {
+      id: 'quote-1020-same',
+      warehouseId: '1020',
+      warehouseName: 'Warehouse 1020 (Sumner Hub)',
+      location: 'Sumner, WA',
+      capability: 'FULL',
+      capabilityLabel: 'Full Supply (100%)',
+      allocatedQty: qty,
+      availableStock: 3400,
+      unitPrice: Number((unitPrice + 0.05).toFixed(2)),
+      freightCost: 1000,
+      totalCost: Math.round(qty * (unitPrice + 0.05) + 1000),
+      landedPerKg: Number(((qty * (unitPrice + 0.05) + 1000) / (qty || 1)).toFixed(2)),
+      eta: '4-5 Business Days',
+      deliveryDate: 'Nov 13, 2026',
+      meetsNeedBy: true,
+      reason: 'Secondary West Coast hub · cross-country freight ($1,000 carrier rate)',
+      badge: 'SECONDARY HUB',
+      isDesignated: false,
+      status: 'active',
+    },
+    {
+      id: 'quote-1021-same',
+      warehouseId: '1021',
+      warehouseName: 'Warehouse 1021 (Essex Hub)',
+      location: 'Essex, VT',
+      capability: 'CANNOT_SUPPLY',
+      capabilityLabel: 'Cannot Supply (0%)',
+      allocatedQty: 0,
+      availableStock: 350,
+      unitPrice,
+      freightCost: 1200,
+      totalCost: null,
+      landedPerKg: null,
+      eta: '6-8 Business Days',
+      deliveryDate: 'Nov 17, 2026',
+      meetsNeedBy: false,
+      reason: 'QA quarantine hold on current harvest lot #LK-402; unreserved buffer below safety cap',
+      badge: 'UNAVAILABLE',
+      isDesignated: false,
+      status: 'declined',
+    },
+  ];
+
+  const scenario3 = {
+    id: 'scen-3-wh-same',
+    type: 'WH_SAME',
+    label: 'Scenario 3: Warehouse Transfer, Same Green',
+    shortLabel: 'Warehouse Same Green',
+    feasible: true,
+    greenId: requestedItem.id,
+    greenName: requestedItem.name,
+    quotes: warehouseQuotesSame,
+    winningQuote: warehouseQuotesSame[0],
+    totalCost: warehouseQuotesSame[0].totalCost,
+    landedPerKg: warehouseQuotesSame[0].landedPerKg,
+    freightCost: warehouseQuotesSame[0].freightCost,
+    eta: warehouseQuotesSame[0].eta,
+    badge: '3 LIVE QUOTES',
+    note: 'Competitive quotation received from 3 central warehouses. Warehouse 1055 is the lowest delivered cost.',
+  };
+
+  // ── Scenario 4: Warehouse Transfer, Alternate Green (3-Warehouse Quotes) ──
+  const altName = bestAlt ? bestAlt.greenName : 'Huila Washed Reserve';
+  const altId = bestAlt ? bestAlt.greenId : 'Gc-22';
+  const altUnitPrice = bestAlt ? bestAlt.unitPrice : 4.40;
+
+  const warehouseQuotesAlt = [
+    {
+      id: 'quote-1055-alt',
+      warehouseId: '1055',
+      warehouseName: 'Warehouse 1055 (Plano/Windsor Hub)',
+      location: 'Windsor, CT / Regional Hub',
+      capability: 'FULL',
+      capabilityLabel: 'Full Supply (100%)',
+      allocatedQty: qty,
+      availableStock: 4800,
+      unitPrice: altUnitPrice,
+      freightCost: 589,
+      totalCost: Math.round(qty * altUnitPrice + 589),
+      landedPerKg: Number(((qty * altUnitPrice + 589) / (qty || 1)).toFixed(2)),
+      eta: '2-3 Business Days',
+      deliveryDate: needByDate || 'Nov 11, 2026',
+      meetsNeedBy: true,
+      reason: 'Alternate green transfer from lowest-freight regional hub',
+      badge: 'LOWEST FREIGHT',
+      isDesignated: true,
+      status: 'active',
+    },
+    {
+      id: 'quote-1020-alt',
+      warehouseId: '1020',
+      warehouseName: 'Warehouse 1020 (Sumner Hub)',
+      location: 'Sumner, WA',
+      capability: 'PARTIAL',
+      capabilityLabel: 'Partial Supply (60%)',
+      allocatedQty: Math.round(qty * 0.6),
+      availableStock: 1800,
+      unitPrice: altUnitPrice,
+      freightCost: 1000,
+      totalCost: Math.round(qty * 0.6 * altUnitPrice + 1000),
+      landedPerKg: Number(((qty * 0.6 * altUnitPrice + 1000) / (qty * 0.6 || 1)).toFixed(2)),
+      eta: '4-5 Business Days',
+      deliveryDate: 'Nov 13, 2026',
+      meetsNeedBy: true,
+      reason: 'Partial allocation only due to West Coast reserve commitment',
+      badge: 'PARTIAL ONLY',
+      isDesignated: false,
+      status: 'active',
+    },
+    {
+      id: 'quote-1021-alt',
+      warehouseId: '1021',
+      warehouseName: 'Warehouse 1021 (Essex Hub)',
+      location: 'Essex, VT',
+      capability: 'CANNOT_SUPPLY',
+      capabilityLabel: 'Cannot Supply (0%)',
+      allocatedQty: 0,
+      availableStock: 0,
+      unitPrice: altUnitPrice,
+      freightCost: 1200,
+      totalCost: null,
+      landedPerKg: null,
+      eta: '6-8 Business Days',
+      deliveryDate: 'Nov 17, 2026',
+      meetsNeedBy: false,
+      reason: 'Zero uncommitted inventory at facility',
+      badge: 'UNAVAILABLE',
+      isDesignated: false,
+      status: 'declined',
+    },
+  ];
+
+  const scenario4 = {
+    id: 'scen-4-wh-alt',
+    type: 'WH_ALT',
+    label: 'Scenario 4: Warehouse Transfer, Alternate Green',
+    shortLabel: 'Warehouse Alternate Green',
+    feasible: true,
+    greenId: altId,
+    greenName: altName,
+    quotes: warehouseQuotesAlt,
+    winningQuote: warehouseQuotesAlt[0],
+    totalCost: warehouseQuotesAlt[0].totalCost,
+    landedPerKg: warehouseQuotesAlt[0].landedPerKg,
+    freightCost: warehouseQuotesAlt[0].freightCost,
+    eta: warehouseQuotesAlt[0].eta,
+    badge: 'ALTERNATE TRANSFER',
+    note: `Central transfer of approved alternate ${altId} (${altName}). Warehouse 1055 quote offers full capacity.`,
+  };
+
+  // ── Scenario 5: Split Order Fulfillment (Local Partial + Warehouse Remaining) ──
+  const isSplitApplicable = localAvail > 0 && localAvail < qty;
+  const splitLocalQty = isSplitApplicable ? localAvail : 0;
+  const splitWhQty = isSplitApplicable ? qty - localAvail : 0;
+  const splitLocalCost = splitLocalQty * unitPrice;
+  const splitWhCost = splitWhQty * unitPrice + 589;
+  const splitTotalCost = Math.round(splitLocalCost + splitWhCost);
+
+  const scenario5 = {
+    id: 'scen-5-split',
+    type: 'SPLIT',
+    label: 'Scenario 5: Split Fulfillment (Local + Warehouse)',
+    shortLabel: 'Split Fulfillment',
+    feasible: isSplitApplicable,
+    localQty: splitLocalQty,
+    warehouseQty: splitWhQty,
+    localCost: Math.round(splitLocalCost),
+    warehouseCost: Math.round(splitWhCost),
+    freightCost: 589,
+    totalCost: splitTotalCost,
+    landedPerKg: qty > 0 ? Number((splitTotalCost / qty).toFixed(2)) : 0,
+    eta: 'Immediate (Local) + 2 Days (WH 1055)',
+    badge: isSplitApplicable ? 'HYBRID SOURCING' : 'NOT APPLICABLE',
+    note: isSplitApplicable
+      ? `Allocate ${splitLocalQty.toLocaleString()} kg immediately from Site 1054 ($0 freight) + transfer remaining ${splitWhQty.toLocaleString()} kg from Warehouse 1055 ($589 freight).`
+      : 'Split sourcing only applies when local stock partially covers demand.',
+  };
+
+  // Determine Overall Recommended Scenario
+  let recommendedScenario = scenario1;
+  if (!scenario1.feasible) {
+    if (scenario2.feasible && scenario2.totalCost < scenario3.totalCost) {
+      recommendedScenario = scenario2;
+    } else {
+      recommendedScenario = scenario3;
+    }
+  }
+
+  return {
+    requestedItem,
+    scenario1_LocalSame: scenario1,
+    scenario2_LocalAlt: scenario2,
+    scenario3_WarehouseSame: scenario3,
+    scenario4_WarehouseAlt: scenario4,
+    scenario5_Split: scenario5,
+    recommendedScenario,
+  };
+}
+
 

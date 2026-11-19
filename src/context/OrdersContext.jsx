@@ -1,6 +1,8 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect } from 'react';
-import { INITIAL_LOCAL_INVENTORY, findCheapestLocalOption } from '../data/localInventory';
+import { INITIAL_LOCAL_INVENTORY, findCheapestLocalOption, generateSourcingScenarios } from '../data/localInventory';
+
+export { generateSourcingScenarios };
 
 const OrdersContext = createContext(null);
 
@@ -1070,6 +1072,164 @@ export function OrdersProvider({ children }) {
     );
   };
 
+  // ── 1b. Multi-Scenario Awarding: Green Buyer Awards Winning Warehouse Quote ────
+  const awardWarehouseQuote = (orderId, quote) => {
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id !== orderId) return o;
+        const total = quote.totalCost || Math.round((o.orderQuantity || 1000) * quote.unitPrice + quote.freightCost);
+        const updatedTimeline = appendTimeline(
+          o,
+          `Local Buyer awarded transfer contract to ${quote.warehouseName} ($${quote.freightCost} freight · Landed $${quote.landedPerKg || (total / (o.orderQuantity || 1)).toFixed(2)}/kg)`,
+          'Maya Torres (Local Buyer)',
+          'active'
+        );
+        return {
+          ...o,
+          status: 'requested',
+          warehouse: quote.warehouseName,
+          warehouseId: quote.warehouseId,
+          shippingCost: quote.freightCost,
+          unitPrice: quote.unitPrice || o.unitPrice,
+          totalDelivered: total,
+          isLocalFulfilled: false,
+          awardedQuote: quote,
+          selectedOptionId: quote.warehouseId,
+          notes: `Competitive quotation evaluated and awarded to ${quote.warehouseName}. Delivery target: ${quote.deliveryDate || o.needByFull || o.needBy}.`,
+          updatedDate: new Date().toISOString(),
+          timeline: updatedTimeline,
+        };
+      })
+    );
+  };
+
+  // ── 1c. Multi-Scenario Allocation: Allocate Local Stock ($0 Freight) ──────────
+  const allocateLocalOption = (orderId, scenarioType = 'LOCAL_SAME', altGreenId = null) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (!targetOrder) return;
+
+    const isAlt = scenarioType === 'LOCAL_ALT';
+    const allocatedId = isAlt && altGreenId ? altGreenId : targetOrder.greenId;
+    const qty = targetOrder.orderQuantity || 0;
+
+    if (!targetOrder.inventoryAdjusted) {
+      setLocalInventory(prevInv =>
+        prevInv.map(inv => {
+          if (inv.id !== allocatedId) return inv;
+          return {
+            ...inv,
+            available: Math.max(0, inv.available - qty),
+            updated: 'Just now',
+            openOrders: [
+              {
+                id: targetOrder.id,
+                qty: `${qty.toLocaleString()} kg (${isAlt ? `Allocated Alt for ${targetOrder.greenId}` : 'Allocated Same Green'})`,
+                needBy: targetOrder.needBy,
+              },
+              ...(inv.openOrders || []).filter(entry => entry.id !== targetOrder.id),
+            ],
+          };
+        })
+      );
+    }
+
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id !== orderId) return o;
+        const updatedTimeline = appendTimeline(
+          o,
+          `Local Buyer allocated on-site stock from Site 1054 (${isAlt ? `Approved Alternate ${allocatedId}` : 'Same Green'} · $0 freight)`,
+          'Maya Torres (Local Buyer)',
+          'active'
+        );
+        return {
+          ...o,
+          status: 'approved',
+          isLocalFulfilled: true,
+          fulfillmentMode: isAlt ? 'local-alternate' : 'local-same',
+          inventoryAdjusted: true,
+          allocatedGreenId: allocatedId,
+          shipmentId: null,
+          shippingCost: 0,
+          totalDelivered: Math.round(qty * (o.unitPrice || 4.10)),
+          notes: `Allocated 100% from Site 1054 on-site inventory (${allocatedId}). $0 freight cost. Direct on-site pull.`,
+          updatedDate: new Date().toISOString(),
+          timeline: updatedTimeline,
+        };
+      })
+    );
+  };
+
+  // ── 1d. Multi-Scenario Split Fulfillment: Partial Local + Warehouse Balance ───
+  const approveSplitOrder = (orderId, { localQty, warehouseQty, quote }) => {
+    const targetOrder = orders.find(o => o.id === orderId);
+    if (!targetOrder) return;
+
+    const lQty = Number(localQty) || 0;
+    const wQty = Number(warehouseQty) || 0;
+
+    if (lQty > 0 && !targetOrder.inventoryAdjusted) {
+      setLocalInventory(prevInv =>
+        prevInv.map(inv => {
+          if (inv.id !== targetOrder.greenId) return inv;
+          return {
+            ...inv,
+            available: Math.max(0, inv.available - lQty),
+            updated: 'Just now',
+            openOrders: [
+              { id: targetOrder.id, qty: `${lQty.toLocaleString()} kg (Split Local Allocation)`, needBy: targetOrder.needBy },
+              ...(inv.openOrders || []).filter(entry => entry.id !== targetOrder.id),
+            ],
+          };
+        })
+      );
+    }
+
+    const whQuote = quote || {
+      warehouseName: 'Warehouse 1055',
+      warehouseId: '1055',
+      freightCost: 589,
+      unitPrice: targetOrder.unitPrice || 4.10,
+    };
+
+    const localCost = Math.round(lQty * (targetOrder.unitPrice || 4.10));
+    const whCost = Math.round(wQty * whQuote.unitPrice + whQuote.freightCost);
+    const totalCost = localCost + whCost;
+
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id !== orderId) return o;
+        const updatedTimeline = appendTimeline(
+          o,
+          `Split Sourcing Approved: ${lQty.toLocaleString()} kg allocated locally ($0 freight) + ${wQty.toLocaleString()} kg requested from ${whQuote.warehouseName}`,
+          'Maya Torres (Local Buyer)',
+          'active'
+        );
+        return {
+          ...o,
+          status: 'requested',
+          isSplit: true,
+          splitDetails: {
+            localQty: lQty,
+            warehouseQty: wQty,
+            localCost,
+            warehouseCost: whCost,
+            warehouse: whQuote.warehouseName,
+            freightCost: whQuote.freightCost,
+          },
+          warehouse: whQuote.warehouseName,
+          warehouseId: whQuote.warehouseId,
+          shippingCost: whQuote.freightCost,
+          totalDelivered: totalCost,
+          isLocalFulfilled: false,
+          notes: `Split fulfillment: ${lQty.toLocaleString()} kg on-site stock + ${wQty.toLocaleString()} kg transfer from ${whQuote.warehouseName}.`,
+          updatedDate: new Date().toISOString(),
+          timeline: updatedTimeline,
+        };
+      })
+    );
+  };
+
   // ── 2. Local Buyer: Submit transfer request to Central Warehouse (approved -> requested)
   const buyerRequestTransfer = (orderId, chosenOption = null) => {
     setOrders(prev =>
@@ -1668,6 +1828,9 @@ export function OrdersProvider({ children }) {
         setLocalInventory,
         getOrderById,
         buyerApprove,
+        awardWarehouseQuote,
+        allocateLocalOption,
+        approveSplitOrder,
         buyerRequestTransfer,
         warehouseAccept,
         warehouseDispatch,

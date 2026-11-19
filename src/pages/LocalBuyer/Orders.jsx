@@ -14,10 +14,14 @@ import {
   Building2,
   Send,
   Boxes,
+  Award,
+  Layers,
+  Check,
+  Leaf,
 } from 'lucide-react';
 import ThemedSelect from '../../components/ui/ThemedSelect';
 import { useOrders, getOrderStatusMeta, ORDER_LIFECYCLE } from '../../context/OrdersContext';
-import { findCheapestLocalOption } from '../../data/localInventory';
+import { findCheapestLocalOption, generateSourcingScenarios } from '../../data/localInventory';
 
 // ── Color tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -66,7 +70,9 @@ export default function Orders() {
   const {
     orders,
     localInventory,
-    buyerApprove,
+    awardWarehouseQuote,
+    allocateLocalOption,
+    approveSplitOrder,
     buyerRequestTransfer,
     systemDeliver,
     buyerReceive,
@@ -80,6 +86,9 @@ export default function Orders() {
   const [newGreenId, setNewGreenId] = useState('Gh-08');
   const [newOrderQty, setNewOrderQty] = useState('500');
   const [newNeedBy, setNewNeedBy] = useState('Nov 16');
+
+  // Active Sourcing Scenario Tab (for evaluating new demand & RFQ quotes)
+  const [activeScenarioTab, setActiveScenarioTab] = useState('scen-3-wh-same');
 
   const newOrderPreview = useMemo(() => {
     const qty = parseInt(newOrderQty, 10) || 0;
@@ -104,7 +113,6 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('urgency');
-  const [sourcingSort, setSourcingSort] = useState('cost');
 
   // History modal toggle
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -157,21 +165,26 @@ export default function Orders() {
     return siteOrders.find(o => o.id === selectedOrderId || o.id === cleanSelected) || siteOrders[0] || {};
   }, [siteOrders, selectedOrderId]);
 
+  // Multi-Scenario Generator for current selected order (evaluates all 5 sourcing scenarios & 3 warehouse quotes)
+  const currentScenarios = useMemo(() => {
+    if (!currentOrder || !currentOrder.greenId) return null;
+    return generateSourcingScenarios(
+      currentOrder.greenId,
+      currentOrder.orderQuantity,
+      localInventory,
+      currentOrder.needByFull || currentOrder.needBy
+    );
+  }, [currentOrder, localInventory]);
+
   // Sourcing options
   const sortedOptions = useMemo(() => {
     if (!currentOrder.options || currentOrder.options.length === 0) return [];
     return [...currentOrder.options].sort((a, b) => {
-      if (sourcingSort === 'cost') {
-        const costA = parseInt(String(a.totalPrice || '').replace(/[^0-9]/g, ''), 10) || 0;
-        const costB = parseInt(String(b.totalPrice || '').replace(/[^0-9]/g, ''), 10) || 0;
-        return costA - costB;
-      }
-      if (sourcingSort === 'eta') {
-        return String(a.eta || '').localeCompare(String(b.eta || ''));
-      }
-      return 0;
+      const costA = parseInt(String(a.totalPrice || '').replace(/[^0-9]/g, ''), 10) || 0;
+      const costB = parseInt(String(b.totalPrice || '').replace(/[^0-9]/g, ''), 10) || 0;
+      return costA - costB;
     });
-  }, [currentOrder, sourcingSort]);
+  }, [currentOrder]);
 
   // Currently chosen fulfillment option inside the selected order
   const currentOption = useMemo(() => {
@@ -186,9 +199,19 @@ export default function Orders() {
   };
 
   // Actions for Local Buyer
-  const handleBuyerApprove = () => {
-    buyerApprove(currentOrder.id, currentOption);
-    triggerNotice(`Order ${currentOrder.id} approved by Local Buyer.`);
+  const handleAwardWarehouse = (quote) => {
+    awardWarehouseQuote(currentOrder.id, quote);
+    triggerNotice(`Order ${currentOrder.id}: Awarded transfer contract to ${quote.warehouseName} ($${quote.freightCost} freight · Landed $${quote.landedPerKg}/kg).`);
+  };
+
+  const handleAllocateLocal = (scenarioType = 'LOCAL_SAME', altGreenId = null) => {
+    allocateLocalOption(currentOrder.id, scenarioType, altGreenId);
+    triggerNotice(`Order ${currentOrder.id}: Allocated 100% on-site stock from Site 1054 ($0 freight).`);
+  };
+
+  const handleApproveSplit = (localQty, warehouseQty, quote) => {
+    approveSplitOrder(currentOrder.id, { localQty, warehouseQty, quote });
+    triggerNotice(`Order ${currentOrder.id}: Approved split sourcing (${localQty.toLocaleString()} kg on-site + ${warehouseQty.toLocaleString()} kg from ${quote.warehouseName}).`);
   };
 
   const handleBuyerRequest = () => {
@@ -781,176 +804,719 @@ export default function Orders() {
             gap: 14,
           }}>
 
-            {/* ── SECTION 2: SOURCING OPTIONS vs ACTIVE TRACKING ── */}
-            {currentOrder.options && currentOrder.options.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 14, alignItems: 'start' }}>
-
-                {/* Left Inner: Sourcing options list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                        Feasible Sourcing Options
-                      </div>
-                      <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
-                        {currentOrder.options.length} options evaluated · 100% demand quantity covered
-                      </div>
-                    </div>
-
-                    <ThemedSelect
-                      value={sourcingSort}
-                      onChange={val => {
-                        setSourcingSort(val);
-                        setSelectedOptionIndex(0);
-                      }}
-                      options={[
-                        { value: 'cost', label: 'Lowest total cost' },
-                        { value: 'eta', label: 'Earliest arrival' },
-                      ]}
-                      prefix="Sort: "
-                      size="sm"
-                      align="right"
-                    />
-                  </div>
-
-                  {sortedOptions.map((opt, oIdx) => {
-                    const isOptSelected = selectedOptionIndex === oIdx;
+            {/* ── SECTION 2: SOURCING SCENARIOS vs ACTIVE LIFECYCLE TRACKING ── */}
+            {currentOrder.status === 'new' && currentScenarios ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                
+                {/* ── Top Sourcing Scenario Tabs ── */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  overflowX: 'auto',
+                  paddingBottom: 4,
+                  borderBottom: `1px solid ${C.divider}`,
+                }}>
+                  {[
+                    {
+                      id: 'scen-3-wh-same',
+                      label: 'Scenario 3: Warehouse Transfer (3 Hubs)',
+                      short: 'Warehouse Same Green',
+                      icon: <Truck size={13} />,
+                      badge: '3 LIVE QUOTES',
+                      badgeColor: '#1E8A3C',
+                      badgeBg: '#EDF7F1',
+                    },
+                    {
+                      id: 'scen-1-local-same',
+                      label: 'Scenario 1: Same Site, Same Green',
+                      short: 'Local Same Green',
+                      icon: <Building2 size={13} />,
+                      badge: currentScenarios.scenario1_LocalSame.feasible ? 'FEASIBLE' : 'SHORT',
+                      badgeColor: currentScenarios.scenario1_LocalSame.feasible ? '#1E8A3C' : '#D83040',
+                      badgeBg: currentScenarios.scenario1_LocalSame.feasible ? '#EDF7F1' : '#FEF0F2',
+                    },
+                    {
+                      id: 'scen-2-local-alt',
+                      label: 'Scenario 2: Same Site, Alternate Green',
+                      short: 'Local Alternate',
+                      icon: <Leaf size={13} />,
+                      badge: currentScenarios.scenario2_LocalAlt.feasible ? 'APPROVED ALT' : 'UNAVAILABLE',
+                      badgeColor: currentScenarios.scenario2_LocalAlt.feasible ? '#0284C7' : '#9CA3AF',
+                      badgeBg: currentScenarios.scenario2_LocalAlt.feasible ? '#F0F9FF' : '#F3F4F6',
+                    },
+                    {
+                      id: 'scen-4-wh-alt',
+                      label: 'Scenario 4: Warehouse Alternate',
+                      short: 'Warehouse Alternate',
+                      icon: <Sparkles size={13} />,
+                      badge: 'HUB TRANSFER',
+                      badgeColor: '#6B46C1',
+                      badgeBg: '#FAF5FF',
+                    },
+                    {
+                      id: 'scen-5-split',
+                      label: 'Scenario 5: Split Fulfillment',
+                      short: 'Split Sourcing',
+                      icon: <Layers size={13} />,
+                      badge: currentScenarios.scenario5_Split.feasible ? 'HYBRID' : 'N/A',
+                      badgeColor: currentScenarios.scenario5_Split.feasible ? '#B86A00' : '#9CA3AF',
+                      badgeBg: currentScenarios.scenario5_Split.feasible ? '#FFF7E6' : '#F3F4F6',
+                    },
+                  ].map(tab => {
+                    const isActive = activeScenarioTab === tab.id;
                     return (
-                      <div
-                        key={opt.id}
-                        onClick={() => setSelectedOptionIndex(oIdx)}
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveScenarioTab(tab.id)}
                         style={{
-                          padding: '12px 14px',
-                          borderRadius: 8,
-                          border: isOptSelected ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
-                          borderLeft: isOptSelected ? '4px solid #16A34A' : `1px solid ${C.border}`,
-                          background: isOptSelected ? '#FBFDFB' : '#FFFFFF',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '7px 12px',
+                          borderRadius: 6,
+                          border: isActive ? `1.5px solid ${C.rose}` : `1px solid ${C.border}`,
+                          background: isActive ? '#FAF2F6' : '#FFFFFF',
+                          color: isActive ? C.rose : C.text,
+                          fontSize: 11,
+                          fontWeight: isActive ? 700 : 500,
                           cursor: 'pointer',
+                          whiteSpace: 'nowrap',
                           transition: 'all 0.12s ease',
-                          boxShadow: isOptSelected ? '0 2px 6px rgba(22,163,74,0.08)' : 'none',
                         }}
                       >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <span style={{ fontSize: 10, fontWeight: 600, color: isOptSelected ? '#15803D' : C.plum, letterSpacing: '0.4px', textTransform: 'uppercase' }}>
-                            {opt.tag}
-                          </span>
-                          {opt.bestValue && (
-                            <span style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: '2px 7px',
-                              borderRadius: 10,
-                              background: '#EDF7F1',
-                              color: '#1E8A3C',
-                              border: '1px solid #B4DDBD',
-                            }}>
-                              BEST VALUE
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 2 }}>
-                          {opt.title}
-                        </div>
-                        <div style={{ fontSize: 11, color: C.muted, marginBottom: 6 }}>
-                          {opt.subtitle}
-                        </div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 6, borderTop: `1px solid ${C.divider}` }}>
-                          <div>
-                            <span style={{ fontSize: 14, fontWeight: 800, color: C.text }}>{opt.totalPrice}</span>
-                            <span style={{ fontSize: 10.5, color: C.subtle, marginLeft: 4 }}>({opt.perKg})</span>
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: '#1E8A3C', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                            <Clock size={11} />
-                            {opt.eta}
-                          </span>
-                        </div>
-                      </div>
+                        {tab.icon}
+                        <span>{tab.short}</span>
+                        <span style={{
+                          fontSize: 8.5,
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: 8,
+                          background: tab.badgeBg,
+                          color: tab.badgeColor,
+                        }}>
+                          {tab.badge}
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
 
-                {/* Right Inner: Selected Option Breakdown Card */}
-                {currentOption && (
-                  <div style={{
-                    background: '#FFFFFF',
-                    border: `1px solid ${C.border}`,
-                    borderRadius: 8,
-                    padding: '14px 16px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 10,
-                    boxShadow: '0 1px 3px rgba(59,45,52,0.05)',
-                  }}>
+                {/* ── TAB CONTENT ── */}
+                {/* 1. SCENARIO 3: WAREHOUSE TRANSFER (3-WAREHOUSE COMPETITIVE QUOTES) */}
+                {activeScenarioTab === 'scen-3-wh-same' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                        Selected Sourcing Model
-                      </span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          Scenario 3: Central Warehouse Competitive Quotations (3 Hubs)
+                        </div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                          3 warehouses submitted formal capability, freight rate, and ETA quotes for {(currentOrder.orderQuantity || 0).toLocaleString()} kg of {currentOrder.greenName}.
+                        </div>
+                      </div>
                       <span style={{
-                        fontSize: 8.5,
+                        fontSize: 9.5,
                         fontWeight: 700,
-                        padding: '2px 7px',
-                        borderRadius: 10,
+                        padding: '3px 8px',
+                        borderRadius: 12,
                         background: '#EDF7F1',
                         color: '#1E8A3C',
                         border: '1px solid #B4DDBD',
                       }}>
-                        RECOMMENDED
+                        LOWEST FREIGHT RULE APPLIED
                       </span>
                     </div>
 
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
-                        {currentOption.optionName}
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 1 }}>
-                        {currentOption.optionSub}
-                      </div>
-                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                      {currentScenarios.scenario3_WarehouseSame.quotes.map(q => {
+                        const isOptimal = q.isDesignated && q.capability === 'FULL';
+                        const isDeclined = q.capability === 'CANNOT_SUPPLY';
 
-                    {/* Breakdown Rows */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                      padding: '8px 0',
-                      borderTop: `1px solid ${C.divider}`,
-                      borderBottom: `1px solid ${C.divider}`,
-                    }}>
-                      {currentOption.breakdown?.map((row, rIdx) => (
-                        <div key={rIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11 }}>
-                          <span style={{ color: C.muted }}>{row.label}</span>
-                          <span style={{ fontWeight: 600, color: C.text }}>{row.val}</span>
-                        </div>
-                      ))}
-                    </div>
+                        return (
+                          <div
+                            key={q.id}
+                            style={{
+                              border: isOptimal ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
+                              borderRadius: 8,
+                              padding: '14px',
+                              background: isOptimal ? '#FCFDFC' : isDeclined ? '#FAF9FA' : '#FFFFFF',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              boxShadow: isOptimal ? '0 2px 8px rgba(22,163,74,0.08)' : 'none',
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                                <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                                  {q.warehouseName.split('(')[0].trim()}
+                                </div>
+                                <span style={{
+                                  fontSize: 8.5,
+                                  fontWeight: 700,
+                                  padding: '2px 6px',
+                                  borderRadius: 10,
+                                  background: isOptimal ? '#EDF7F1' : isDeclined ? '#FEF0F2' : '#FFF7E6',
+                                  color: isOptimal ? '#1E8A3C' : isDeclined ? '#D83040' : '#B86A00',
+                                  border: `1px solid ${isOptimal ? '#B4DDBD' : isDeclined ? '#F5B8C0' : '#F5D68A'}`,
+                                }}>
+                                  {q.badge}
+                                </span>
+                              </div>
 
-                    {/* Total Cost Highlight */}
-                    <div>
-                      <div style={{ fontSize: 10, fontWeight: 600, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                        Total Delivered Cost
-                      </div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: C.text, lineHeight: 1.1, marginTop: 2 }}>
-                        {currentOption.totalDelivered}
-                      </div>
-                      <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
-                        {currentOption.totalPerKg} · Landed at Roasting Bay
-                      </div>
-                    </div>
+                              <div style={{ fontSize: 10, color: C.muted, marginBottom: 8 }}>
+                                {q.location}
+                              </div>
 
-                    <div style={{
-                      padding: '6px 10px',
-                      borderRadius: 6,
-                      background: '#EDF7F1',
-                      color: '#1E8A3C',
-                      fontSize: 11,
-                      fontWeight: 600,
-                      textAlign: 'center',
-                      border: '1px solid #B4DDBD',
-                    }}>
-                      {currentOption.savingsTag}
+                              {/* Capability badge */}
+                              <div style={{ marginBottom: 10 }}>
+                                <span style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  color: q.capability === 'FULL' ? '#1E8A3C' : '#D83040',
+                                }}>
+                                  {q.capability === 'FULL' ? '✓ ' : '✕ '}
+                                  {q.capabilityLabel}
+                                </span>
+                                <div style={{ fontSize: 9.5, color: C.subtle, marginTop: 2 }}>
+                                  Unreserved buffer: {q.availableStock.toLocaleString()} kg
+                                </div>
+                              </div>
+
+                              {/* Pricing breakdown */}
+                              {!isDeclined ? (
+                                <div style={{
+                                  padding: '8px 0',
+                                  borderTop: `1px solid ${C.divider}`,
+                                  borderBottom: `1px solid ${C.divider}`,
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  gap: 4,
+                                  fontSize: 10.5,
+                                  marginBottom: 8,
+                                }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: C.muted }}>Bean Cost:</span>
+                                    <span style={{ fontWeight: 600, color: C.text }}>${((currentOrder.orderQuantity || 0) * q.unitPrice).toLocaleString()}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <span style={{ color: C.muted }}>Fixed Freight:</span>
+                                    <span style={{ fontWeight: 600, color: C.text }}>${q.freightCost}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 2, borderTop: `1px dashed ${C.divider}` }}>
+                                    <span style={{ fontWeight: 700, color: C.text }}>Delivered Total:</span>
+                                    <strong style={{ color: isOptimal ? '#1E8A3C' : C.text, fontSize: 13 }}>
+                                      ${q.totalCost?.toLocaleString()}
+                                    </strong>
+                                  </div>
+                                  <div style={{ fontSize: 9.5, color: C.muted, textAlign: 'right' }}>
+                                    (${q.landedPerKg} / kg landed)
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{
+                                  padding: '10px 8px',
+                                  background: '#FEF0F2',
+                                  borderRadius: 6,
+                                  border: '1px solid #F5B8C0',
+                                  fontSize: 10,
+                                  color: '#D83040',
+                                  marginBottom: 8,
+                                  lineHeight: 1.4,
+                                }}>
+                                  {q.reason}
+                                </div>
+                              )}
+
+                              {/* ETA */}
+                              {!isDeclined && (
+                                <div style={{ fontSize: 10, color: C.muted, marginBottom: 12 }}>
+                                  <Clock size={10} style={{ display: 'inline', marginRight: 3, verticalAlign: 'middle' }} />
+                                  Delivery ETA: <strong style={{ color: C.text }}>{q.eta}</strong>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Action Button */}
+                            {!isDeclined ? (
+                              <button
+                                type="button"
+                                onClick={() => handleAwardWarehouse(q)}
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  background: isOptimal ? '#15803D' : C.plum,
+                                  color: '#FFFFFF',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 5,
+                                  boxShadow: isOptimal ? '0 2px 6px rgba(21,128,61,0.25)' : 'none',
+                                  transition: 'all 0.12s ease',
+                                }}
+                              >
+                                <Award size={12} />
+                                Award Quote & Transfer
+                              </button>
+                            ) : (
+                              <button
+                                disabled
+                                style={{
+                                  width: '100%',
+                                  padding: '8px 12px',
+                                  borderRadius: 6,
+                                  border: `1px solid ${C.border}`,
+                                  background: '#F3F4F6',
+                                  color: C.subtle,
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: 'not-allowed',
+                                }}
+                              >
+                                Quote Declined
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
+
+                {/* 2. SCENARIO 1: SAME SITE, SAME GREEN */}
+                {activeScenarioTab === 'scen-1-local-same' && (
+                  <div style={{
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    padding: '16px',
+                    background: currentScenarios.scenario1_LocalSame.feasible ? '#FCFDFC' : '#FAF9FA',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          Scenario 1: Same Site, Same Green Fulfillment
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                          {currentScenarios.scenario1_LocalSame.note}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        background: currentScenarios.scenario1_LocalSame.feasible ? '#EDF7F1' : '#FEF0F2',
+                        color: currentScenarios.scenario1_LocalSame.feasible ? '#1E8A3C' : '#D83040',
+                        border: `1px solid ${currentScenarios.scenario1_LocalSame.feasible ? '#B4DDBD' : '#F5B8C0'}`,
+                      }}>
+                        {currentScenarios.scenario1_LocalSame.badge}
+                      </span>
+                    </div>
+
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      background: '#FFFFFF',
+                      borderRadius: 6,
+                      border: `1px solid ${C.border}`,
+                      padding: '10px 14px',
+                    }}>
+                      <div>
+                        <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase' }}>Site 1054 Stock</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                          {currentScenarios.scenario1_LocalSame.availableStock.toLocaleString()} kg
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase' }}>Order Demand</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                          {(currentOrder.orderQuantity || 0).toLocaleString()} kg
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase' }}>Freight Cost</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>$0 (Local Stock)</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase' }}>Total Delivered</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>
+                          ${currentScenarios.scenario1_LocalSame.totalCost.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {currentScenarios.scenario1_LocalSame.feasible ? (
+                      <button
+                        type="button"
+                        onClick={() => handleAllocateLocal('LOCAL_SAME')}
+                        style={{
+                          alignSelf: 'flex-start',
+                          padding: '8px 18px',
+                          borderRadius: 6,
+                          border: 'none',
+                          background: '#15803D',
+                          color: '#FFFFFF',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          boxShadow: '0 2px 6px rgba(21,128,61,0.25)',
+                        }}
+                      >
+                        <Check size={13} />
+                        Allocate On-Site Stock ($0 Freight)
+                      </button>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: C.muted }}>
+                        <span style={{ color: C.crit, fontWeight: 600 }}>Insufficient stock on-site.</span>
+                        <span>Consider switching to</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveScenarioTab('scen-3-wh-same')}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            border: `1px solid ${C.border}`,
+                            background: '#FFFFFF',
+                            color: C.rose,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontSize: 10.5,
+                          }}
+                        >
+                          Scenario 3 (Warehouse Quoting)
+                        </button>
+                        <span>or</span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveScenarioTab('scen-5-split')}
+                          style={{
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            border: `1px solid ${C.border}`,
+                            background: '#FFFFFF',
+                            color: C.plum,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            fontSize: 10.5,
+                          }}
+                        >
+                          Scenario 5 (Split Sourcing)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. SCENARIO 2: SAME SITE, ALTERNATE GREEN */}
+                {activeScenarioTab === 'scen-2-local-alt' && (
+                  <div style={{
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    padding: '16px',
+                    background: '#FFFFFF',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          Scenario 2: Same Site, Alternate Green Substitution
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                          {currentScenarios.scenario2_LocalAlt.note}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        background: currentScenarios.scenario2_LocalAlt.feasible ? '#F0F9FF' : '#F3F4F6',
+                        color: currentScenarios.scenario2_LocalAlt.feasible ? '#0284C7' : '#9CA3AF',
+                        border: `1px solid ${currentScenarios.scenario2_LocalAlt.feasible ? '#BAE6FD' : '#E5E7EB'}`,
+                      }}>
+                        {currentScenarios.scenario2_LocalAlt.badge}
+                      </span>
+                    </div>
+
+                    {currentScenarios.scenario2_LocalAlt.candidates?.length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {currentScenarios.scenario2_LocalAlt.candidates.map(cand => (
+                          <div
+                            key={cand.greenId}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '10px 14px',
+                              borderRadius: 6,
+                              border: `1px solid ${C.border}`,
+                              background: cand.feasible ? '#FCFDFC' : '#FAF9FA',
+                            }}
+                          >
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: 700, color: C.text }}>
+                                {cand.greenId} · {cand.greenName}
+                              </div>
+                              <div style={{ fontSize: 10.5, color: C.muted }}>
+                                Available: {cand.available.toLocaleString()} kg · Unit Price: ${cand.unitPrice.toFixed(2)}/kg · $0 Freight
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
+                                  ${cand.totalCost.toLocaleString()}
+                                </div>
+                                <div style={{ fontSize: 9.5, color: '#16A34A', fontWeight: 600 }}>$0 Shipping</div>
+                              </div>
+                              {cand.feasible ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleAllocateLocal('LOCAL_ALT', cand.greenId)}
+                                  style={{
+                                    padding: '6px 14px',
+                                    borderRadius: 6,
+                                    border: 'none',
+                                    background: '#0284C7',
+                                    color: '#FFFFFF',
+                                    fontSize: 10.5,
+                                    fontWeight: 700,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  Allocate Alternate
+                                </button>
+                              ) : (
+                                <span style={{ fontSize: 10, color: C.crit, fontWeight: 600 }}>Insufficient Stock</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11, color: C.muted }}>
+                        No approved alternates mapped in recipe dimension table for {currentOrder.greenName}.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 4. SCENARIO 4: WAREHOUSE ALTERNATE GREEN */}
+                {activeScenarioTab === 'scen-4-wh-alt' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          Scenario 4: Central Transfer of Approved Alternate Green ({currentScenarios.scenario4_WarehouseAlt.greenName})
+                        </div>
+                        <div style={{ fontSize: 10.5, color: C.muted, marginTop: 1 }}>
+                          Central warehouse quotes for recipe-approved substitution {currentScenarios.scenario4_WarehouseAlt.greenId}.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                      {currentScenarios.scenario4_WarehouseAlt.quotes.map(q => {
+                        const isOptimal = q.isDesignated && q.capability === 'FULL';
+                        const isDeclined = q.capability === 'CANNOT_SUPPLY';
+
+                        return (
+                          <div
+                            key={q.id}
+                            style={{
+                              border: isOptimal ? '1.5px solid #16A34A' : `1px solid ${C.border}`,
+                              borderRadius: 8,
+                              padding: '12px',
+                              background: isOptimal ? '#FCFDFC' : isDeclined ? '#FAF9FA' : '#FFFFFF',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>
+                                  {q.warehouseName.split('(')[0].trim()}
+                                </span>
+                                <span style={{
+                                  fontSize: 8.5,
+                                  fontWeight: 700,
+                                  padding: '2px 6px',
+                                  borderRadius: 10,
+                                  background: isOptimal ? '#EDF7F1' : isDeclined ? '#FEF0F2' : '#FFF7E6',
+                                  color: isOptimal ? '#1E8A3C' : isDeclined ? '#D83040' : '#B86A00',
+                                  border: `1px solid ${isOptimal ? '#B4DDBD' : isDeclined ? '#F5B8C0' : '#F5D68A'}`,
+                                }}>
+                                  {q.badge}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: 9.5, color: C.muted, marginBottom: 8 }}>{q.location}</div>
+                              <div style={{ fontSize: 10, fontWeight: 700, color: q.capability === 'FULL' ? '#1E8A3C' : '#D83040', marginBottom: 6 }}>
+                                {q.capabilityLabel}
+                              </div>
+                              {!isDeclined ? (
+                                <div style={{ fontSize: 11, marginBottom: 8 }}>
+                                  Delivered: <strong>${q.totalCost?.toLocaleString()}</strong> (${q.landedPerKg}/kg) · ETA: {q.eta}
+                                </div>
+                              ) : (
+                                <div style={{ fontSize: 9.5, color: '#D83040', marginBottom: 8 }}>{q.reason}</div>
+                              )}
+                            </div>
+                            {!isDeclined && (
+                              <button
+                                type="button"
+                                onClick={() => handleAwardWarehouse(q)}
+                                style={{
+                                  width: '100%',
+                                  padding: '7px 10px',
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  background: isOptimal ? '#15803D' : C.plum,
+                                  color: '#FFFFFF',
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                Award Alternate Transfer
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* 5. SCENARIO 5: SPLIT FULFILLMENT */}
+                {activeScenarioTab === 'scen-5-split' && (
+                  <div style={{
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 8,
+                    padding: '16px',
+                    background: '#FFFFFF',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12,
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+                          Scenario 5: Split Order Sourcing (Local Partial Stock + Warehouse Transfer)
+                        </div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                          {currentScenarios.scenario5_Split.note}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 9.5,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 12,
+                        background: currentScenarios.scenario5_Split.feasible ? '#FFF7E6' : '#F3F4F6',
+                        color: currentScenarios.scenario5_Split.feasible ? '#B86A00' : '#9CA3AF',
+                        border: `1px solid ${currentScenarios.scenario5_Split.feasible ? '#F5D68A' : '#E5E7EB'}`,
+                      }}>
+                        {currentScenarios.scenario5_Split.badge}
+                      </span>
+                    </div>
+
+                    {currentScenarios.scenario5_Split.feasible ? (
+                      <>
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(3, 1fr)',
+                          gap: 12,
+                          background: '#FAF8F9',
+                          borderRadius: 6,
+                          padding: '12px 14px',
+                          border: `1px solid ${C.border}`,
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase' }}>1. Local Allocation (Site 1054)</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>
+                              {currentScenarios.scenario5_Split.localQty.toLocaleString()} kg · $0 Freight
+                            </div>
+                            <div style={{ fontSize: 10, color: '#16A34A', marginTop: 2 }}>
+                              Cost: ${currentScenarios.scenario5_Split.localCost.toLocaleString()} · Immediate on-site pull
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase' }}>2. Warehouse Transfer (WH 1055)</div>
+                            <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }}>
+                              {currentScenarios.scenario5_Split.warehouseQty.toLocaleString()} kg · $589 Freight
+                            </div>
+                            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                              Cost: ${currentScenarios.scenario5_Split.warehouseCost.toLocaleString()} · ETA Nov 11
+                            </div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase' }}>Total Landed Sourcing</div>
+                            <div style={{ fontSize: 15, fontWeight: 800, color: C.text, marginTop: 2 }}>
+                              ${currentScenarios.scenario5_Split.totalCost.toLocaleString()}
+                            </div>
+                            <div style={{ fontSize: 10, color: C.muted, marginTop: 2 }}>
+                              (${currentScenarios.scenario5_Split.landedPerKg} / kg landed)
+                            </div>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleApproveSplit(
+                            currentScenarios.scenario5_Split.localQty,
+                            currentScenarios.scenario5_Split.warehouseQty,
+                            currentScenarios.scenario3_WarehouseSame.winningQuote
+                          )}
+                          style={{
+                            alignSelf: 'flex-start',
+                            padding: '8px 20px',
+                            borderRadius: 6,
+                            border: 'none',
+                            background: C.plum,
+                            color: '#FFFFFF',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            boxShadow: '0 2px 6px rgba(92,58,87,0.25)',
+                          }}
+                        >
+                          <Layers size={13} />
+                          Approve Split Sourcing ({currentScenarios.scenario5_Split.localQty.toLocaleString()} kg Local + {currentScenarios.scenario5_Split.warehouseQty.toLocaleString()} kg Hub)
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 11, color: C.muted, lineHeight: 1.5 }}>
+                        Split sourcing applies when Site 1054 holds partial physical stock (greater than 0 kg but less than order demand).
+                        Currently, on-site unreserved stock is {currentScenarios.scenario1_LocalSame.availableStock} kg.
+                      </div>
+                    )}
+                  </div>
+                )}
+
               </div>
             ) : (
               /* Active Lifecycle Status / Tracking Info for In-Flight Orders */
@@ -988,6 +1554,41 @@ export default function Orders() {
                     </div>
                   </div>
                   <QueueStatusBadge status={currentOrder.status} />
+                </div>
+
+                {/* Sourcing Summary Card for In-Flight Order */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  background: '#FFFFFF',
+                  padding: '10px 14px',
+                  borderRadius: 6,
+                  border: `1px solid ${C.border}`,
+                }}>
+                  <div>
+                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', marginBottom: 2 }}>Fulfillment Mode</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: currentOrder.isLocalFulfilled ? '#15803D' : C.plum }}>
+                      {currentOrder.isLocalFulfilled ? 'On-Site Stock ($0 Freight)' : currentOrder.isSplit ? 'Split Local + Central' : `${currentOrder.warehouse || 'Warehouse 1055'} Transfer`}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', marginBottom: 2 }}>Shipping Freight</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: currentOrder.isLocalFulfilled ? '#15803D' : C.text }}>
+                      ${currentOrder.shippingCost || 0}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', marginBottom: 2 }}>Total Delivered</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: C.text }}>
+                      ${(currentOrder.totalDelivered || 0).toLocaleString()}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9.5, color: C.muted, textTransform: 'uppercase', marginBottom: 2 }}>Target Bay</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 600, color: C.text }}>
+                      Site 1054 · Bay {currentOrder.stagingBay || 'Dock 2'}
+                    </div>
+                  </div>
                 </div>
 
                 <div style={{
@@ -1080,52 +1681,70 @@ export default function Orders() {
               {/* 1. If Status is 'new' */}
               {currentOrder.status === 'new' && (
                 <>
-                  <button
-                    onClick={handleBuyerApprove}
-                    style={{
-                      padding: '8px 16px',
-                      borderRadius: 6,
-                      border: `1px solid ${C.border}`,
-                      background: '#FFFFFF',
-                      color: C.text,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.12s ease',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = C.hover}
-                    onMouseLeave={e => e.currentTarget.style.background = '#FFFFFF'}
-                  >
-                    Approve Sourcing Option
-                  </button>
-                  <button
-                    disabled={!currentOption}
-                    onClick={handleProceedToConfirm}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      padding: '8px 18px',
-                      borderRadius: 6,
-                      border: 'none',
-                      background: C.rose,
-                      color: '#FFFFFF',
-                      fontSize: 11,
-                      fontWeight: 700,
-                      cursor: currentOption ? 'pointer' : 'not-allowed',
-                      boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
-                      transition: 'all 0.12s ease',
-                    }}
-                    onMouseEnter={e => {
-                      if (currentOption) e.currentTarget.style.background = C.roseHover;
-                    }}
-                    onMouseLeave={e => {
-                      if (currentOption) e.currentTarget.style.background = C.rose;
-                    }}
-                  >
-                    Proceed to Confirm
-                    <ArrowRight size={12} />
-                  </button>
+                  {currentScenarios?.scenario1_LocalSame?.feasible && (
+                    <button
+                      onClick={() => handleAllocateLocal('LOCAL_SAME')}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: 6,
+                        border: '1px solid #16A34A',
+                        background: '#EDF7F1',
+                        color: '#15803D',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                      }}
+                    >
+                      <Check size={12} />
+                      Allocate Local Stock ($0 Freight)
+                    </button>
+                  )}
+                  {currentScenarios?.scenario3_WarehouseSame?.winningQuote && (
+                    <button
+                      onClick={() => handleAwardWarehouse(currentScenarios.scenario3_WarehouseSame.winningQuote)}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 18px',
+                        borderRadius: 6,
+                        border: 'none',
+                        background: C.rose,
+                        color: '#FFFFFF',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(216,63,121,0.25)',
+                      }}
+                    >
+                      <Award size={12} />
+                      Award {currentScenarios.scenario3_WarehouseSame.winningQuote.warehouseName.split('(')[0].trim()} ($589 Freight)
+                    </button>
+                  )}
+                  {currentOption && (
+                    <button
+                      onClick={handleProceedToConfirm}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '8px 14px',
+                        borderRadius: 6,
+                        border: `1px solid ${C.border}`,
+                        background: '#FFFFFF',
+                        color: C.text,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Confirm Sourcing
+                      <ArrowRight size={11} />
+                    </button>
+                  )}
                 </>
               )}
 
