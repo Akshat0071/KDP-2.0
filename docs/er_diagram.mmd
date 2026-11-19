@@ -82,8 +82,8 @@ erDiagram
         varchar Unit_of_Measurement
         int Selected_Option_ID FK
         date Schedule_Start_Date
-        date Delivery_Target_Date
         varchar Status
+        boolean Is_Closed
         jsonb Timeline_History
         timestamptz Created_At
         date Updated_Date
@@ -93,7 +93,6 @@ erDiagram
         int Option_ID PK
         int Order_Number PK,FK
         int Green_Material_ID FK
-        varchar Source_Type
         int Source_Site_ID FK
         int Selected_Green_ID FK
         decimal Allocated_Quantity
@@ -103,6 +102,7 @@ erDiagram
         int Lead_Time_Days
         boolean Is_Feasible
         boolean Is_Selected
+        boolean Procurement_Required
     }
 
     Fact_Table_Shipment_Details {

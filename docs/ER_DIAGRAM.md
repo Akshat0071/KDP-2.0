@@ -229,7 +229,6 @@ erDiagram
         int Option_ID PK
         int Order_Number PK,FK
         int Green_Material_ID FK
-        varchar Source_Type
         int Source_Site_ID FK
         int Selected_Green_ID FK
         decimal Allocated_Quantity
@@ -239,7 +238,7 @@ erDiagram
         int Lead_Time_Days
         boolean Is_Feasible
         boolean Is_Selected
-        text Exclusion_Reason
+        boolean Procurement_Required
     }
 
     Fact_Table_Shipment_Details {
@@ -371,7 +370,6 @@ CREATE TABLE Fact_Table_Optimization_Table (
     Option_ID INT NOT NULL,
     Order_Number INT NOT NULL REFERENCES Fact_Table_Orders(Order_Number) ON DELETE CASCADE,
     Green_Material_ID INT NOT NULL REFERENCES Dimension_Table_Green_Materials(Green_Material_ID),
-    Source_Type VARCHAR(50) NOT NULL CHECK (Source_Type IN ('LOCAL_SAME', 'LOCAL_ALT', 'WH_SAME', 'WH_ALT', 'SPLIT')),
     Source_Site_ID INT NOT NULL REFERENCES Dimension_Table_Site(Site_ID),
     Selected_Green_ID INT NOT NULL REFERENCES Dimension_Table_Green_Materials(Green_Material_ID),
     Allocated_Quantity DECIMAL(12,2) NOT NULL CHECK (Allocated_Quantity >= 0),
@@ -381,7 +379,7 @@ CREATE TABLE Fact_Table_Optimization_Table (
     Lead_Time_Days INT NOT NULL DEFAULT 0,
     Is_Feasible BOOLEAN NOT NULL DEFAULT TRUE,
     Is_Selected BOOLEAN NOT NULL DEFAULT FALSE,
-    Exclusion_Reason TEXT,
+    Procurement_Required BOOLEAN NOT NULL DEFAULT FALSE,
     PRIMARY KEY (Order_Number, Option_ID)
 );
 
