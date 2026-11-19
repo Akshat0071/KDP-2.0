@@ -407,11 +407,12 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     freightCost: 0,
     totalCost: Math.round(qty * unitPrice),
     landedPerKg: unitPrice,
-    eta: 'Immediate (On-Site Stock)',
+    leadTimeDays: 0,
+    eta: 'Immediate (0 Days Lead Time)',
     facility: 'Site 1054 · Plano Roasting',
     badge: isLocalSameFeasible ? 'OPTIMAL $0 FREIGHT' : 'INSUFFICIENT STOCK',
     note: isLocalSameFeasible
-      ? `Full ${qty.toLocaleString()} kg allocated from on-site silos. $0 freight cost.`
+      ? `Full ${qty.toLocaleString()} kg allocated from on-site silos. $0 freight, 0 days lead time.`
       : `Only ${localAvail.toLocaleString()} kg available on-site (${(qty - localAvail).toLocaleString()} kg short).`,
   };
 
@@ -449,7 +450,8 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     freightCost: 0,
     totalCost: bestAlt ? bestAlt.totalCost : 0,
     landedPerKg: bestAlt ? bestAlt.unitPrice : 0,
-    eta: 'Immediate (On-Site Stock)',
+    leadTimeDays: 0,
+    eta: 'Immediate (0 Days Lead Time)',
     facility: 'Site 1054 · Plano Roasting',
     badge: (bestAlt && bestAlt.feasible) ? 'APPROVED ALTERNATE' : 'UNAVAILABLE',
     note: bestAlt && bestAlt.feasible
@@ -458,7 +460,7 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     candidates: altCandidates,
   };
 
-  // ── Scenario 3: Warehouse Transfer, Same Green (3-Warehouse Competitive Quotes) ──
+  // ── Scenario 3: Warehouse Transfer, Same Green (Direct Central Visibility) ──
   const warehouseQuotesSame = [
     {
       id: 'quote-1055-same',
@@ -473,11 +475,12 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
       freightCost: 589,
       totalCost: Math.round(qty * unitPrice + 589),
       landedPerKg: Number(((qty * unitPrice + 589) / (qty || 1)).toFixed(2)),
-      eta: '2-3 Business Days',
+      leadTimeDays: 2,
+      eta: '2 Days Transit (Nov 11)',
       deliveryDate: needByDate || 'Nov 11, 2026',
       meetsNeedBy: true,
-      reason: 'Designated lowest-freight regional hub ($589 fixed contracted rate)',
-      badge: 'LOWEST FREIGHT',
+      reason: 'Regional Hub · Contracted freight ($589), 2-day lead time',
+      badge: 'FASTEST HUB',
       isDesignated: true,
       status: 'active',
     },
@@ -494,10 +497,11 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
       freightCost: 1000,
       totalCost: Math.round(qty * (unitPrice + 0.05) + 1000),
       landedPerKg: Number(((qty * (unitPrice + 0.05) + 1000) / (qty || 1)).toFixed(2)),
-      eta: '4-5 Business Days',
+      leadTimeDays: 4,
+      eta: '4 Days Transit (Nov 13)',
       deliveryDate: 'Nov 13, 2026',
       meetsNeedBy: true,
-      reason: 'Secondary West Coast hub · cross-country freight ($1,000 carrier rate)',
+      reason: 'West Coast Hub · Cross-country freight ($1,000), 4-day lead time',
       badge: 'SECONDARY HUB',
       isDesignated: false,
       status: 'active',
@@ -515,7 +519,8 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
       freightCost: 1200,
       totalCost: null,
       landedPerKg: null,
-      eta: '6-8 Business Days',
+      leadTimeDays: 6,
+      eta: '6 Days Transit (Nov 17)',
       deliveryDate: 'Nov 17, 2026',
       meetsNeedBy: false,
       reason: 'QA quarantine hold on current harvest lot #LK-402; unreserved buffer below safety cap',
@@ -538,12 +543,13 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     totalCost: warehouseQuotesSame[0].totalCost,
     landedPerKg: warehouseQuotesSame[0].landedPerKg,
     freightCost: warehouseQuotesSame[0].freightCost,
+    leadTimeDays: warehouseQuotesSame[0].leadTimeDays,
     eta: warehouseQuotesSame[0].eta,
-    badge: '3 LIVE QUOTES',
-    note: 'Competitive quotation received from 3 central warehouses. Warehouse 1055 is the lowest delivered cost.',
+    badge: 'OPTIMAL HUB',
+    note: 'Evaluated against central warehouse inventory in DB. Warehouse 1055 offers lowest delivered cost and 2-day lead time.',
   };
 
-  // ── Scenario 4: Warehouse Transfer, Alternate Green (3-Warehouse Quotes) ──
+  // ── Scenario 4: Warehouse Transfer, Alternate Green (Direct Central Visibility) ──
   const altName = bestAlt ? bestAlt.greenName : 'Huila Washed Reserve';
   const altId = bestAlt ? bestAlt.greenId : 'Gc-22';
   const altUnitPrice = bestAlt ? bestAlt.unitPrice : 4.40;
@@ -562,7 +568,8 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
       freightCost: 589,
       totalCost: Math.round(qty * altUnitPrice + 589),
       landedPerKg: Number(((qty * altUnitPrice + 589) / (qty || 1)).toFixed(2)),
-      eta: '2-3 Business Days',
+      leadTimeDays: 2,
+      eta: '2 Days Transit (Nov 11)',
       deliveryDate: needByDate || 'Nov 11, 2026',
       meetsNeedBy: true,
       reason: 'Alternate green transfer from lowest-freight regional hub',
@@ -583,7 +590,8 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
       freightCost: 1000,
       totalCost: Math.round(qty * 0.6 * altUnitPrice + 1000),
       landedPerKg: Number(((qty * 0.6 * altUnitPrice + 1000) / (qty * 0.6 || 1)).toFixed(2)),
-      eta: '4-5 Business Days',
+      leadTimeDays: 4,
+      eta: '4 Days Transit (Nov 13)',
       deliveryDate: 'Nov 13, 2026',
       meetsNeedBy: true,
       reason: 'Partial allocation only due to West Coast reserve commitment',
@@ -604,7 +612,8 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
       freightCost: 1200,
       totalCost: null,
       landedPerKg: null,
-      eta: '6-8 Business Days',
+      leadTimeDays: 6,
+      eta: '6 Days Transit (Nov 17)',
       deliveryDate: 'Nov 17, 2026',
       meetsNeedBy: false,
       reason: 'Zero uncommitted inventory at facility',
@@ -627,9 +636,10 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     totalCost: warehouseQuotesAlt[0].totalCost,
     landedPerKg: warehouseQuotesAlt[0].landedPerKg,
     freightCost: warehouseQuotesAlt[0].freightCost,
+    leadTimeDays: warehouseQuotesAlt[0].leadTimeDays,
     eta: warehouseQuotesAlt[0].eta,
     badge: 'ALTERNATE TRANSFER',
-    note: `Central transfer of approved alternate ${altId} (${altName}). Warehouse 1055 quote offers full capacity.`,
+    note: `Central transfer of approved alternate ${altId} (${altName}). Warehouse 1055 offers full capacity with 2-day lead time.`,
   };
 
   // ── Scenario 5: Split Order Fulfillment (Local Partial + Warehouse Remaining) ──
@@ -653,22 +663,38 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     freightCost: 589,
     totalCost: splitTotalCost,
     landedPerKg: qty > 0 ? Number((splitTotalCost / qty).toFixed(2)) : 0,
+    leadTimeDays: 2,
     eta: 'Immediate (Local) + 2 Days (WH 1055)',
     badge: isSplitApplicable ? 'HYBRID SOURCING' : 'NOT APPLICABLE',
     note: isSplitApplicable
-      ? `Allocate ${splitLocalQty.toLocaleString()} kg immediately from Site 1054 ($0 freight) + transfer remaining ${splitWhQty.toLocaleString()} kg from Warehouse 1055 ($589 freight).`
+      ? `Allocate ${splitLocalQty.toLocaleString()} kg immediately from Site 1054 ($0 freight) + transfer remaining ${splitWhQty.toLocaleString()} kg from Warehouse 1055 ($589 freight, 2-day lead time).`
       : 'Split sourcing only applies when local stock partially covers demand.',
   };
 
-  // Determine Overall Recommended Scenario
-  let recommendedScenario = scenario1;
-  if (!scenario1.feasible) {
-    if (scenario2.feasible && scenario2.totalCost < scenario3.totalCost) {
-      recommendedScenario = scenario2;
-    } else {
-      recommendedScenario = scenario3;
-    }
+  // ── Dynamic Optimization: Cost-Optimal and Fastest Calculation ──
+  const allScenarios = [scenario1, scenario2, scenario3, scenario4, scenario5];
+  const feasibleScenarios = allScenarios.filter(s => s.feasible && s.totalCost > 0);
+
+  let costOptimalScenario = null;
+  let fastestScenario = null;
+
+  if (feasibleScenarios.length > 0) {
+    costOptimalScenario = feasibleScenarios.reduce((min, cur) => 
+      cur.totalCost < min.totalCost ? cur : min, feasibleScenarios[0]
+    );
+    fastestScenario = feasibleScenarios.reduce((min, cur) => 
+      cur.leadTimeDays < min.leadTimeDays ? cur : min, feasibleScenarios[0]
+    );
   }
+
+  // Tag scenarios with dynamic optimizer flags
+  allScenarios.forEach(scen => {
+    scen.isCostOptimal = Boolean(costOptimalScenario && scen.id === costOptimalScenario.id);
+    scen.isFastest = Boolean(fastestScenario && scen.id === fastestScenario.id);
+  });
+
+  // Determine Overall Recommended Scenario (Cheapest feasible option that satisfies schedule)
+  let recommendedScenario = costOptimalScenario || scenario1;
 
   return {
     requestedItem,
@@ -677,6 +703,9 @@ export function generateSourcingScenarios(greenId, orderQuantity, inventory = IN
     scenario3_WarehouseSame: scenario3,
     scenario4_WarehouseAlt: scenario4,
     scenario5_Split: scenario5,
+    allScenarios,
+    costOptimalScenario,
+    fastestScenario,
     recommendedScenario,
   };
 }
